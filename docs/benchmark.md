@@ -35,10 +35,11 @@ At every dimension its sign corrections select about half of the terms of
 every output in an irregular pattern, so each term needs an index lookup and
 a gathered load, and nothing vectorizes within a product; direct's dense
 sums, by contrast, are vectorized by the compiler two outputs per
-instruction. On the development machine this left Cariow–Cariowa about 1.5
-times slower than direct for single products at dimensions 128 to 1024
-despite having 0.6 times the operations, and between parity and 1.45 times
-slower for batches. Those cells therefore measure how the algorithm's
+instruction. In the canonical run on the Xeon Gold 6148 this left Cariow–Cariowa
+1.5 to 1.8 times slower than direct for single products at dimensions 128
+to 1024 despite having 0.6 times the operations, and between parity and
+1.5 times slower for batches, where the paired lanes amortize its index
+work until pairing stops above 512. Those cells therefore measure how the algorithm's
 irregular corrections map onto the hardware, not its operation count; the
 algorithm is not recommended for use above 64, as the
 [mathematics](mathematics.md) document explains. Pass
@@ -127,9 +128,7 @@ then scaled to give norms in `[0.5, 2)`. The corpora are kept in
 `benchmark-corpora/` so that they can be reused.
 
 On Linux, the driver and its child processes run on the first allowed CPU,
-unless you select another with `--cpu`. A full run takes roughly half an
-hour on a server core, with most of that time spent on the quadratic direct
-product and the oracle verification at `N = 1024`. Both modes time C calls
+unless you select another with `--cpu`. A full run takes about forty minutes on a server core, with most of that time spent on the two quadratic algorithms and the oracle verification at `N = 1024`. Both modes time C calls
 with storage already allocated, so Python object overhead is excluded.
 If verification fails, the driver still writes both reports, marks the run
 and each failing algorithm with the status `verification_failure` alongside

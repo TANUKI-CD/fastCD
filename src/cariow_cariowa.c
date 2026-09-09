@@ -18,10 +18,12 @@
  *
  * With H the unnormalized Walsh--Hadamard transform, the unsigned XOR
  * convolution c_k = sum_i x_i y_(i xor k) equals N^-1 H((Hx) o (Hy)).  The
- * Cayley--Dickson product differs from it only in the signs of some terms, so
- * each output coordinate is corrected by subtracting twice the sum of its
- * negative terms, and the scalar coordinate is finally negated.  The kernels
- * use N(N-1)/2 + 2 general multiplications.
+ * basis signs satisfy e_i e_j = sigma_N(i,j) e_(i xor j).  Set epsilon_0 = -1
+ * and epsilon_k = 1 otherwise, and M_k = {i : epsilon_k sigma_N(i,i xor k) < 0}.
+ * Then z_k = epsilon_k (c_k - 2 sum_{i in M_k} x_i y_(i xor k)).
+ * For N >= 2, |M_0| = 1 and |M_k| = N/2 - 1 for k != 0: the N
+ * transform-domain products plus the correction products total N(N-1)/2 + 2
+ * general multiplications (excluding fixed power-of-two scalings).
  *
  * Through FASTCD_CC_LEAF (64 by default) the correction pattern is baked
  * into generated straight-line code with no runtime sign or mask evaluation
@@ -73,6 +75,8 @@ static FASTCD_NOINLINE void cc_table_batch(double* restrict out,
 static inline size_t cc_expand_word(uint64_t bits, uint8_t* positions) {
     size_t count = 0;
 
+    // Enumerate the set bits of this word of M_k, byte by byte.  The caller
+    // adds the word's base index to recover each coefficient index i.
     for (size_t b = 0; b < 8; b++) {
         uint8_t byte = (uint8_t)(bits >> (8 * b));
 
@@ -84,6 +88,7 @@ static inline size_t cc_expand_word(uint64_t bits, uint8_t* positions) {
 
 // Return the sign-correction table of a dimension from 16 through 1024
 static const uint64_t* cc_mask_table(size_t dimension) {
+    // Row k encodes M_k; basis signs were evaluated by the generator.
     switch (dimension) {
         case 16: return &fastcd_cc_mask_16[0][0];
         case 32: return &fastcd_cc_mask_32[0][0];
@@ -228,18 +233,24 @@ static void cc_doubling_mul(double* restrict out, const double* x,
     const double* c = y;
     const double* d = y + half;
 
+    // Optional outer doubling: x = (a,b), y = (c,d).  These are four
+    // half-dimensional CC evaluations, not one full-dimensional convolution.
+    // Pack scalar coordinates unchanged by conjugation.
     left_first[0] = (FastCDPair){a[0], d[0]};
     right_first[0] = (FastCDPair){c[0], a[0]};
     left_second[0] = (FastCDPair){d[0], b[0]};
     right_second[0] = (FastCDPair){b[0], c[0]};
+    // Negate the imaginary coordinates of d and c for their CD conjugates.
     for (size_t i = 1; i < half; i++) {
         left_first[i] = (FastCDPair){a[i], d[i]};
         right_first[i] = (FastCDPair){c[i], a[i]};
         left_second[i] = (FastCDPair){-d[i], b[i]};
         right_second[i] = (FastCDPair){b[i], -c[i]};
     }
+    // First call: lanes (ac, da).  Second: lanes (conjugate(d)b, b conjugate(c)).
     cc_pair_mul(first, left_first, right_first, half, NULL);
     cc_pair_mul(second, left_second, right_second, half, NULL);
+    // Return (ac - conjugate(d)b, da + b conjugate(c)).
     for (size_t i = 0; i < half; i++) {
         out[i] = first[i][0] - second[i][0];
         out[half + i] = first[i][1] + second[i][1];

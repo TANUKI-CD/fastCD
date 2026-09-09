@@ -12,6 +12,15 @@
  * plane is never read.
  */
 
+/*
+ * CC notation: N = 2^n, e_i e_j = sigma_N(i,j) e_(i xor j),
+ * H[r,s] = (-1)^(r dot s), with the binary dot product modulo 2 and H^2 = N I.
+ * The generated schedule forms c = H((Hx) odot (Hy))/N, then writes
+ * z_k = epsilon_k (c_k - 2 sum_{i in M_k} x_i y_(i xor k)), where
+ * epsilon_0 = -1, epsilon_k = +1 otherwise, and
+ * M_k = {i : epsilon_k sigma_N(i,i xor k) < 0}.
+ * See cc_transform_part and cc_mul_straight in the generator for each stage.
+ */
 #include <stddef.h>
 
 static inline void FASTCD_NAME(cc_mul_1)(FASTCD_REAL* restrict out, const FASTCD_REAL* x, const FASTCD_REAL* y) {

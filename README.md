@@ -110,9 +110,9 @@ In order to demonstrate the efficiency of the new quasilinear algorithm in compa
 
 The results of the canonical benchmark from which algorithm defaults were chosen for the 1.0.0 release candidate are located at `benchmark-results/paper-results.json`, with the generated report beside it in `benchmark-results/paper-results.md`. More information on the results is also available in the [Benchmark](docs/benchmark.md) documentation.
 
-Here are the exact results of the canonical benchmark. The `default` column shows the algorithm the current library selects for that mode and dimension; the single-product default at `N = 4` was moved from quasilinear to direct on the strength of this run, so it differs from the generated report, which recorded the selection in effect at the time.
+Here are the exact results of the canonical benchmark, run on one core of an Intel Xeon Gold 6148 at commit `14bf305` with a clean tree. The `fastest mean` column names the lowest verified mean, or a tie when the paired per-block ratio of the two lowest means does not separate them, and the `default` column shows the algorithm the library selects for that mode and dimension. Cariow-Cariowa is timed at every dimension; the [Benchmark](docs/benchmark.md) documentation explains why its times above `N = 64` reflect its irregular sign corrections rather than its operation count.
 
-## Batch products (ns per product)
+### Batch products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |
@@ -127,7 +127,7 @@ Here are the exact results of the canonical benchmark. The `default` column show
 | 512 | 69138.03 [68183.42, 70092.64] | 65786.36 [64987.60, 66585.12] | 7485.61 [7376.06, 7595.15] | quasilinear | quasilinear |
 | 1024 | 273693.44 [270572.17, 276814.71] | 408225.87 [406200.31, 410251.42] | 17483.64 [17250.55, 17716.73] | quasilinear | quasilinear |
 
-## Single products (ns per product)
+### Single products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |

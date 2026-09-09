@@ -10,6 +10,10 @@
  * their order), so single products, batches, and non-SIMD builds agree
  * bitwise.  The node needs 6K doubles of pair storage plus the paired
  * child's scratch; fastcd_quasilinear_workspace reports that requirement.
+ *
+ * Paper notation: dimension = 2^n for AltC_n, AltR_n and Mul_n.  The
+ * real/imag planes hold coefficients over C; iota is the auxiliary complex
+ * unit.  SIMD lanes are separate calculations, not real/imag components.
  */
 
 /* Two adjacent doubles of a scalar plane, read and written unaligned. */
@@ -93,16 +97,21 @@ static void ql_simd_transform(FastCDPair* restrict t_real,
         size_t half) {
     size_t i;
 
+    // AltC_n: both u +/- iota s (or v +/- iota t) belong to V_{n-1}^C.
+    // Set their CD scalar coordinates to zero in both child lanes.
     t_real[0] = (FastCDPair){0.0, 0.0};
     t_imag[0] = (FastCDPair){0.0, 0.0};
+    // Form Re_C(u +/- iota s) = Re_C u -/+ Im_C s, two coordinates at a time.
     for (i = 1; i + 1 < half; i += 2) {
         FastCDPair a = ql_load2(real + i);
         FastCDPair b = ql_load2(imag + half + i);
         FastCDPair plus_child = a - b;
         FastCDPair minus_child = a + b;
 
+        // Transpose coordinate lanes into child lanes: [plus_i, minus_i].
         t_real[i] = ql_low(plus_child, minus_child);
         t_real[i + 1] = ql_high(plus_child, minus_child);
+        // Im_C(u +/- iota s) = Im_C u +/- Re_C s, in the same child layout.
         a = ql_load2(imag + i);
         b = ql_load2(real + half + i);
         plus_child = a + b;
@@ -110,6 +119,7 @@ static void ql_simd_transform(FastCDPair* restrict t_real,
         t_imag[i] = ql_low(plus_child, minus_child);
         t_imag[i + 1] = ql_high(plus_child, minus_child);
     }
+    // Pack any remaining coordinate with the same formulas; no recursive call.
     for (; i < half; i++) {
         t_real[i] = (FastCDPair){real[i] - imag[half + i], real[i] + imag[half + i]};
         t_imag[i] = (FastCDPair){imag[i] + real[half + i], imag[i] - real[half + i]};
@@ -137,11 +147,14 @@ static void ql_simd_complex_cross(double* restrict out_real,
     FastCDComplexLanes gamma_lanes;
     FastCDComplexLanes delta_lanes;
 
+    // Small AltC_n nodes use the scalar leaves, including AltC_1 = 0.
     if (dimension <= FASTCD_QL_COMPLEX_LEAF) {
         fastcd_complex_cross(out_real, out_imag, x_real, x_imag, y_real,
                 y_imag, dimension, workspace);
         return;
     }
+    // Reserve four transformed input planes, two child-result planes and
+    // deeper scratch.  Each plane has half pairs, one lane per child.
     half = dimension >> 1;
     pairs = ql_aligned_pairs(workspace);
     tx_real = pairs;
@@ -151,6 +164,8 @@ static void ql_simd_complex_cross(double* restrict out_real,
     child_real = pairs + 4 * half;
     child_imag = pairs + 5 * half;
     child_workspace = pairs + 6 * half;
+    // Write X = (u, gamma + s), Y = (v, delta + t).  gamma and delta
+    // are complex scalars; broadcast them for two-coordinate recombination.
     gamma.real = x_real[half];
     gamma.imag = x_imag[half];
     delta.real = y_real[half];
@@ -158,11 +173,15 @@ static void ql_simd_complex_cross(double* restrict out_real,
     gamma_lanes = ql_broadcast(gamma);
     delta_lanes = ql_broadcast(delta);
 
+    // Pack u +/- iota s and v +/- iota t, with plus in lane 0, minus in lane 1.
     ql_simd_transform(tx_real, tx_imag, x_real, x_imag, half);
     ql_simd_transform(ty_real, ty_imag, y_real, y_imag, half);
+    // Evaluate Z_+ = AltC_{n-1}(u + iota s, v + iota t) and Z_- with
+    // minus signs together.  Recursion continues inside the paired template.
     fastcd_pair_complex_cross(child_real, child_imag, tx_real, tx_imag,
             ty_real, ty_imag, half, child_workspace);
 
+    // Assemble lambda, F and G; arithmetic lanes now represent coordinates i,i+1.
     for (i = 1; i + 1 < half; i += 2) {
         FastCDComplexLanes u = {ql_load2(x_real + i), ql_load2(x_imag + i)};
         FastCDComplexLanes v = {ql_load2(y_real + i), ql_load2(y_imag + i)};
@@ -170,30 +189,39 @@ static void ql_simd_complex_cross(double* restrict out_real,
             ql_load2(x_imag + half + i)};
         FastCDComplexLanes t = {ql_load2(y_real + half + i),
             ql_load2(y_imag + half + i)};
+        // Transpose [Z_+, Z_-] child pairs into adjacent coordinates of each Z.
         FastCDComplexLanes plus = {ql_low(child_real[i], child_real[i + 1]),
             ql_low(child_imag[i], child_imag[i + 1])};
         FastCDComplexLanes minus = {ql_high(child_real[i], child_real[i + 1]),
             ql_high(child_imag[i], child_imag[i + 1])};
+        // Contributions to lambda = <s,v>_bil - <t,u>_bil; no conjugation.
         FastCDComplexLanes pair = ql_lanes_sub(ql_lanes_mul(s, v),
                 ql_lanes_mul(t, u));
+        // Start F = (Z_+ + Z_-)/2; mixed = iota (Z_+ - Z_-)/2.
         FastCDComplexLanes first = ql_lanes_half(ql_lanes_add(plus, minus));
         FastCDComplexLanes difference = ql_lanes_half(ql_lanes_sub(plus, minus));
         FastCDComplexLanes mixed = {-difference.imag, difference.real};
+        // Start the non-scalar part of G with delta u - gamma v.
         FastCDComplexLanes second = ql_lanes_sub(ql_lanes_mul(delta_lanes, u),
                 ql_lanes_mul(gamma_lanes, v));
         fastcd_FastCDComplex pair_low = {pair.real[0], pair.imag[0]};
         fastcd_FastCDComplex pair_high = {pair.real[1], pair.imag[1]};
 
+        // Accumulate lambda in scalar coordinate order, i then i+1.
         scalar = i == 1 ? pair_low : fastcd_complex_add(scalar, pair_low);
         scalar = fastcd_complex_add(scalar, pair_high);
+        // Finish F with gamma t - delta s and G with iota (Z_+ - Z_-)/2.
         first = ql_lanes_add(first, ql_lanes_mul(gamma_lanes, t));
         first = ql_lanes_sub(first, ql_lanes_mul(delta_lanes, s));
         second = ql_lanes_add(second, mixed);
+        // Store the non-scalar coordinates of (F,G) in the two output halves.
         ql_store2(out_real + i, first.real);
         ql_store2(out_imag + i, first.imag);
         ql_store2(out_real + half + i, second.real);
         ql_store2(out_imag + half + i, second.imag);
     }
+    // Finish any remaining coordinate with the same lambda, F, G formulas.
+    // Child lanes still hold Z_+, Z_-; this is scalar recombination, not recursion.
     for (; i < half; i++) {
         fastcd_FastCDComplex u = {x_real[i], x_imag[i]};
         fastcd_FastCDComplex v = {y_real[i], y_imag[i]};
@@ -220,6 +248,7 @@ static void ql_simd_complex_cross(double* restrict out_real,
         out_real[half + i] = second.real;
         out_imag[half + i] = second.imag;
     }
+    // Return (F,G): F has scalar coordinate 0 and G has scalar coordinate lambda.
     out_real[0] = 0.0;
     out_imag[0] = 0.0;
     out_real[half] = scalar.real;
@@ -229,6 +258,7 @@ static void ql_simd_complex_cross(double* restrict out_real,
 // Compute the imaginary cross product of one real product above the leaves
 static void ql_simd_cross_recursive(double* restrict out, const double* x,
         const double* y, size_t dimension, double* restrict workspace) {
+    // AltR_n above the leaves: write X = (u, gamma + s), Y = (v, delta + t).
     size_t half = dimension >> 1;
     size_t i;
     double gamma = x[half];
@@ -237,8 +267,13 @@ static void ql_simd_cross_recursive(double* restrict out, const double* x,
     FastCDPair gamma_lanes = {gamma, gamma};
     FastCDPair delta_lanes = {delta, delta};
 
+    // Z = AltC_{n-1}(u + iota s, v + iota t); ignored coordinate 0
+    // omits x[0], y[0], gamma and delta from the complex child inputs.
+    // Store Re_C Z in the lower output half and Im_C Z in the upper half.
     ql_simd_complex_cross(out, out + half, x, x + half, y, y + half, half,
             workspace);
+    // Compute lambda, F = Re_C Z + gamma t - delta s, and the non-scalar
+    // part of G = delta u - gamma v - Im_C Z, two coordinates at a time.
     for (i = 1; i + 1 < half; i += 2) {
         FastCDPair x_low = ql_load2(x + i);
         FastCDPair y_low = ql_load2(y + i);
@@ -250,13 +285,16 @@ static void ql_simd_cross_recursive(double* restrict out, const double* x,
         FastCDPair first = out_low + gamma_lanes * y_high;
         FastCDPair second = delta_lanes * x_low - gamma_lanes * y_low;
 
+        // Sum lambda = <s,v> - <t,u> in scalar coordinate order.
         scalar = i == 1 ? pair[0] : scalar + pair[0];
         scalar = scalar + pair[1];
+        // Complete and store the current coordinates of F and G.
         first = first - delta_lanes * x_high;
         second = second - out_high;
         ql_store2(out + i, first);
         ql_store2(out + half + i, second);
     }
+    // Finish any remaining coordinate with the same real-root formulas.
     for (; i < half; i++) {
         double pair = x[half + i] * y[i] - y[half + i] * x[i];
         double first = out[i] + gamma * y[half + i];
@@ -268,6 +306,7 @@ static void ql_simd_cross_recursive(double* restrict out, const double* x,
         out[i] = first;
         out[half + i] = second;
     }
+    // Return (F,G), with lambda in the scalar coordinate of G.
     out[0] = 0.0;
     out[half] = scalar;
 }
@@ -275,6 +314,8 @@ static void ql_simd_cross_recursive(double* restrict out, const double* x,
 // Add the scalar--imaginary terms to a completed imaginary cross product
 static void ql_simd_reconstruct(double* restrict out, const double* x,
         const double* y, size_t dimension) {
+    // Mul_n: alpha = RePart(x), beta = RePart(y); coordinates 1..N-1
+    // hold X = ImPart(x), Y = ImPart(y).  out already holds Z = AltR_n(X,Y).
     double alpha = x[0];
     double beta = y[0];
     double dot = x[1] * y[1];
@@ -282,14 +323,17 @@ static void ql_simd_reconstruct(double* restrict out, const double* x,
     FastCDPair beta_lanes = {beta, beta};
     size_t i;
 
+    // Compute <X,Y> in scalar order, then write alpha beta - <X,Y>.
     for (i = 2; i < dimension; i++) dot = dot + x[i] * y[i];
     out[0] = alpha * beta - dot;
+    // Complete Z + alpha Y + beta X, with adjacent coordinates in the lanes.
     for (i = 1; i + 1 < dimension; i += 2) {
         FastCDPair term = alpha_lanes * ql_load2(y + i)
             + beta_lanes * ql_load2(x + i);
 
         ql_store2(out + i, ql_load2(out + i) + term);
     }
+    // Finish any remaining coordinate of the same Mul_n reconstruction.
     for (; i < dimension; i++) {
         out[i] = out[i] + (alpha * y[i] + beta * x[i]);
     }
