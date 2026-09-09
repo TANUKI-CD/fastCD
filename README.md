@@ -108,7 +108,7 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 In order to demonstrate the efficiency of the new quasilinear algorithm in comparison with the direct and Cariow-Cariowa algorithms, and to justify the choice of default algorithm for batched and single multiplications, a benchmark has been designed. The benchmark generates 10,000 pairs of Cayley-Dickson elements and performs multiplications with them in blocks, timing each algorithm while also verifying the accuracy of each one via an independent direct implementation.
 
-The results of the canonical benchmark from which algorithm defaults were chosen for the 1.0.0 release candidate will be located at `benchmark-results/results.json`, with the generated report beside it in `benchmark-results/results.md`. More information on the results is also available in the [Benchmark](docs/benchmark.md) documentation.
+The results of the canonical benchmark from which algorithm defaults were chosen for the 1.0.0 release candidate are located at `benchmark-results/paper-results.json`, with the generated report beside it in `benchmark-results/paper-results.md`. More information on the results is also available in the [Benchmark](docs/benchmark.md) documentation.
 
 Here are the exact results of the canonical benchmark. The `default` column shows the algorithm the current library selects for that mode and dimension; the single-product default at `N = 4` was moved from quasilinear to direct on the strength of this run, so it differs from the generated report, which recorded the selection in effect at the time.
 

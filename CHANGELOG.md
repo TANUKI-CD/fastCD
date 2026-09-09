@@ -5,7 +5,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
-## [1.0.0rc1] - Released 09/08/2026
+## [1.0.0rc1] - 2026-09-08
 
 Release candidate for the initial public release.
 
