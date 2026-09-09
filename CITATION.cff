@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use fastCD in your work, please cite it using this metadata."
+type: software
+title: "fastCD: fast real Cayley–Dickson arithmetic"
+abstract: >-
+  A C library and NumPy-compatible Python extension for multiplication in the
+  real Cayley–Dickson tower, including a quasilinear O(N log N) multiplication
+  algorithm alongside the direct recursion and the Cariow–Cariowa algorithm.
+authors:
+  - family-names: Lemley
+    given-names: Harrison
+version: 1.0.0rc1
+license: MIT
+repository-code: "https://git.tanuki-cd.com/algebraity/fastCD"
+keywords:
+  - Cayley-Dickson algebras
+  - hypercomplex numbers
+  - quaternions
+  - octonions
+  - sedenions
+  - fast multiplication
+# Once the accompanying paper is published, add it here as preferred-citation
+# so that citations of the software point to the paper.

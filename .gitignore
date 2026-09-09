@@ -1,0 +1,45 @@
+# CMake and native build products
+/build/
+/build-*/
+/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+install_manifest.txt
+Testing/
+*.a
+*.dll
+*.dylib
+*.lib
+*.o
+*.obj
+*.pyd
+*.so
+*.so.*
+
+# Python build, package, test, and environment products
+/.venv/
+/dist/
+/wheelhouse/
+.nox/
+.tox/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.egg-info/
+*.py[cod]
+*.whl
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Editor and operating-system metadata
+.DS_Store
+*.swp
+*~
+
+# Benchmark corpora and results
+/benchmark-corpora/

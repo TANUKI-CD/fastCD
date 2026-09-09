@@ -1,0 +1,76 @@
+# Runs on the GitHub mirror; the canonical repository is git.tanuki-cd.com.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  c-library:
+    name: C (${{ matrix.os }}, ${{ matrix.cc }}, ${{ matrix.config }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, cc: gcc, config: Release, extra: "" }
+          - { os: ubuntu-latest, cc: gcc, config: Debug, extra: "-DFASTCD_ENABLE_SANITIZERS=ON" }
+          - { os: ubuntu-latest, cc: clang, config: Release, extra: "-DFASTCD_ENABLE_SANITIZERS=ON" }
+          - { os: ubuntu-latest, cc: gcc, config: Release, extra: "-DFASTCD_TUNING_DEFINITIONS=FASTCD_DISABLE_SIMD=1" }
+          - { os: ubuntu-24.04-arm, cc: gcc, config: Release, extra: "" }
+          - { os: macos-latest, cc: clang, config: Release, extra: "" }
+          - { os: windows-latest, cc: cl, config: Release, extra: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+          -DFASTCD_WARNINGS_AS_ERRORS=ON ${{ matrix.extra }}
+        env:
+          CC: ${{ matrix.cc != 'cl' && matrix.cc || '' }}
+      - name: Build
+        run: cmake --build build --parallel --config ${{ matrix.config }}
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -C ${{ matrix.config }}
+
+  generated-kernels:
+    name: Generated kernels are up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python3 tools/generate_kernels.py src/generated
+      - run: git diff --exit-code -- src/generated
+
+  python:
+    name: Python ${{ matrix.python }} / ${{ matrix.numpy }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, python: "3.10", numpy: "numpy==1.26.*" }
+          - { os: ubuntu-latest, python: "3.12", numpy: "numpy" }
+          - { os: ubuntu-latest, python: "3.14", numpy: "numpy" }
+          - { os: macos-latest, python: "3.13", numpy: "numpy" }
+          - { os: windows-latest, python: "3.12", numpy: "numpy" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}" }
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "${{ matrix.numpy }}" pytest
+          python -m pip install .
+      - name: Test
+        run: python -m pytest -q
+      - name: Type-check and lint
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        run: |
+          python -m pip install mypy ruff
+          python -m mypy
+          python -m ruff check python benchmarks tools

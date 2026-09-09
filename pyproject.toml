@@ -1,0 +1,133 @@
+[build-system]
+requires = ["scikit-build-core>=1,<2"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pyfastcd"
+dynamic = ["version"]
+description = "Fast real Cayley-Dickson arithmetic backed by a matrix-free C kernel"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Harrison Lemley" },
+]
+keywords = [
+    "cayley-dickson",
+    "hypercomplex",
+    "octonion",
+    "quaternion",
+    "scientific-computing",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: C",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.26",
+]
+
+[project.urls]
+Homepage = "https://git.tanuki-cd.com/algebraity/fastCD"
+Source = "https://git.tanuki-cd.com/algebraity/fastCD"
+Documentation = "https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs"
+Changelog = "https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CHANGELOG.md"
+Issues = "https://git.tanuki-cd.com/algebraity/fastCD/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8",
+    "pytest-cov>=5",
+]
+dev = [
+    "build>=1.2",
+    "mypy>=1.11",
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.8",
+    "twine>=5",
+]
+
+[tool.scikit-build]
+minimum-version = "1.0"
+cmake.version = ">=3.18"
+build-dir = "build/{wheel_tag}"
+wheel.packages = ["python/src/pyfastcd"]
+wheel.exclude = [
+    "pyfastcd/_core.c",
+    "pyfastcd/__pycache__/**",
+    "pyfastcd/*.py[cod]",
+]
+install.components = ["python"]
+sdist.inclusion-mode = "explicit"
+sdist.include = [
+    "CHANGELOG.md",
+    "CITATION.cff",
+    "CMakeLists.txt",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "SECURITY.md",
+    "README.md",
+    "pyproject.toml",
+    "assets/**",
+    "benchmarks/**",
+    "cmake/**",
+    "docs/**",
+    "include/**",
+    "python/**",
+    "src/**",
+    "tests/**",
+    "tools/**",
+]
+sdist.exclude = [
+    "**/__pycache__/**",
+    "**/*.py[cod]",
+    "build/**",
+]
+
+# The version is defined once, in src/fastcd.c; CMakeLists.txt reads the same
+# define, so the C library, the wheel metadata, and __version__ cannot drift.
+[[tool.dynamic-metadata]]
+field = "version"
+provider = "scikit_build_core.metadata.regex"
+input = "src/fastcd.c"
+regex = '#define FASTCD_VERSION "(?P<value>[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]*)"'
+
+[tool.scikit-build.cmake.define]
+BUILD_SHARED_LIBS = false
+BUILD_TESTING = false
+FASTCD_BUILD_BENCHMARK = false
+FASTCD_BUILD_PYTHON = true
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers"
+testpaths = ["python/tests", "benchmarks"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+# The benchmark driver keeps long report strings on one line.
+[tool.ruff.lint.per-file-ignores]
+"benchmarks/*.py" = ["E501"]
+
+[tool.mypy]
+strict = true
+packages = ["pyfastcd"]
+mypy_path = "python/src"
