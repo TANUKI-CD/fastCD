@@ -112,35 +112,35 @@ The results of the canonical benchmark from which algorithm defaults were chosen
 
 Here are the exact results of the canonical benchmark. The `default` column shows the algorithm the current library selects for that mode and dimension; the single-product default at `N = 4` was moved from quasilinear to direct on the strength of this run, so it differs from the generated report, which recorded the selection in effect at the time.
 
-### Batch products (ns per product)
+## Batch products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |
-| 2 | 1.33 [1.31, 1.34] | 1.53 [1.50, 1.57] | 1.05 [1.04, 1.06] | quasilinear | quasilinear |
-| 4 | 3.70 [3.64, 3.76] | 4.42 [4.37, 4.47] | 3.67 [3.60, 3.75] | quasilinear | quasilinear |
-| 8 | 11.89 [11.67, 12.12] | 13.52 [13.30, 13.74] | 16.53 [16.21, 16.84] | direct | direct |
-| 16 | 54.49 [53.76, 55.22] | 49.72 [48.90, 50.55] | 57.54 [56.30, 58.77] | cariow_cariowa | cariow_cariowa |
-| 32 | 257.56 [254.42, 260.69] | 225.64 [220.86, 230.43] | 194.15 [191.72, 196.58] | quasilinear | quasilinear |
-| 64 | 1142.56 [1118.52, 1166.60] | 965.57 [953.03, 978.11] | 492.83 [483.75, 501.90] | quasilinear | quasilinear |
-| 128 | 4315.41 [4240.20, 4390.62] | unavailable | 1317.35 [1290.37, 1344.34] | quasilinear | quasilinear |
-| 256 | 17909.41 [17622.23, 18196.60] | unavailable | 3302.53 [3244.81, 3360.25] | quasilinear | quasilinear |
-| 512 | 68998.46 [68171.09, 69825.82] | unavailable | 7354.67 [7247.14, 7462.21] | quasilinear | quasilinear |
-| 1024 | 274110.65 [271699.14, 276522.17] | unavailable | 20632.11 [20386.63, 20877.58] | quasilinear | quasilinear |
+| 2 | 1.34 [1.33, 1.35] | 1.53 [1.50, 1.56] | 1.02 [1.01, 1.03] | quasilinear | quasilinear |
+| 4 | 3.87 [3.78, 3.97] | 4.58 [4.49, 4.66] | 3.80 [3.71, 3.89] | tie (quasilinear, direct) | quasilinear |
+| 8 | 11.89 [11.68, 12.09] | 13.53 [13.25, 13.82] | 16.22 [15.96, 16.49] | direct | direct |
+| 16 | 54.68 [53.91, 55.45] | 49.38 [48.60, 50.16] | 56.95 [56.04, 57.85] | cariow_cariowa | cariow_cariowa |
+| 32 | 257.63 [252.67, 262.58] | 221.01 [217.27, 224.76] | 193.27 [191.00, 195.54] | quasilinear | quasilinear |
+| 64 | 1124.05 [1101.38, 1146.72] | 947.05 [935.01, 959.09] | 492.65 [483.39, 501.92] | quasilinear | quasilinear |
+| 128 | 4468.17 [4362.50, 4573.85] | 4908.83 [4771.93, 5045.73] | 1322.56 [1304.49, 1340.63] | quasilinear | quasilinear |
+| 256 | 17757.92 [17535.51, 17980.33] | 17663.82 [17465.57, 17862.08] | 3149.78 [3101.79, 3197.78] | quasilinear | quasilinear |
+| 512 | 69138.03 [68183.42, 70092.64] | 65786.36 [64987.60, 66585.12] | 7485.61 [7376.06, 7595.15] | quasilinear | quasilinear |
+| 1024 | 273693.44 [270572.17, 276814.71] | 408225.87 [406200.31, 410251.42] | 17483.64 [17250.55, 17716.73] | quasilinear | quasilinear |
 
-### Single products (ns per product)
+## Single products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |
-| 2 | 15.11 [14.96, 15.27] | 15.12 [14.88, 15.36] | 14.99 [14.82, 15.17] | quasilinear | quasilinear |
-| 4 | 17.15 [16.94, 17.35] | 18.95 [18.65, 19.24] | 17.81 [17.49, 18.13] | direct | direct |
-| 8 | 27.82 [27.47, 28.17] | 38.92 [38.23, 39.61] | 37.35 [36.63, 38.08] | direct | direct |
-| 16 | 72.38 [69.40, 75.37] | 106.51 [104.40, 108.62] | 119.45 [117.85, 121.05] | direct | direct |
-| 32 | 301.81 [293.82, 309.79] | 435.81 [427.12, 444.50] | 305.90 [302.68, 309.12] | direct | quasilinear |
-| 64 | 1109.27 [1094.34, 1124.21] | 1880.48 [1843.79, 1917.16] | 720.21 [711.52, 728.90] | quasilinear | quasilinear |
-| 128 | 4485.89 [4401.46, 4570.33] | unavailable | 1703.93 [1668.53, 1739.33] | quasilinear | quasilinear |
-| 256 | 17637.42 [17394.69, 17880.15] | unavailable | 4257.83 [4188.85, 4326.81] | quasilinear | quasilinear |
-| 512 | 68183.41 [67628.16, 68738.67] | unavailable | 9417.32 [9302.18, 9532.45] | quasilinear | quasilinear |
-| 1024 | 275157.63 [272944.99, 277370.26] | unavailable | 20549.62 [20347.77, 20751.47] | quasilinear | quasilinear |
+| 2 | 16.90 [15.83, 17.96] | 17.92 [16.97, 18.87] | 15.69 [15.45, 15.92] | quasilinear | quasilinear |
+| 4 | 19.33 [18.06, 20.60] | 22.15 [20.77, 23.52] | 19.89 [18.76, 21.02] | tie (direct, quasilinear) | direct |
+| 8 | 27.78 [27.35, 28.21] | 39.42 [38.68, 40.16] | 36.45 [35.45, 37.46] | direct | direct |
+| 16 | 78.06 [76.52, 79.60] | 103.90 [102.22, 105.58] | 119.59 [117.61, 121.57] | direct | direct |
+| 32 | 286.89 [282.76, 291.03] | 439.21 [430.02, 448.41] | 225.86 [221.96, 229.76] | quasilinear | quasilinear |
+| 64 | 1121.00 [1105.23, 1136.76] | 1851.90 [1819.35, 1884.44] | 542.68 [534.57, 550.79] | quasilinear | quasilinear |
+| 128 | 4390.47 [4334.93, 4446.01] | 7833.73 [7680.01, 7987.44] | 1334.23 [1316.20, 1352.27] | quasilinear | quasilinear |
+| 256 | 17314.96 [17119.93, 17509.99] | 28830.79 [28140.17, 29521.40] | 3381.47 [3323.64, 3439.30] | quasilinear | quasilinear |
+| 512 | 69029.59 [68325.12, 69734.07] | 107873.78 [106494.36, 109253.20] | 7913.86 [7851.24, 7976.47] | quasilinear | quasilinear |
+| 1024 | 274511.31 [272437.03, 276585.59] | 411259.09 [406462.40, 416055.78] | 17525.01 [17348.44, 17701.58] | quasilinear | quasilinear |
 
 
 ## Documentation
