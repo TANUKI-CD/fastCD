@@ -21,7 +21,7 @@ keywords = [
     "scientific-computing",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
     "Programming Language :: C",
@@ -45,7 +45,7 @@ Homepage = "https://git.tanuki-cd.com/algebraity/fastCD"
 Source = "https://git.tanuki-cd.com/algebraity/fastCD"
 Documentation = "https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs"
 Changelog = "https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CHANGELOG.md"
-Issues = "https://git.tanuki-cd.com/algebraity/fastCD/issues"
+Issues = "https://github.com/TANUKI-CD/fastCD/issues"
 
 [project.optional-dependencies]
 test = [

@@ -9,8 +9,8 @@ abstract: >-
 authors:
   - family-names: Lemley
     given-names: Harrison
-version: 1.0.0rc1
-date-released: 2026-09-08
+version: 1.0.0
+date-released: 2026-09-13
 license: MIT
 repository-code: "https://git.tanuki-cd.com/algebraity/fastCD"
 keywords:
@@ -20,5 +20,15 @@ keywords:
   - octonions
   - sedenions
   - fast multiplication
-# Once the accompanying paper is published, add it here as preferred-citation
-# so that citations of the software point to the paper.
+preferred-citation:
+  type: article
+  title: "Quasilinear multiplication in the real Cayley--Dickson tower"
+  authors:
+    - family-names: Lemley
+      given-names: Harrison
+  year: 2026
+  url: "https://arxiv.org/abs/2609.11588"
+  identifiers:
+    - type: other
+      value: "arXiv:2609.11588"
+

@@ -130,7 +130,7 @@ and the caller's workspace.
 
 - `const char* fastcd_version_string(void)`
 
-  Return the library version string, currently `"1.0.0rc1"`.
+  Return the library version string, currently `"1.0.0"`.
 
 - `const char* fastcd_status_string(FastCDStatus status)`
 
