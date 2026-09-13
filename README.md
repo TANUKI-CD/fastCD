@@ -2,7 +2,7 @@
 
 # fastCD - v1.0.0rc1
 
-fastCD is a lean C kernel for Cayley-Dickson multiplication with a NumPy-compatible Python extension written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the accompanying paper referenced at the end of the README for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
+fastCD is a lean C kernel for Cayley-Dickson multiplication with a NumPy-compatible Python extension written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
 
 In addition to this new quasilinear algorithm, both direct Cayley-Dickson multiplication and an algorithm due to [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09) are also included in the library. The default multiplication algorithm for each dimension has been selected based on explicit single-core benchmarking for both single and batched multiplication, and while quasilinear is provably asymptotically the fastest, it is not the fastest for all lower dimensions. The direct and Cariow-Cariowa algorithms are also used for some low dimensions; see [Benchmark](#benchmark) for more information on this.
 
@@ -155,8 +155,8 @@ Here are the exact results of the canonical benchmark, run on one core of an Int
 
 All code is released under the [MIT License](LICENSE) and is presented with no warranty or guarantees. You may use it in any way for any purpose and are not restricted by the original author of the code. To cite the software, use the metadata in [CITATION.cff](CITATION.cff); the changelog is in [CHANGELOG.md](CHANGELOG.md).
 
-The quasilinear algorithm is due to Harrison Lemley (me!), *Quasilinear
-multiplication in the real Cayley–Dickson tower* (forthcoming). The
+The quasilinear algorithm is due to Harrison Lemley (me!), [*Quasilinear
+multiplication in the real Cayley–Dickson tower*](https://arxiv.org/abs/2609.11588) . The
 Cariow–Cariowa algorithm follows Aleksandr Cariow and Galina Cariowa,
 [*An unified approach for developing rationalized algorithms for hypercomplex
 number multiplication*](https://doi.org/10.15199/48.2015.02.09), *Przegląd
