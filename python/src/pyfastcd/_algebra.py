@@ -519,8 +519,10 @@ class Algebra:
         axis is fixed and is never broadcast.  ``"direct"`` evaluates the
         defining doubling recursion with quadratic arithmetic,
         ``"cariow_cariowa"`` uses fixed straight-line kernels through
-        dimension 64, and ``"quasilinear"`` uses ``O(N log N)`` arithmetic at
-        every dimension.  The algorithms can round differently.  Ordinary
+        dimension 64 and table-driven kernels from 128 through 1024, where it
+        is available but not recommended, and ``"quasilinear"`` uses
+        ``O(N log N)`` arithmetic at every dimension.  The algorithms can
+        round differently.  Ordinary
         operators, ``numpy.multiply``, and powers always use ``"auto"``.
         Real scalar operands are scaled coordinatewise without invoking a
         multiplication kernel, so the algorithm does not change their result.
