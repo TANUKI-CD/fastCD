@@ -1,0 +1,123 @@
+Start testing: Oct 19 19:09 EDT
+----------------------------------------------------------
+1/4 Testing: fastcd.public_api_link
+1/4 Test: fastcd.public_api_link
+Command: "/tmp/fastcd-v2/build/fastcd_public_link_test"
+Directory: /tmp/fastcd-v2/build
+"fastcd.public_api_link" start time: Oct 19 19:09 EDT
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"fastcd.public_api_link" end time: Oct 19 19:09 EDT
+"fastcd.public_api_link" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/4 Testing: fastcd.tests
+2/4 Test: fastcd.tests
+Command: "/tmp/fastcd-v2/build/fastcd_tests"
+Directory: /tmp/fastcd-v2/build
+"fastcd.tests" start time: Oct 19 19:09 EDT
+Output:
+----------------------------------------------------------
+fastCD automated test suite (library 1.0.0)
+
+=== library information ===
+
+=== dimension utilities ===
+
+=== algorithm selection ===
+
+=== workspace contracts ===
+
+=== construction and coordinate arithmetic ===
+
+=== overlap validation ===
+
+=== structural operations ===
+
+=== numerical edge cases ===
+
+=== signed zero ===
+
+=== squares ===
+
+=== oracle sanity and hand-computed products ===
+
+=== exhaustive basis products ===
+
+=== basis validation ===
+
+=== randomized exact products ===
+
+=== randomized floating products ===
+  auto (public): worst error / tolerance = 0.0013
+  auto (explicit): worst error / tolerance = 0.0013
+  direct: worst error / tolerance = 0.0013
+  cariow_cariowa: worst error / tolerance = 0.0028
+  quasilinear: worst error / tolerance = 0.0010
+
+=== multiplication accuracy and finite range ===
+  990 products; maximum error / (epsilon ||x||2 ||y||2):
+    auto (public) 5.966250
+    auto (explicit) 5.966250
+    direct 2.215625
+    cariow_cariowa 1.212937
+    quasilinear 5.966250
+
+=== batched multiplication ===
+
+=== batch backend boundaries ===
+
+=== large-dimension products against the oracle ===
+
+=== NaN and infinity propagation ===
+
+=== composite products ===
+
+=== size overflow boundaries ===
+
+63513 checks, 63513 passed, 0 failed in 3.51 s
+<end of output>
+Test time =   3.52 sec
+----------------------------------------------------------
+Test Passed.
+"fastcd.tests" end time: Oct 19 19:09 EDT
+"fastcd.tests" time elapsed: 00:00:03
+----------------------------------------------------------
+
+3/4 Testing: fastcd.quasilinear_leaf
+3/4 Test: fastcd.quasilinear_leaf
+Command: "/tmp/fastcd-v2/build/fastcd_leaf_tests"
+Directory: /tmp/fastcd-v2/build
+"fastcd.quasilinear_leaf" start time: Oct 19 19:09 EDT
+Output:
+----------------------------------------------------------
+452 complex octonion leaf checks passed (196 basis, 256 dense)
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"fastcd.quasilinear_leaf" end time: Oct 19 19:09 EDT
+"fastcd.quasilinear_leaf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/4 Testing: fastcd.benchmark_metadata
+4/4 Test: fastcd.benchmark_metadata
+Command: "/tmp/fastcd-v2/build/fastcd_benchmark" "--metadata"
+Directory: /tmp/fastcd-v2/build
+"fastcd.benchmark_metadata" start time: Oct 19 19:09 EDT
+Output:
+----------------------------------------------------------
+{"schema":"fastcd-benchmark-1","runner":"fastcd_benchmark","library_version":"1.0.0","build_id":"7977f59061b2fe31e8359e37cdda96052b9ae5547146d1b1414884c114c3fb32-Release","compiler":{"name":"gcc","version":"16.1.1 20260625","pointer_bits":64},"clock":"CLOCK_MONOTONIC_RAW","timing_boundary":"one validated fastcd_mul_batch_with_algorithm_f64 call per corpus pass; preallocated buffers","timing_excludes":["corpus_io","allocation","warmup","calibration","verification","checksum"],"algorithms":["direct","cariow_cariowa","quasilinear","auto"],"modes":["batch","single"],"cariow_cariowa_max_dimension":1024}
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"fastcd.benchmark_metadata" end time: Oct 19 19:09 EDT
+"fastcd.benchmark_metadata" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 19 19:09 EDT

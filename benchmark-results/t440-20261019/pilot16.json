@@ -1,0 +1,1952 @@
+{
+  "schema": "fastcd-benchmark-results-2",
+  "status": "ok",
+  "started": "2026-10-19T19:15:27-0400",
+  "finished": "2026-10-19T19:15:35-0400",
+  "protocol": {
+    "dimensions": [
+      16
+    ],
+    "trials": 10000,
+    "blocks": 24,
+    "warmup": 2,
+    "min_time_ms": 20.0,
+    "seed": 20260906,
+    "norm_min": 0.5,
+    "norm_max": 2.0,
+    "verify_trials": 10000,
+    "max_direct_dimension": 1024,
+    "max_cc_dimension": 1024,
+    "cariow_cariowa_supported_dimension": 1024,
+    "modes": [
+      "batch",
+      "single"
+    ],
+    "cpu": 12,
+    "method_order": "shuffled (algorithm, mode) order rotated per block"
+  },
+  "host": {
+    "machine": "x86_64",
+    "processor": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+    "system": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+    "python": "3.14.8",
+    "numpy": "2.5.4",
+    "cpu_state": {
+      "scaling_governor": null,
+      "intel_pstate_no_turbo": null,
+      "cpufreq_boost": null,
+      "smt_control": "on"
+    }
+  },
+  "runner_metadata": {
+    "schema": "fastcd-benchmark-1",
+    "runner": "fastcd_benchmark",
+    "library_version": "1.0.0",
+    "build_id": "598962f78ba608e3168cf9e264ff4079b30336559fc0186f1ab78993e56b5c45-Release",
+    "compiler": {
+      "name": "gcc",
+      "version": "16.2.1 20260810",
+      "pointer_bits": 64
+    },
+    "clock": "CLOCK_MONOTONIC_RAW",
+    "timing_boundary": "one validated fastcd_mul_batch_with_algorithm_f64 call per corpus pass; preallocated buffers",
+    "timing_excludes": [
+      "corpus_io",
+      "allocation",
+      "warmup",
+      "calibration",
+      "verification",
+      "checksum"
+    ],
+    "algorithms": [
+      "direct",
+      "cariow_cariowa",
+      "quasilinear",
+      "auto"
+    ],
+    "modes": [
+      "batch",
+      "single"
+    ],
+    "cariow_cariowa_max_dimension": 1024
+  },
+  "provenance": {
+    "runner": "/tmp/fastcd-benchmark-20261019-1h1pJl/updated-build/fastcd_benchmark",
+    "runner_sha256": "fea8ade47eb1e72e4c74ad59cb21698d34b5b2caf864001f740bc31332a3fd20",
+    "build_record": "build_id=598962f78ba608e3168cf9e264ff4079b30336559fc0186f1ab78993e56b5c45-Release\ncompiler=/usr/bin/cc\nversion=16.2.1\nconfiguration=Release\nflags=\nconfiguration_flags=-O3 -DNDEBUG\noptions=-fno-fast-math -ffp-contract=off -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wstrict-prototypes -Werror\ndefinitions=\nsource_sha256:\ncd1a2604e97708b9193c102dd0cfc59f86a8d58bbc0a421f33a43751793cf39d  benchmarks/benchmark.c\n1a7f8b9dbaab27cfee811bc4a13d83815bb792b8a0d53b80e534c2d3168085b8  benchmarks/benchmark.py\nf1fe6be9b4ada92a19171be5fdfe0bb5a4bc4519dee14a2bc0129bd71732dece  benchmarks/test_benchmark.py\nb43b960073598a4643c8cefbe9ff1912e53a028dbccefcc936eafcc1063acad6  include/fastcd/fastcd.h\nbbe369fd411cdca5e33ae89e15d62c6432174110b757878d7501dea154421296  src/cariow_cariowa.c\n6308d59094c5302bc5d2580fd2d1e0659729131d214156e1f054379c666030a7  src/cariow_cariowa_impl.h\n933e76f50383179cd964bfcffa12ecff0a4f95a1a360145756cb9be754b05dd5  src/direct.c\n4995766ec13c5c9900fb516bc8141ccf7c61d197dd51435ae80f51cf482599cc  src/direct_impl.h\n1704ab150fd1e43a01b3156d3f6807d838fea97781fcd7634b9b15424c723cb4  src/fastcd.c\n64d0d7bbc0862c1a6056ccc8db284a3dbb21d638704559b536c4758bbcfb1217  src/fastcd_internal.h\n4e69148c87c88fca5b7bff4513f5781d525710a8aaa73b7abe160023ea10e8ee  src/generated/cariow_cariowa_kernels.h\ne998a4f078aee6bb00391f27f42f7191fbc70a663cc2fa36dc87cf7a02d962d9  src/generated/cariow_cariowa_masks.h\n9c705016b8f36f573407eace4f1afb00cab9a7648a2343f2075df4631df3ee53  src/generated/direct_kernels.h\nd0eb0e9215885b8f113faff35755c601144abb4b3d4697f1972a5d4a6f1ac300  src/generated/quasilinear_kernels.h\n1a4983f3c8fbf32a1623fa8745a79d1f20f3872f4ab0e931fd4609a5da96692f  src/pair.h\n1a448a9540bc1759377c68c6b11d7d89ce9d821e9177748bab3c823cdd4c0db7  src/quasilinear.c\n13462c6ff45e0cb64d70cd64833ffb00c568451509b7e03186ed301680fa6154  src/quasilinear_impl.h\n5307cd8342aa6a67015c229c3d88a7d54e2778c42cbcc376cd47c7fb75537464  src/quasilinear_simd.h\n6c9d600b3402bc4cc7e0c5d238597cbc537fcfeca2a0c27cbbd44e9ae4cdc83c  tests/reference_cd.c\n56f91355fe9519af9b16cc19a410f26ae70a8c16f6eb6e1e244efe250c0fa9eb  tests/reference_cd.h\n98eaf8719a608fed8c10c8f618411660bce3f136820b24c69ad25cfa7a74e8a7  tools/check_quasilinear_counts.py\n27e026b83fbcaa920b868ed779a9339fb52a472860050b5b79ddb11e70dcb261  tools/generate_kernels.py\n65e14c0e02d9b9a4f95f0446fc2053ee7487c8ce299086cffa478a7df4df974d  CMakeLists.txt\n",
+    "build_record_sha256": "722d2a637ade6f6e6f68002b8f25ea404c907f4e7268b16c2896558708d8151a",
+    "git": {
+      "commit": null,
+      "dirty": null,
+      "describe": null
+    }
+  },
+  "corpora": {
+    "corpora": {
+      "128": {
+        "bytes": 30720000,
+        "dimension": 128,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n128.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          128
+        ],
+        "sha256": "d7dd78f785f9922bec89d0922830700e6888b53f41906b33dc550bae165f0a2c",
+        "trials": 10000
+      },
+      "16": {
+        "bytes": 3840000,
+        "dimension": 16,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n16.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          16
+        ],
+        "sha256": "3a4b687c4f4436d4cf0708a63086bd95f3c4606bdd0e43ef7d214e5fbab91257",
+        "trials": 10000
+      },
+      "2": {
+        "bytes": 480000,
+        "dimension": 2,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n2.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          2
+        ],
+        "sha256": "15827c3547585d257589c7b7993a34cace993608dbe6ae2429900e9a83fe119c",
+        "trials": 10000
+      },
+      "256": {
+        "bytes": 61440000,
+        "dimension": 256,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n256.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          256
+        ],
+        "sha256": "10bc33b9294bb6e3762737e12ef2cb762dd89e214c7bdabadc40784c81d5b472",
+        "trials": 10000
+      },
+      "32": {
+        "bytes": 7680000,
+        "dimension": 32,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n32.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          32
+        ],
+        "sha256": "904e17652d2807c42e83bfacacc4abfdda63153f53151c9018eadcc0b147bf8c",
+        "trials": 10000
+      },
+      "4": {
+        "bytes": 960000,
+        "dimension": 4,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n4.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          4
+        ],
+        "sha256": "0ab68d39354c5b59315a9b21dee9d1b5418484ff9f3d2d389435eabc8dc77443",
+        "trials": 10000
+      },
+      "64": {
+        "bytes": 15360000,
+        "dimension": 64,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n64.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          64
+        ],
+        "sha256": "571dac5948d68989e00084256efec9a77182a58a5bdfe0c5fb2f7742cc31be12",
+        "trials": 10000
+      },
+      "8": {
+        "bytes": 1920000,
+        "dimension": 8,
+        "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+        "file": "corpus-n8.f64",
+        "layout": "native float64 [operand=3][trial][coordinate], C order",
+        "radius": "Uniform[0.5,2.0)",
+        "rng": "NumPy Generator(PCG64)",
+        "seed": [
+          20260906,
+          8
+        ],
+        "sha256": "b0eddd77d45a515fc160f0b6897662c08726688fd1c4139d4f1aa221bd2b5f8e",
+        "trials": 10000
+      }
+    },
+    "protocol": {
+      "byteorder": "little",
+      "generator": "PCG64 SeedSequence([seed, dimension]); normalize then scale",
+      "norm_max": 2.0,
+      "norm_min": 0.5,
+      "seed": 20260906,
+      "trials": 10000
+    }
+  },
+  "results": [
+    {
+      "dimension": 16,
+      "default_algorithm": "direct",
+      "default_batch_algorithm": "cariow_cariowa",
+      "modes": {
+        "batch": {
+          "direct": {
+            "algorithm": "direct",
+            "mode": "batch",
+            "status": "ok",
+            "workspace_doubles": 0,
+            "observations_ns_per_product": [
+              59.114778378378375,
+              56.83195641025641,
+              56.077048837209304,
+              56.07703076923077,
+              55.849317948717946,
+              56.504508108108105,
+              56.84670512820513,
+              57.26349523809524,
+              53.29485714285714,
+              57.30272093023256,
+              57.59269230769231,
+              57.537178947368425,
+              53.1897619047619,
+              57.3164705882353,
+              53.73298421052632,
+              56.39457631578947,
+              56.92267435897436,
+              55.04741282051282,
+              50.494935897435894,
+              56.50462857142857,
+              56.72689230769231,
+              56.9910525,
+              57.99431794871795,
+              58.40518947368421
+            ],
+            "observations": [
+              {
+                "block": 0,
+                "order": 1,
+                "passes": 37,
+                "elapsed_ns": 21872468,
+                "operations": 370000,
+                "ns_per_operation": 59.114778378378375,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 1,
+                "order": 0,
+                "passes": 39,
+                "elapsed_ns": 22164463,
+                "operations": 390000,
+                "ns_per_operation": 56.83195641025641,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 2,
+                "order": 5,
+                "passes": 43,
+                "elapsed_ns": 24113131,
+                "operations": 430000,
+                "ns_per_operation": 56.077048837209304,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 3,
+                "order": 4,
+                "passes": 39,
+                "elapsed_ns": 21870042,
+                "operations": 390000,
+                "ns_per_operation": 56.07703076923077,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 4,
+                "order": 3,
+                "passes": 39,
+                "elapsed_ns": 21781234,
+                "operations": 390000,
+                "ns_per_operation": 55.849317948717946,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 5,
+                "order": 2,
+                "passes": 37,
+                "elapsed_ns": 20906668,
+                "operations": 370000,
+                "ns_per_operation": 56.504508108108105,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 6,
+                "order": 1,
+                "passes": 39,
+                "elapsed_ns": 22170215,
+                "operations": 390000,
+                "ns_per_operation": 56.84670512820513,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 7,
+                "order": 0,
+                "passes": 42,
+                "elapsed_ns": 24050668,
+                "operations": 420000,
+                "ns_per_operation": 57.26349523809524,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 8,
+                "order": 5,
+                "passes": 42,
+                "elapsed_ns": 22383840,
+                "operations": 420000,
+                "ns_per_operation": 53.29485714285714,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 9,
+                "order": 4,
+                "passes": 43,
+                "elapsed_ns": 24640170,
+                "operations": 430000,
+                "ns_per_operation": 57.30272093023256,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 10,
+                "order": 3,
+                "passes": 39,
+                "elapsed_ns": 22461150,
+                "operations": 390000,
+                "ns_per_operation": 57.59269230769231,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 11,
+                "order": 2,
+                "passes": 38,
+                "elapsed_ns": 21864128,
+                "operations": 380000,
+                "ns_per_operation": 57.537178947368425,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 12,
+                "order": 1,
+                "passes": 42,
+                "elapsed_ns": 22339700,
+                "operations": 420000,
+                "ns_per_operation": 53.1897619047619,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 13,
+                "order": 0,
+                "passes": 34,
+                "elapsed_ns": 19487600,
+                "operations": 340000,
+                "ns_per_operation": 57.3164705882353,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 14,
+                "order": 5,
+                "passes": 38,
+                "elapsed_ns": 20418534,
+                "operations": 380000,
+                "ns_per_operation": 53.73298421052632,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 15,
+                "order": 4,
+                "passes": 38,
+                "elapsed_ns": 21429939,
+                "operations": 380000,
+                "ns_per_operation": 56.39457631578947,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 16,
+                "order": 3,
+                "passes": 39,
+                "elapsed_ns": 22199843,
+                "operations": 390000,
+                "ns_per_operation": 56.92267435897436,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 17,
+                "order": 2,
+                "passes": 39,
+                "elapsed_ns": 21468491,
+                "operations": 390000,
+                "ns_per_operation": 55.04741282051282,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 18,
+                "order": 1,
+                "passes": 39,
+                "elapsed_ns": 19693025,
+                "operations": 390000,
+                "ns_per_operation": 50.494935897435894,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 19,
+                "order": 0,
+                "passes": 42,
+                "elapsed_ns": 23731944,
+                "operations": 420000,
+                "ns_per_operation": 56.50462857142857,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 20,
+                "order": 5,
+                "passes": 39,
+                "elapsed_ns": 22123488,
+                "operations": 390000,
+                "ns_per_operation": 56.72689230769231,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 21,
+                "order": 4,
+                "passes": 40,
+                "elapsed_ns": 22796421,
+                "operations": 400000,
+                "ns_per_operation": 56.9910525,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 22,
+                "order": 3,
+                "passes": 39,
+                "elapsed_ns": 22617784,
+                "operations": 390000,
+                "ns_per_operation": 57.99431794871795,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 23,
+                "order": 2,
+                "passes": 38,
+                "elapsed_ns": 22193972,
+                "operations": 380000,
+                "ns_per_operation": 58.40518947368421,
+                "checksum": 17837128890380473425
+              }
+            ],
+            "checksums_match": true,
+            "summary": {
+              "count": 24,
+              "mean": 56.25054946017128,
+              "sd": 1.9101765145035554,
+              "se": 0.3899131482651485,
+              "ci95": [
+                55.44395265860976,
+                57.0571462617328
+              ],
+              "median": 56.77942435897436,
+              "min": 50.494935897435894,
+              "max": 59.114778378378375
+            },
+            "verification": {
+              "oracle": "independent defining recursion",
+              "verified_trials": 10000,
+              "mismatched_trials": 0,
+              "finite": true,
+              "tolerance": "128*DBL_EPSILON*dimension*norm(x)*norm(y)",
+              "max_absolute_error": 8.881784197001252e-16,
+              "max_norm_scaled_error": 4.079280770707392e-16
+            }
+          },
+          "cariow_cariowa": {
+            "algorithm": "cariow_cariowa",
+            "mode": "batch",
+            "status": "ok",
+            "workspace_doubles": 0,
+            "observations_ns_per_product": [
+              57.28614523809524,
+              52.34360789473684,
+              48.606322727272726,
+              51.526764285714286,
+              53.022319512195125,
+              50.08177441860465,
+              53.60992954545455,
+              53.22696923076923,
+              48.776820512820514,
+              50.08390714285714,
+              52.35060227272727,
+              52.92161304347826,
+              50.08256511627907,
+              53.102906818181815,
+              50.10554680851064,
+              57.448639024390246,
+              51.66763488372093,
+              54.013582926829265,
+              51.884280952380955,
+              50.38349782608696,
+              53.4868025,
+              49.84859189189189,
+              48.264108510638295,
+              50.06006046511628
+            ],
+            "observations": [
+              {
+                "block": 0,
+                "order": 0,
+                "passes": 42,
+                "elapsed_ns": 24060181,
+                "operations": 420000,
+                "ns_per_operation": 57.28614523809524,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 1,
+                "order": 5,
+                "passes": 38,
+                "elapsed_ns": 19890571,
+                "operations": 380000,
+                "ns_per_operation": 52.34360789473684,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 2,
+                "order": 4,
+                "passes": 44,
+                "elapsed_ns": 21386782,
+                "operations": 440000,
+                "ns_per_operation": 48.606322727272726,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 3,
+                "order": 3,
+                "passes": 42,
+                "elapsed_ns": 21641241,
+                "operations": 420000,
+                "ns_per_operation": 51.526764285714286,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 4,
+                "order": 2,
+                "passes": 41,
+                "elapsed_ns": 21739151,
+                "operations": 410000,
+                "ns_per_operation": 53.022319512195125,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 5,
+                "order": 1,
+                "passes": 43,
+                "elapsed_ns": 21535163,
+                "operations": 430000,
+                "ns_per_operation": 50.08177441860465,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 6,
+                "order": 0,
+                "passes": 44,
+                "elapsed_ns": 23588369,
+                "operations": 440000,
+                "ns_per_operation": 53.60992954545455,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 7,
+                "order": 5,
+                "passes": 39,
+                "elapsed_ns": 20758518,
+                "operations": 390000,
+                "ns_per_operation": 53.22696923076923,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 8,
+                "order": 4,
+                "passes": 39,
+                "elapsed_ns": 19022960,
+                "operations": 390000,
+                "ns_per_operation": 48.776820512820514,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 9,
+                "order": 3,
+                "passes": 42,
+                "elapsed_ns": 21035241,
+                "operations": 420000,
+                "ns_per_operation": 50.08390714285714,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 10,
+                "order": 2,
+                "passes": 44,
+                "elapsed_ns": 23034265,
+                "operations": 440000,
+                "ns_per_operation": 52.35060227272727,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 11,
+                "order": 1,
+                "passes": 46,
+                "elapsed_ns": 24343942,
+                "operations": 460000,
+                "ns_per_operation": 52.92161304347826,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 12,
+                "order": 0,
+                "passes": 43,
+                "elapsed_ns": 21535503,
+                "operations": 430000,
+                "ns_per_operation": 50.08256511627907,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 13,
+                "order": 5,
+                "passes": 44,
+                "elapsed_ns": 23365279,
+                "operations": 440000,
+                "ns_per_operation": 53.102906818181815,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 14,
+                "order": 4,
+                "passes": 47,
+                "elapsed_ns": 23549607,
+                "operations": 470000,
+                "ns_per_operation": 50.10554680851064,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 15,
+                "order": 3,
+                "passes": 41,
+                "elapsed_ns": 23553942,
+                "operations": 410000,
+                "ns_per_operation": 57.448639024390246,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 16,
+                "order": 2,
+                "passes": 43,
+                "elapsed_ns": 22217083,
+                "operations": 430000,
+                "ns_per_operation": 51.66763488372093,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 17,
+                "order": 1,
+                "passes": 41,
+                "elapsed_ns": 22145569,
+                "operations": 410000,
+                "ns_per_operation": 54.013582926829265,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 18,
+                "order": 0,
+                "passes": 42,
+                "elapsed_ns": 21791398,
+                "operations": 420000,
+                "ns_per_operation": 51.884280952380955,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 19,
+                "order": 5,
+                "passes": 46,
+                "elapsed_ns": 23176409,
+                "operations": 460000,
+                "ns_per_operation": 50.38349782608696,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 20,
+                "order": 4,
+                "passes": 40,
+                "elapsed_ns": 21394721,
+                "operations": 400000,
+                "ns_per_operation": 53.4868025,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 21,
+                "order": 3,
+                "passes": 37,
+                "elapsed_ns": 18443979,
+                "operations": 370000,
+                "ns_per_operation": 49.84859189189189,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 22,
+                "order": 2,
+                "passes": 47,
+                "elapsed_ns": 22684131,
+                "operations": 470000,
+                "ns_per_operation": 48.264108510638295,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 23,
+                "order": 1,
+                "passes": 43,
+                "elapsed_ns": 21525826,
+                "operations": 430000,
+                "ns_per_operation": 50.06006046511628,
+                "checksum": 4574036644750181584
+              }
+            ],
+            "checksums_match": true,
+            "summary": {
+              "count": 24,
+              "mean": 51.84104139786467,
+              "sd": 2.400824432948168,
+              "se": 0.4900662352274815,
+              "ci95": [
+                50.827262150751466,
+                52.85482064497788
+              ],
+              "median": 51.77595791805094,
+              "min": 48.264108510638295,
+              "max": 57.448639024390246
+            },
+            "verification": {
+              "oracle": "independent defining recursion",
+              "verified_trials": 10000,
+              "mismatched_trials": 0,
+              "finite": true,
+              "tolerance": "128*DBL_EPSILON*dimension*norm(x)*norm(y)",
+              "max_absolute_error": 9.43689570931383e-16,
+              "max_norm_scaled_error": 3.8760831159613827e-16
+            }
+          },
+          "quasilinear": {
+            "algorithm": "quasilinear",
+            "mode": "batch",
+            "status": "ok",
+            "workspace_doubles": 0,
+            "observations_ns_per_product": [
+              53.113979487179485,
+              53.71756842105263,
+              53.359395121951216,
+              58.70348421052631,
+              57.5540725,
+              58.19016,
+              54.8523225,
+              57.7454,
+              56.85016923076923,
+              57.44797948717949,
+              57.64172,
+              54.501326829268294,
+              52.81779534883721,
+              56.798945,
+              57.44441627906977,
+              57.46381627906977,
+              59.786142857142856,
+              57.50667,
+              56.73198157894737,
+              57.65349090909091,
+              57.435715,
+              58.54560731707317,
+              56.48177222222222,
+              55.996471794871795
+            ],
+            "observations": [
+              {
+                "block": 0,
+                "order": 5,
+                "passes": 39,
+                "elapsed_ns": 20714452,
+                "operations": 390000,
+                "ns_per_operation": 53.113979487179485,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 1,
+                "order": 4,
+                "passes": 38,
+                "elapsed_ns": 20412676,
+                "operations": 380000,
+                "ns_per_operation": 53.71756842105263,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 2,
+                "order": 3,
+                "passes": 41,
+                "elapsed_ns": 21877352,
+                "operations": 410000,
+                "ns_per_operation": 53.359395121951216,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 3,
+                "order": 2,
+                "passes": 38,
+                "elapsed_ns": 22307324,
+                "operations": 380000,
+                "ns_per_operation": 58.70348421052631,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 4,
+                "order": 1,
+                "passes": 40,
+                "elapsed_ns": 23021629,
+                "operations": 400000,
+                "ns_per_operation": 57.5540725,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 5,
+                "order": 0,
+                "passes": 40,
+                "elapsed_ns": 23276064,
+                "operations": 400000,
+                "ns_per_operation": 58.19016,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 6,
+                "order": 5,
+                "passes": 40,
+                "elapsed_ns": 21940929,
+                "operations": 400000,
+                "ns_per_operation": 54.8523225,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 7,
+                "order": 4,
+                "passes": 39,
+                "elapsed_ns": 22520706,
+                "operations": 390000,
+                "ns_per_operation": 57.7454,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 8,
+                "order": 3,
+                "passes": 39,
+                "elapsed_ns": 22171566,
+                "operations": 390000,
+                "ns_per_operation": 56.85016923076923,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 9,
+                "order": 2,
+                "passes": 39,
+                "elapsed_ns": 22404712,
+                "operations": 390000,
+                "ns_per_operation": 57.44797948717949,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 10,
+                "order": 1,
+                "passes": 40,
+                "elapsed_ns": 23056688,
+                "operations": 400000,
+                "ns_per_operation": 57.64172,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 11,
+                "order": 0,
+                "passes": 41,
+                "elapsed_ns": 22345544,
+                "operations": 410000,
+                "ns_per_operation": 54.501326829268294,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 12,
+                "order": 5,
+                "passes": 43,
+                "elapsed_ns": 22711652,
+                "operations": 430000,
+                "ns_per_operation": 52.81779534883721,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 13,
+                "order": 4,
+                "passes": 40,
+                "elapsed_ns": 22719578,
+                "operations": 400000,
+                "ns_per_operation": 56.798945,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 14,
+                "order": 3,
+                "passes": 43,
+                "elapsed_ns": 24701099,
+                "operations": 430000,
+                "ns_per_operation": 57.44441627906977,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 15,
+                "order": 2,
+                "passes": 43,
+                "elapsed_ns": 24709441,
+                "operations": 430000,
+                "ns_per_operation": 57.46381627906977,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 16,
+                "order": 1,
+                "passes": 35,
+                "elapsed_ns": 20925150,
+                "operations": 350000,
+                "ns_per_operation": 59.786142857142856,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 17,
+                "order": 0,
+                "passes": 40,
+                "elapsed_ns": 23002668,
+                "operations": 400000,
+                "ns_per_operation": 57.50667,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 18,
+                "order": 5,
+                "passes": 38,
+                "elapsed_ns": 21558153,
+                "operations": 380000,
+                "ns_per_operation": 56.73198157894737,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 19,
+                "order": 4,
+                "passes": 44,
+                "elapsed_ns": 25367536,
+                "operations": 440000,
+                "ns_per_operation": 57.65349090909091,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 20,
+                "order": 3,
+                "passes": 40,
+                "elapsed_ns": 22974286,
+                "operations": 400000,
+                "ns_per_operation": 57.435715,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 21,
+                "order": 2,
+                "passes": 41,
+                "elapsed_ns": 24003699,
+                "operations": 410000,
+                "ns_per_operation": 58.54560731707317,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 22,
+                "order": 1,
+                "passes": 36,
+                "elapsed_ns": 20333438,
+                "operations": 360000,
+                "ns_per_operation": 56.48177222222222,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 23,
+                "order": 0,
+                "passes": 39,
+                "elapsed_ns": 21838624,
+                "operations": 390000,
+                "ns_per_operation": 55.996471794871795,
+                "checksum": 8735869833802987452
+              }
+            ],
+            "checksums_match": true,
+            "summary": {
+              "count": 24,
+              "mean": 56.59751676559382,
+              "sd": 1.890823746861667,
+              "se": 0.38596278111237586,
+              "ci95": [
+                55.79909192110683,
+                57.395941610080804
+              ],
+              "median": 57.440065639534886,
+              "min": 52.81779534883721,
+              "max": 59.786142857142856
+            },
+            "verification": {
+              "oracle": "independent defining recursion",
+              "verified_trials": 10000,
+              "mismatched_trials": 0,
+              "finite": true,
+              "tolerance": "128*DBL_EPSILON*dimension*norm(x)*norm(y)",
+              "max_absolute_error": 9.992007221626409e-16,
+              "max_norm_scaled_error": 5.476876730115508e-16
+            }
+          }
+        },
+        "single": {
+          "direct": {
+            "algorithm": "direct",
+            "mode": "single",
+            "status": "ok",
+            "workspace_doubles": 0,
+            "observations_ns_per_product": [
+              87.50517083333334,
+              79.03003846153847,
+              81.95544230769231,
+              83.06868571428572,
+              83.94820416666667,
+              78.23134333333333,
+              82.5657074074074,
+              80.76473846153846,
+              85.74192222222223,
+              83.67618214285714,
+              83.16491923076923,
+              83.30065384615385,
+              80.972672,
+              82.94792692307692,
+              84.67453076923077,
+              81.94261153846153,
+              80.51193461538462,
+              83.4691,
+              81.66665,
+              80.01776153846154,
+              84.26744615384615,
+              87.0786,
+              83.96033846153846,
+              84.96245555555555
+            ],
+            "observations": [
+              {
+                "block": 0,
+                "order": 3,
+                "passes": 24,
+                "elapsed_ns": 21001241,
+                "operations": 240000,
+                "ns_per_operation": 87.50517083333334,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 1,
+                "order": 2,
+                "passes": 26,
+                "elapsed_ns": 20547810,
+                "operations": 260000,
+                "ns_per_operation": 79.03003846153847,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 2,
+                "order": 1,
+                "passes": 26,
+                "elapsed_ns": 21308415,
+                "operations": 260000,
+                "ns_per_operation": 81.95544230769231,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 3,
+                "order": 0,
+                "passes": 28,
+                "elapsed_ns": 23259232,
+                "operations": 280000,
+                "ns_per_operation": 83.06868571428572,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 4,
+                "order": 5,
+                "passes": 24,
+                "elapsed_ns": 20147569,
+                "operations": 240000,
+                "ns_per_operation": 83.94820416666667,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 5,
+                "order": 4,
+                "passes": 30,
+                "elapsed_ns": 23469403,
+                "operations": 300000,
+                "ns_per_operation": 78.23134333333333,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 6,
+                "order": 3,
+                "passes": 27,
+                "elapsed_ns": 22292741,
+                "operations": 270000,
+                "ns_per_operation": 82.5657074074074,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 7,
+                "order": 2,
+                "passes": 26,
+                "elapsed_ns": 20998832,
+                "operations": 260000,
+                "ns_per_operation": 80.76473846153846,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 8,
+                "order": 1,
+                "passes": 27,
+                "elapsed_ns": 23150319,
+                "operations": 270000,
+                "ns_per_operation": 85.74192222222223,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 9,
+                "order": 0,
+                "passes": 28,
+                "elapsed_ns": 23429331,
+                "operations": 280000,
+                "ns_per_operation": 83.67618214285714,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 10,
+                "order": 5,
+                "passes": 26,
+                "elapsed_ns": 21622879,
+                "operations": 260000,
+                "ns_per_operation": 83.16491923076923,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 11,
+                "order": 4,
+                "passes": 26,
+                "elapsed_ns": 21658170,
+                "operations": 260000,
+                "ns_per_operation": 83.30065384615385,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 12,
+                "order": 3,
+                "passes": 25,
+                "elapsed_ns": 20243168,
+                "operations": 250000,
+                "ns_per_operation": 80.972672,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 13,
+                "order": 2,
+                "passes": 26,
+                "elapsed_ns": 21566461,
+                "operations": 260000,
+                "ns_per_operation": 82.94792692307692,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 14,
+                "order": 1,
+                "passes": 26,
+                "elapsed_ns": 22015378,
+                "operations": 260000,
+                "ns_per_operation": 84.67453076923077,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 15,
+                "order": 0,
+                "passes": 26,
+                "elapsed_ns": 21305079,
+                "operations": 260000,
+                "ns_per_operation": 81.94261153846153,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 16,
+                "order": 5,
+                "passes": 26,
+                "elapsed_ns": 20933103,
+                "operations": 260000,
+                "ns_per_operation": 80.51193461538462,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 17,
+                "order": 4,
+                "passes": 26,
+                "elapsed_ns": 21701966,
+                "operations": 260000,
+                "ns_per_operation": 83.4691,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 18,
+                "order": 3,
+                "passes": 26,
+                "elapsed_ns": 21233329,
+                "operations": 260000,
+                "ns_per_operation": 81.66665,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 19,
+                "order": 2,
+                "passes": 26,
+                "elapsed_ns": 20804618,
+                "operations": 260000,
+                "ns_per_operation": 80.01776153846154,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 20,
+                "order": 1,
+                "passes": 26,
+                "elapsed_ns": 21909536,
+                "operations": 260000,
+                "ns_per_operation": 84.26744615384615,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 21,
+                "order": 0,
+                "passes": 26,
+                "elapsed_ns": 22640436,
+                "operations": 260000,
+                "ns_per_operation": 87.0786,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 22,
+                "order": 5,
+                "passes": 26,
+                "elapsed_ns": 21829688,
+                "operations": 260000,
+                "ns_per_operation": 83.96033846153846,
+                "checksum": 17837128890380473425
+              },
+              {
+                "block": 23,
+                "order": 4,
+                "passes": 27,
+                "elapsed_ns": 22939863,
+                "operations": 270000,
+                "ns_per_operation": 84.96245555555555,
+                "checksum": 17837128890380473425
+              }
+            ],
+            "checksums_match": true,
+            "summary": {
+              "count": 24,
+              "mean": 82.89270982013973,
+              "sd": 2.3024156290252624,
+              "se": 0.46997862224342163,
+              "ci95": [
+                81.92048496650116,
+                83.8649346737783
+              ],
+              "median": 83.11680247252747,
+              "min": 78.23134333333333,
+              "max": 87.50517083333334
+            },
+            "verification": {
+              "oracle": "independent defining recursion",
+              "verified_trials": 10000,
+              "mismatched_trials": 0,
+              "finite": true,
+              "tolerance": "128*DBL_EPSILON*dimension*norm(x)*norm(y)",
+              "max_absolute_error": 8.881784197001252e-16,
+              "max_norm_scaled_error": 4.079280770707392e-16
+            }
+          },
+          "cariow_cariowa": {
+            "algorithm": "cariow_cariowa",
+            "mode": "single",
+            "status": "ok",
+            "workspace_doubles": 0,
+            "observations_ns_per_product": [
+              119.65366842105263,
+              117.80315789473684,
+              116.43892380952381,
+              111.21349523809523,
+              120.089735,
+              113.40093,
+              118.38508,
+              117.40715,
+              111.63914210526316,
+              119.37676842105263,
+              119.02557894736842,
+              118.01599444444444,
+              116.33187,
+              119.10611578947369,
+              111.01408421052632,
+              123.338795,
+              112.25779,
+              116.15778,
+              106.96433809523809,
+              120.55307222222223,
+              116.3285619047619,
+              126.3337052631579,
+              117.50763157894737,
+              114.87008333333333
+            ],
+            "observations": [
+              {
+                "block": 0,
+                "order": 2,
+                "passes": 19,
+                "elapsed_ns": 22734197,
+                "operations": 190000,
+                "ns_per_operation": 119.65366842105263,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 1,
+                "order": 1,
+                "passes": 19,
+                "elapsed_ns": 22382600,
+                "operations": 190000,
+                "ns_per_operation": 117.80315789473684,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 2,
+                "order": 0,
+                "passes": 21,
+                "elapsed_ns": 24452174,
+                "operations": 210000,
+                "ns_per_operation": 116.43892380952381,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 3,
+                "order": 5,
+                "passes": 21,
+                "elapsed_ns": 23354834,
+                "operations": 210000,
+                "ns_per_operation": 111.21349523809523,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 4,
+                "order": 4,
+                "passes": 20,
+                "elapsed_ns": 24017947,
+                "operations": 200000,
+                "ns_per_operation": 120.089735,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 5,
+                "order": 3,
+                "passes": 20,
+                "elapsed_ns": 22680186,
+                "operations": 200000,
+                "ns_per_operation": 113.40093,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 6,
+                "order": 2,
+                "passes": 20,
+                "elapsed_ns": 23677016,
+                "operations": 200000,
+                "ns_per_operation": 118.38508,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 7,
+                "order": 1,
+                "passes": 20,
+                "elapsed_ns": 23481430,
+                "operations": 200000,
+                "ns_per_operation": 117.40715,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 8,
+                "order": 0,
+                "passes": 19,
+                "elapsed_ns": 21211437,
+                "operations": 190000,
+                "ns_per_operation": 111.63914210526316,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 9,
+                "order": 5,
+                "passes": 19,
+                "elapsed_ns": 22681586,
+                "operations": 190000,
+                "ns_per_operation": 119.37676842105263,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 10,
+                "order": 4,
+                "passes": 19,
+                "elapsed_ns": 22614860,
+                "operations": 190000,
+                "ns_per_operation": 119.02557894736842,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 11,
+                "order": 3,
+                "passes": 18,
+                "elapsed_ns": 21242879,
+                "operations": 180000,
+                "ns_per_operation": 118.01599444444444,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 12,
+                "order": 2,
+                "passes": 20,
+                "elapsed_ns": 23266374,
+                "operations": 200000,
+                "ns_per_operation": 116.33187,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 13,
+                "order": 1,
+                "passes": 19,
+                "elapsed_ns": 22630162,
+                "operations": 190000,
+                "ns_per_operation": 119.10611578947369,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 14,
+                "order": 0,
+                "passes": 19,
+                "elapsed_ns": 21092676,
+                "operations": 190000,
+                "ns_per_operation": 111.01408421052632,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 15,
+                "order": 5,
+                "passes": 20,
+                "elapsed_ns": 24667759,
+                "operations": 200000,
+                "ns_per_operation": 123.338795,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 16,
+                "order": 4,
+                "passes": 20,
+                "elapsed_ns": 22451558,
+                "operations": 200000,
+                "ns_per_operation": 112.25779,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 17,
+                "order": 3,
+                "passes": 20,
+                "elapsed_ns": 23231556,
+                "operations": 200000,
+                "ns_per_operation": 116.15778,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 18,
+                "order": 2,
+                "passes": 21,
+                "elapsed_ns": 22462511,
+                "operations": 210000,
+                "ns_per_operation": 106.96433809523809,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 19,
+                "order": 1,
+                "passes": 18,
+                "elapsed_ns": 21699553,
+                "operations": 180000,
+                "ns_per_operation": 120.55307222222223,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 20,
+                "order": 0,
+                "passes": 21,
+                "elapsed_ns": 24428998,
+                "operations": 210000,
+                "ns_per_operation": 116.3285619047619,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 21,
+                "order": 5,
+                "passes": 19,
+                "elapsed_ns": 24003404,
+                "operations": 190000,
+                "ns_per_operation": 126.3337052631579,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 22,
+                "order": 4,
+                "passes": 19,
+                "elapsed_ns": 22326450,
+                "operations": 190000,
+                "ns_per_operation": 117.50763157894737,
+                "checksum": 4574036644750181584
+              },
+              {
+                "block": 23,
+                "order": 3,
+                "passes": 18,
+                "elapsed_ns": 20676615,
+                "operations": 180000,
+                "ns_per_operation": 114.87008333333333,
+                "checksum": 4574036644750181584
+              }
+            ],
+            "checksums_match": true,
+            "summary": {
+              "count": 24,
+              "mean": 116.80056048663324,
+              "sd": 4.244850242670026,
+              "se": 0.8664764274225761,
+              "ci95": [
+                115.008117430796,
+                118.59300354247048
+              ],
+              "median": 117.45739078947369,
+              "min": 106.96433809523809,
+              "max": 126.3337052631579
+            },
+            "verification": {
+              "oracle": "independent defining recursion",
+              "verified_trials": 10000,
+              "mismatched_trials": 0,
+              "finite": true,
+              "tolerance": "128*DBL_EPSILON*dimension*norm(x)*norm(y)",
+              "max_absolute_error": 9.43689570931383e-16,
+              "max_norm_scaled_error": 3.8760831159613827e-16
+            }
+          },
+          "quasilinear": {
+            "algorithm": "quasilinear",
+            "mode": "single",
+            "status": "ok",
+            "workspace_doubles": 0,
+            "observations_ns_per_product": [
+              112.9262052631579,
+              119.23621578947369,
+              111.51494210526316,
+              113.72472631578947,
+              112.12013809523809,
+              110.780515,
+              120.48168947368421,
+              112.96107619047619,
+              120.34975263157895,
+              113.247585,
+              110.60593684210527,
+              113.8983052631579,
+              115.79677368421052,
+              112.7847,
+              105.35005,
+              104.7327,
+              120.45870588235294,
+              104.85524285714285,
+              111.96143157894737,
+              107.47602,
+              113.56784736842106,
+              110.884175,
+              115.03497894736842,
+              106.25886842105263
+            ],
+            "observations": [
+              {
+                "block": 0,
+                "order": 4,
+                "passes": 19,
+                "elapsed_ns": 21455979,
+                "operations": 190000,
+                "ns_per_operation": 112.9262052631579,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 1,
+                "order": 3,
+                "passes": 19,
+                "elapsed_ns": 22654881,
+                "operations": 190000,
+                "ns_per_operation": 119.23621578947369,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 2,
+                "order": 2,
+                "passes": 19,
+                "elapsed_ns": 21187839,
+                "operations": 190000,
+                "ns_per_operation": 111.51494210526316,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 3,
+                "order": 1,
+                "passes": 19,
+                "elapsed_ns": 21607698,
+                "operations": 190000,
+                "ns_per_operation": 113.72472631578947,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 4,
+                "order": 0,
+                "passes": 21,
+                "elapsed_ns": 23545229,
+                "operations": 210000,
+                "ns_per_operation": 112.12013809523809,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 5,
+                "order": 5,
+                "passes": 20,
+                "elapsed_ns": 22156103,
+                "operations": 200000,
+                "ns_per_operation": 110.780515,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 6,
+                "order": 4,
+                "passes": 19,
+                "elapsed_ns": 22891521,
+                "operations": 190000,
+                "ns_per_operation": 120.48168947368421,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 7,
+                "order": 3,
+                "passes": 21,
+                "elapsed_ns": 23721826,
+                "operations": 210000,
+                "ns_per_operation": 112.96107619047619,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 8,
+                "order": 2,
+                "passes": 19,
+                "elapsed_ns": 22866453,
+                "operations": 190000,
+                "ns_per_operation": 120.34975263157895,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 9,
+                "order": 1,
+                "passes": 20,
+                "elapsed_ns": 22649517,
+                "operations": 200000,
+                "ns_per_operation": 113.247585,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 10,
+                "order": 0,
+                "passes": 19,
+                "elapsed_ns": 21015128,
+                "operations": 190000,
+                "ns_per_operation": 110.60593684210527,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 11,
+                "order": 5,
+                "passes": 19,
+                "elapsed_ns": 21640678,
+                "operations": 190000,
+                "ns_per_operation": 113.8983052631579,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 12,
+                "order": 4,
+                "passes": 19,
+                "elapsed_ns": 22001387,
+                "operations": 190000,
+                "ns_per_operation": 115.79677368421052,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 13,
+                "order": 3,
+                "passes": 18,
+                "elapsed_ns": 20301246,
+                "operations": 180000,
+                "ns_per_operation": 112.7847,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 14,
+                "order": 2,
+                "passes": 22,
+                "elapsed_ns": 23177011,
+                "operations": 220000,
+                "ns_per_operation": 105.35005,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 15,
+                "order": 1,
+                "passes": 19,
+                "elapsed_ns": 19899213,
+                "operations": 190000,
+                "ns_per_operation": 104.7327,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 16,
+                "order": 0,
+                "passes": 17,
+                "elapsed_ns": 20477980,
+                "operations": 170000,
+                "ns_per_operation": 120.45870588235294,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 17,
+                "order": 5,
+                "passes": 21,
+                "elapsed_ns": 22019601,
+                "operations": 210000,
+                "ns_per_operation": 104.85524285714285,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 18,
+                "order": 4,
+                "passes": 19,
+                "elapsed_ns": 21272672,
+                "operations": 190000,
+                "ns_per_operation": 111.96143157894737,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 19,
+                "order": 3,
+                "passes": 20,
+                "elapsed_ns": 21495204,
+                "operations": 200000,
+                "ns_per_operation": 107.47602,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 20,
+                "order": 2,
+                "passes": 19,
+                "elapsed_ns": 21577891,
+                "operations": 190000,
+                "ns_per_operation": 113.56784736842106,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 21,
+                "order": 1,
+                "passes": 20,
+                "elapsed_ns": 22176835,
+                "operations": 200000,
+                "ns_per_operation": 110.884175,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 22,
+                "order": 0,
+                "passes": 19,
+                "elapsed_ns": 21856646,
+                "operations": 190000,
+                "ns_per_operation": 115.03497894736842,
+                "checksum": 8735869833802987452
+              },
+              {
+                "block": 23,
+                "order": 5,
+                "passes": 19,
+                "elapsed_ns": 20189185,
+                "operations": 190000,
+                "ns_per_operation": 106.25886842105263,
+                "checksum": 8735869833802987452
+              }
+            ],
+            "checksums_match": true,
+            "summary": {
+              "count": 24,
+              "mean": 112.54202423789252,
+              "sd": 4.6698503583172375,
+              "se": 0.9532292127525352,
+              "ci95": [
+                110.57011937245733,
+                114.51392910332771
+              ],
+              "median": 112.85545263157894,
+              "min": 104.7327,
+              "max": 120.48168947368421
+            },
+            "verification": {
+              "oracle": "independent defining recursion",
+              "verified_trials": 10000,
+              "mismatched_trials": 0,
+              "finite": true,
+              "tolerance": "128*DBL_EPSILON*dimension*norm(x)*norm(y)",
+              "max_absolute_error": 9.992007221626409e-16,
+              "max_norm_scaled_error": 5.476876730115508e-16
+            }
+          }
+        }
+      },
+      "ratios_vs_quasilinear": {
+        "batch": {
+          "direct": {
+            "definition": "competitor_ns / baseline_ns per block, geometric mean",
+            "paired_blocks": 24,
+            "geometric_mean": 0.9938426245483939,
+            "ci95": [
+              0.9735136940267887,
+              1.014596064163901
+            ],
+            "competitor_faster_blocks": 15,
+            "competitor_slower_blocks": 9
+          },
+          "cariow_cariowa": {
+            "definition": "competitor_ns / baseline_ns per block, geometric mean",
+            "paired_blocks": 24,
+            "geometric_mean": 0.9155336123499445,
+            "ci95": [
+              0.8930654086560826,
+              0.9385670827894844
+            ],
+            "competitor_faster_blocks": 23,
+            "competitor_slower_blocks": 1
+          }
+        },
+        "single": {
+          "direct": {
+            "definition": "competitor_ns / baseline_ns per block, geometric mean",
+            "paired_blocks": 24,
+            "geometric_mean": 0.7368844147801191,
+            "ci95": [
+              0.7206358646635073,
+              0.7534993293726584
+            ],
+            "competitor_faster_blocks": 24,
+            "competitor_slower_blocks": 0
+          },
+          "cariow_cariowa": {
+            "definition": "competitor_ns / baseline_ns per block, geometric mean",
+            "paired_blocks": 24,
+            "geometric_mean": 1.0380353685040506,
+            "ci95": [
+              1.0122128841548426,
+              1.0645166082479025
+            ],
+            "competitor_faster_blocks": 6,
+            "competitor_slower_blocks": 18
+          }
+        }
+      },
+      "single_over_batch": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.4739297447581825,
+          "ci95": [
+            1.448495687482017,
+            1.4998103972676773
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 2.253890894538394,
+          "ci95": [
+            2.2074836400751,
+            2.3012737545408295
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "quasilinear": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.9879022768686432,
+          "ci95": [
+            1.9387993586869243,
+            2.0382487979859407
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      }
+    }
+  ]
+}

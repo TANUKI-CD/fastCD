@@ -1,0 +1,21 @@
+[  6%] Building C object CMakeFiles/fastcd.dir/src/quasilinear.c.o
+[ 13%] Building C object CMakeFiles/fastcd.dir/src/fastcd.c.o
+[ 20%] Building C object CMakeFiles/fastcd.dir/src/cariow_cariowa.c.o
+[ 26%] Building C object CMakeFiles/fastcd_reference.dir/tests/reference_cd.c.o
+[ 33%] Linking C static library libfastcd_reference.a
+[ 33%] Built target fastcd_reference
+[ 40%] Building C object CMakeFiles/fastcd_leaf_tests.dir/tests/test_quasilinear_leaf.c.o
+[ 46%] Linking C executable fastcd_leaf_tests
+[ 46%] Built target fastcd_leaf_tests
+[ 53%] Building C object CMakeFiles/fastcd.dir/src/direct.c.o
+[ 60%] Linking C static library libfastcd.a
+[ 60%] Built target fastcd
+[ 66%] Building C object CMakeFiles/fastcd_tests.dir/tests/test_fastcd.c.o
+[ 73%] Building C object CMakeFiles/fastcd_public_link_test.dir/tests/test_public_api.c.o
+[ 80%] Building C object CMakeFiles/fastcd_benchmark.dir/benchmarks/benchmark.c.o
+[ 86%] Linking C executable fastcd_public_link_test
+[ 86%] Built target fastcd_public_link_test
+[ 93%] Linking C executable fastcd_benchmark
+[ 93%] Built target fastcd_benchmark
+[100%] Linking C executable fastcd_tests
+[100%] Built target fastcd_tests

@@ -5,6 +5,14 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
+## [Unreleased]
+
+### Changed
+
+- Quasilinear multiplication uses a fused local bilinear map and a specialized
+  complex octonion alternating-product base case; arithmetic counts and
+  validation instructions are documented in `docs/mathematics.md`.
+
 ## [1.0.0] - 2026-09-13
 
 The first public release.
@@ -23,7 +31,8 @@ The first public release.
   reproducible benchmark driver that records source, executable, and corpus
   hashes with its results.
 - Single quasilinear products above dimension 16 evaluate the two children
-  of every complex node in the two SIMD lanes, bitwise identical to the
+  of the top complex node in the two SIMD lanes and continue through the
+  paired kernel, bitwise identical to the
   scalar and batched forms; the quasilinear workspace query grows
   accordingly. The `FASTCD_CC_DOUBLING=1` tuning option evaluates
   Cariow–Cariowa products through one doubling step with paired

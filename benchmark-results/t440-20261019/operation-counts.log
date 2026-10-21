@@ -1,0 +1,160 @@
+{
+  "status": "ok",
+  "method": "operator-instrumented scalar C++ instantiation",
+  "convention": "paper arithmetic; fixed-zero operations and signs excluded",
+  "compiler": [
+    "c++"
+  ],
+  "counts": [
+    {
+      "kind": "full",
+      "dimension": 1,
+      "M": 1,
+      "A": 0,
+      "S": 0,
+      "T": 1
+    },
+    {
+      "kind": "complex",
+      "dimension": 1,
+      "M": 0,
+      "A": 0,
+      "S": 0,
+      "T": 0
+    },
+    {
+      "kind": "full",
+      "dimension": 2,
+      "M": 4,
+      "A": 2,
+      "S": 0,
+      "T": 6
+    },
+    {
+      "kind": "complex",
+      "dimension": 2,
+      "M": 0,
+      "A": 0,
+      "S": 0,
+      "T": 0
+    },
+    {
+      "kind": "full",
+      "dimension": 4,
+      "M": 16,
+      "A": 12,
+      "S": 0,
+      "T": 28
+    },
+    {
+      "kind": "complex",
+      "dimension": 4,
+      "M": 18,
+      "A": 24,
+      "S": 0,
+      "T": 42
+    },
+    {
+      "kind": "full",
+      "dimension": 8,
+      "M": 58,
+      "A": 62,
+      "S": 0,
+      "T": 120
+    },
+    {
+      "kind": "complex",
+      "dimension": 8,
+      "M": 72,
+      "A": 158,
+      "S": 14,
+      "T": 244
+    },
+    {
+      "kind": "full",
+      "dimension": 16,
+      "M": 160,
+      "A": 244,
+      "S": 14,
+      "T": 418
+    },
+    {
+      "kind": "complex",
+      "dimension": 16,
+      "M": 270,
+      "A": 584,
+      "S": 56,
+      "T": 910
+    },
+    {
+      "kind": "full",
+      "dimension": 32,
+      "M": 454,
+      "A": 766,
+      "S": 56,
+      "T": 1276
+    },
+    {
+      "kind": "complex",
+      "dimension": 32,
+      "M": 810,
+      "A": 1740,
+      "S": 172,
+      "T": 2722
+    },
+    {
+      "kind": "full",
+      "dimension": 64,
+      "M": 1186,
+      "A": 2114,
+      "S": 172,
+      "T": 3472
+    },
+    {
+      "kind": "complex",
+      "dimension": 64,
+      "M": 2178,
+      "A": 4660,
+      "S": 468,
+      "T": 7306
+    },
+    {
+      "kind": "full",
+      "dimension": 128,
+      "M": 2938,
+      "A": 5418,
+      "S": 468,
+      "T": 8824
+    },
+    {
+      "kind": "complex",
+      "dimension": 128,
+      "M": 5490,
+      "A": 11716,
+      "S": 1188,
+      "T": 18394
+    },
+    {
+      "kind": "full",
+      "dimension": 256,
+      "M": 7018,
+      "A": 13242,
+      "S": 1188,
+      "T": 21448
+    },
+    {
+      "kind": "complex",
+      "dimension": 256,
+      "M": 13266,
+      "A": 28260,
+      "S": 2884,
+      "T": 44410
+    }
+  ],
+  "source_sha256": {
+    "src/quasilinear_impl.h": "13462c6ff45e0cb64d70cd64833ffb00c568451509b7e03186ed301680fa6154",
+    "src/generated/quasilinear_kernels.h": "d0eb0e9215885b8f113faff35755c601144abb4b3d4697f1972a5d4a6f1ac300",
+    "tools/generate_kernels.py": "27e026b83fbcaa920b868ed779a9339fb52a472860050b5b79ddb11e70dcb261",
+    "tools/check_quasilinear_counts.py": "98eaf8719a608fed8c10c8f618411660bce3f136820b24c69ad25cfa7a74e8a7"
+  }
+}

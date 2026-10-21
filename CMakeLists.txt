@@ -116,6 +116,12 @@ if(BUILD_TESTING)
     fastcd_configure_target(fastcd_tests)
     add_test(NAME fastcd.tests COMMAND fastcd_tests)
     set_tests_properties(fastcd.tests PROPERTIES TIMEOUT 600)
+
+    add_executable(fastcd_leaf_tests tests/test_quasilinear_leaf.c)
+    target_include_directories(fastcd_leaf_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    target_link_libraries(fastcd_leaf_tests PRIVATE fastcd_reference)
+    fastcd_configure_target(fastcd_leaf_tests)
+    add_test(NAME fastcd.quasilinear_leaf COMMAND fastcd_leaf_tests)
 endif()
 
 if(FASTCD_BUILD_BENCHMARK)

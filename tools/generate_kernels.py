@@ -6,7 +6,8 @@ schedules (defining recursion / direct, Cariow--Cariowa, quasilinear) for fixed
 small dimensions and writes fully unrolled C11 code into ``src/generated``.
 It also writes the Cariow--Cariowa sign-correction tables that the
 table-driven kernel uses above the unrolled dimensions.
-The quasilinear code preserves the generic arithmetic schedule.  Direct
+The quasilinear code uses the fused local map and complex octonion base
+case shared with the runtime recursion.  Direct
 leaves accumulate coordinate terms sequentially, so their rounding can
 differ from the grouped defining recursion.  Basis signs are derived here
 from the defining doubling convention, independently of the library.
@@ -164,12 +165,72 @@ def input_ptr(name: str, n: int) -> Ptr:
 # ---------------------------------------------------------------------------
 # Quasilinear schedule (mirrors src/quasilinear.c exactly)
 # ---------------------------------------------------------------------------
+def octonion_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
+                   y_r: Ptr, y_i: Ptr) -> None:
+    """Emit C_3 using four sparse images of the three-dimensional cross."""
+
+    def add(a, b):
+        return (e.add(a[0], b[0]), e.add(a[1], b[1]))
+
+    def sub(a, b):
+        return (e.sub(a[0], b[0]), e.sub(a[1], b[1]))
+
+    def times_i(a):
+        return (e.neg(a[1]), a[0])
+
+    def half(a):
+        return (e.half(a[0]), e.half(a[1]))
+
+    def maps(real, imag):
+        x1, x2, x3, h, y1, y2, y3 = [
+            (rd(real, i), rd(imag, i)) for i in range(1, 8)]
+        p = (h[1], e.neg(h[0]))  # -iota h
+        z = add(x1, p)
+        b, r = add(x2, times_i(y2)), sub(x2, times_i(y2))
+        c, s = add(x3, times_i(y3)), sub(x3, times_i(y3))
+        triples = [(x1, y1, p), (add(b, s), sub(r, c), p),
+                   (add(z, times_i(y1)), b, c),
+                   (sub(z, times_i(y1)), r, s)]
+        p_sum = e.add(*p)
+        return [([v[0] for v in t], [v[1] for v in t],
+                 [p_sum if k < 2 and j == 2 else e.add(*v)
+                  for j, v in enumerate(t)]) for k, t in enumerate(triples)]
+
+    def cross(a, b):
+        return [e.sub(e.mul(a[i], b[j]), e.mul(a[j], b[i]))
+                for i, j in ((1, 2), (2, 0), (0, 1))]
+
+    results = []
+    for x, y in zip(maps(x_r, x_i), maps(y_r, y_i)):
+        p, q, w = [cross(a, b) for a, b in zip(x, y)]
+        results.append([(e.sub(a, b), e.sub(e.sub(c, a), b))
+                        for a, b, c in zip(p, q, w)])
+    (a1, b1, c1), (a2, b2, c2), (a3, b3, c3), (a4, b4, c4) = results
+    t, u = add(a3, a4), sub(a3, a4)
+    v = add(c2, t)
+    d1, d2 = add(a2, b3), add(b2, b4)
+    e1, e2 = sub(c3, b2), add(a2, c4)
+    ih = times_i(half(v))
+    outputs = [sub(half(t), times_i(a1)), half(add(d1, d2)),
+               half(add(e1, e2)), sub((e.neg(ih[0]), e.neg(ih[1])), c1),
+               times_i(sub(half(u), b1)), times_i(half(sub(d1, d2))),
+               times_i(half(sub(e1, e2)))]
+    wr(o_r, 0, "0.0")
+    wr(o_i, 0, "0.0")
+    for i, value in enumerate(outputs, 1):
+        wr(o_r, i, value[0])
+        wr(o_i, i, value[1])
+
+
 def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
                   y_r: Ptr, y_i: Ptr, dim: int, ws: Ptr) -> None:
     if dim <= 2:
         for i in range(dim):
             wr(o_r, i, "0.0")
             wr(o_i, i, "0.0")
+        return
+    if dim == 8:
+        octonion_cross(e, o_r, o_i, x_r, x_i, y_r, y_i)
         return
     half = dim >> 1
     txr, txi = off(ws, 0), off(ws, half)
@@ -199,18 +260,19 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
     def csub(a, b):
         return (e.sub(a[0], b[0]), e.sub(a[1], b[1]))
 
-    def cmul(a, b):
-        p = e.mul(a[0], b[0])
-        q = e.mul(a[1], b[1])
-        xs = e.add(a[0], a[1])
-        ys = e.add(b[0], b[1])
-        r = e.mul(xs, ys)
-        return (e.sub(p, q), e.sub(e.sub(r, p), q))
+    def local(u, v, s, t, gamma, delta):
+        return (e.sub(e.mul(gamma, t), e.mul(delta, s)),
+                e.sub(e.mul(s, v), e.mul(t, u)),
+                e.sub(e.mul(delta, u), e.mul(gamma, v)))
+
+    def recover(p, q, w):
+        return (e.sub(p, q), e.sub(e.sub(w, p), q))
 
     def chalf(a):
         return (e.half(a[0]), e.half(a[1]))
 
-    scalar = None
+    gamma_sum, delta_sum = e.add(*gamma), e.add(*delta)
+    scalars = [None, None, None]
     for i in range(1, half):
         u = (rd(x_r, i), rd(x_i, i))
         v = (rd(y_r, i), rd(y_i, i))
@@ -218,21 +280,25 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
         t = (rd(y_r, half + i), rd(y_i, half + i))
         plus = (rd(o_r, i), rd(o_i, i))
         minus = (rd(o_r, half + i), rd(o_i, half + i))
-        pair = csub(cmul(s, v), cmul(t, u))
-        first = chalf(cadd(plus, minus))
-        diff = chalf(csub(plus, minus))
-        mixed = (e.neg(diff[1]), diff[0])
-        second = csub(cmul(delta, u), cmul(gamma, v))
-        scalar = pair if i == 1 else cadd(scalar, pair)
-        first = cadd(first, cmul(gamma, t))
-        first = csub(first, cmul(delta, s))
-        second = cadd(second, mixed)
+        p = local(u[0], v[0], s[0], t[0], gamma[0], delta[0])
+        q = local(u[1], v[1], s[1], t[1], gamma[1], delta[1])
+        w = local(e.add(*u), e.add(*v), e.add(*s), e.add(*t),
+                  gamma_sum, delta_sum)
+        first, second = recover(p[0], q[0], w[0]), recover(p[2], q[2], w[2])
+        for j, value in enumerate((p[1], q[1], w[1])):
+            scalars[j] = value if i == 1 else e.add(scalars[j], value)
+        # At level two the child alternating products are identically zero.
+        if dim > 4:
+            first = cadd(chalf(cadd(plus, minus)), first)
+            diff = chalf(csub(plus, minus))
+            second = cadd(second, (e.neg(diff[1]), diff[0]))
         wr(o_r, i, first[0])
         wr(o_i, i, first[1])
         wr(o_r, half + i, second[0])
         wr(o_i, half + i, second[1])
     wr(o_r, 0, "0.0")
     wr(o_i, 0, "0.0")
+    scalar = recover(*scalars)
     wr(o_r, half, scalar[0])
     wr(o_i, half, scalar[1])
 

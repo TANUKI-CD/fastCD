@@ -112,10 +112,11 @@ products use two products per instruction at these dimensions:
 - Direct: dimension 64 through 512.
 
 On the same targets, a single quasilinear product above dimension 16
-evaluates the two children of every complex node in the two SIMD lanes,
-using the caller's workspace; the workspace query reports the larger
-requirement of that form. Single direct and Cariow–Cariowa products use the
-scalar kernels.
+evaluates the two children of the top complex node in the two SIMD lanes
+and continues through the paired kernel, using the caller's workspace; the
+workspace query reports the larger requirement of that form. Single direct
+and Cariow–Cariowa products use scalar kernels, which the compiler may
+vectorize.
 
 The scalar and SIMD kernels share an arithmetic schedule and produce
 identical finite results for the same algorithm; NaN payloads may differ.

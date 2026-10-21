@@ -88,34 +88,101 @@ alternative, so `x^(-1)(xy)` need not equal `y`, and multiplication by
 
 ## Multiplication algorithms
 
-All three algorithms compute the same product, but they use different
-numbers of arithmetic operations and round differently. In the table below,
-`M` counts general real multiplications and `A` counts real additions or
-subtractions. Multiplications by the exact binary constants `1/2`, `2`, and
-`1/N` are excluded from `M`, and `N = 2^n`.
+All three algorithms compute the same product, but use different numbers of
+arithmetic operations and can round differently. Write `M` for input-dependent
+real multiplications, `A` for additions and subtractions, and `S` for
+multiplication by fixed scalars other than `0, +1, -1`. The total is
+`T = M + A + S`, including preprocessing of both operands. Known-zero terms,
+copies, permutations, and sign changes are free in this arithmetic model.
+Here `N = 2^n`.
 
-| Algorithm | `M(N)` | `A(N)` | Caller workspace (doubles) |
+| Algorithm | `M(N)` | `A(N)` | `S(N)` |
 | --- | --- | --- | --- |
-| Direct (defining recursion) | `N^2` | `N (N - 1)` | `0` for `N <= 16`, `2N - 32` above |
-| Cariow–Cariowa (`N <= 1024`) | `N (N - 1) / 2 + 2` | `3 N n + (N (N - 3) + 4) / 2` for `N >= 4` | `0` for `N <= 64`, `2N` above |
-| Quasilinear (`N >= 2`) | `(9n - 15) N / 2 + 10` | `(27n - 70) N / 2 + 46` | `0` for `N <= 16`; above that `5N - 63` with the two-lane SIMD kernels, `2N - 32` without |
+| Direct | `N^2` | `N (N - 1)` | `0` |
+| Cariow–Cariowa (`4 <= N <= 1024`) | `N (N - 1) / 2 + 2` | `3 N n + (N (N - 3) + 4) / 2` | `2N` |
+| Quasilinear (`N >= 16`) | `(36n - 69) N / 8 + 10` | `(76n - 195) N / 8 + 26` | `(8n - 27) N / 8 + 4` |
 
-The direct and Cariow–Cariowa algorithms therefore use `Theta(N^2)` real
-arithmetic, while the quasilinear algorithm uses `Theta(N log N)`. The
-quasilinear algorithm has the fewest operations from `N = 64` onward, while
-Cariow–Cariowa has the fewest at `N = 16, 32`, and direct has fewer at `N = 8`.
-Cariow–Cariowa is available through `N = 1024`, but it is not recommended
-above `N = 64`: the quasilinear product is already about twice as fast
-there and the gap grows with `N`, the automatic selection never chooses it
-above `N = 16`, and above `N = 64` its sparse sign corrections cannot be
-vectorized within a product, so its running time no longer reflects its
-operation count. The benchmark times it at every dimension so that this
-effect is visible in the results (see [benchmark.md](benchmark.md)).
+The quasilinear counts `(M, A, S)` at `N = 1, 2, 4, 8` are respectively
+`(1, 0, 0)`, `(4, 2, 0)`, `(16, 12, 0)`, and `(58, 62, 0)`.
+For `N >= 16` its total is `(120n - 291) N / 8 + 40`. At dimension 16,
+this gives 418 operations, compared with 496 for direct multiplication and
+452 for uniform Cariow–Cariowa. Quasilinear has fewer total operations than
+both from dimension 16 onward, and ties direct at dimension 8. Direct and
+Cariow–Cariowa remain quadratic; quasilinear uses `Theta(N log N)` arithmetic.
+These are schedule counts, not compiler-instruction counts or timing predictions.
+`python3 tools/check_quasilinear_counts.py` checks them through dimension 256
+by instrumenting the actual scalar template and generated kernels; this optional
+development check requires a C++ compiler, while the library itself is C11.
 
-The quasilinear addition count describes the generic recursion. For
-`N >= 8`, the generated straight-line kernels omit `N` additions whose
-results would only be used by dimension-2 children, so the executed count
-is `N` lower.
+For `x = alpha + X`, `y = beta + Y` with imaginary `X, Y`, quasilinear
+multiplication reconstructs
+
+```text
+xy = (alpha beta - <X,Y>) + alpha Y + beta X + X cross Y.
+```
+
+Above its base cases, the complex alternating kernel splits
+`X = (u, gamma + s)` and `Y = (v, delta + t)`. It evaluates two half-size children on
+`u +/- iota s` and `v +/- iota t`, over one fixed coefficient field with
+`iota^2 = -1`. At the real-input root those children are complex conjugates,
+so one child suffices. This auxiliary `iota` is a coefficient unit, and is
+distinct from the Cayley–Dickson basis units and involution.
+
+The local bilinear map is evaluated as a whole:
+
+```text
+B((u,gamma,s), (v,delta,t)) = (gamma t - delta s,
+                              <s,v> - <t,u>, delta u - gamma v)
+P = B(a_real, b_real)
+Q = B(a_imag, b_imag)
+W = B(a_real + a_imag, b_real + b_imag)
+B_complex(a,b) = (P - Q) + iota ((W - P) - Q).
+```
+
+If `(F, lambda, G) = B_complex(X,Y)` and the child outputs are `Z_plus`
+and `Z_minus`, the output is
+
+```text
+C_k(X,Y) = ((Z_plus + Z_minus)/2 + F,
+            lambda + G + iota (Z_plus - Z_minus)/2).
+```
+
+Here `lambda` occupies the scalar coordinate of the second half. At a real
+root, evaluate `Z = C_(n-1)(u + iota s, v + iota t)` once and return
+`(Re(Z) + F, lambda + G - Im(Z))`, with the local map evaluated over the reals.
+
+The three scalar reductions are accumulated separately before recovering the
+complex pairing. At a complex node of dimension `K = 2^k`, with `m = K/2 - 1`,
+this local map costs `18m` real products and `22m + 2` additions. Including
+input transforms and child recombination, the complex-kernel counts satisfy
+`M_k = 2M_(k-1) + 18m`, `A_k = 2A_(k-1) + 38m + 2`, and
+`S_k = 2S_(k-1) + 4m` above the octonion base.
+
+The dimension-8 complex base computes the alternating product on seven
+complex imaginary-octonion coordinates. For
+`X = (x1,x2,x3,h,y1,y2,y3)`, form
+
+```text
+p = -iota h, z = x1 + p
+b = x2 + iota y2, r = x2 - iota y2
+c = x3 + iota y3, s = x3 - iota y3
+L1 X = (x1, y1, p)              L2 X = (b+s, r-c, p)
+L3 X = (z+iota y1, b, c)        L4 X = (z-iota y1, r, s).
+```
+
+With the ordinary three-dimensional cross product and ordinary transposes
+(without complex conjugation), the result is
+`-iota L1^T(L1 X cross L1 Y) + (1/2) sum_(j=2..4) Lj^T(Lj X cross Lj Y)`.
+Each complex three-dimensional cross uses three real crosses. The sparse
+linear maps and transpose reconstruction give `(M, A, S) = (72, 158, 14)`,
+or 244 operations. This complex leaf first enters a full real product at
+dimension 16. The smaller complex dimension-4 base uses the fused local map,
+with counts `(18, 24, 0)`.
+
+Cariow–Cariowa is available through dimension 1024. Through dimension 64 it
+uses generated straight-line kernels; above that its irregular sign corrections
+use table-driven gathered loads. Fewer arithmetic operations do not necessarily
+make that access pattern faster (see [benchmark.md](benchmark.md)).
 
 Every workspace is `Theta(N)` doubles, the same order as one operand, and
 independent of the batch size: a batch reuses one workspace for all of its
@@ -139,11 +206,12 @@ them in your code.
 The scalar and paired SIMD kernels use the same generated leaves and
 recursive arithmetic. Each SIMD lane holds an independent product, so
 batching does not change the number of operations per product. A single
-quasilinear product above dimension 16 places the two children of each
-complex node in the two lanes instead, with the same operations in the same
-order per coordinate, so it agrees bitwise with the scalar and batched
-forms. The [C API reference](c-api.md) describes the internal packing
-storage and the cases where batches use scalar kernels.
+quasilinear product above dimension 16 places the two children of the
+top complex node in the two lanes, and continues through the paired kernel.
+It preserves the operations and their order per coordinate, so it agrees
+bitwise with the scalar and batched forms. The [C API reference](c-api.md)
+describes the internal packing storage and the cases where batches use scalar
+kernels.
 
 The default algorithms used by `fastcd_mul_f64` and ordinary Python
 multiplication have been selected for each dimension based on the benchmark.
