@@ -9,6 +9,11 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ### Changed
 
+- Automatic single-product selection at dimension 4 now uses quasilinear
+  instead of direct, including one-record batches and composite operations.
+  This follows the lower measured mean in the 2026-10-23 T440 run; the paired
+  95% interval still includes equal performance. AUTO results can round
+  differently from the previous direct default.
 - Quasilinear multiplication uses a fused local bilinear map and a specialized
   complex octonion alternating-product base case; arithmetic counts and
   validation instructions are documented in `docs/mathematics.md`.

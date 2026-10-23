@@ -222,7 +222,7 @@ static bool valid_algorithm(FastCDAlgorithm algorithm) {
 static const FastCDAlgorithm auto_single_by_level[] = {
     FASTCD_ALGORITHM_QUASILINEAR,   /* 1 */
     FASTCD_ALGORITHM_QUASILINEAR,   /* 2 */
-    FASTCD_ALGORITHM_DIRECT,        /* 4 */
+    FASTCD_ALGORITHM_QUASILINEAR,   /* 4 */
     FASTCD_ALGORITHM_DIRECT,        /* 8 */
     FASTCD_ALGORITHM_DIRECT,        /* 16 */
     FASTCD_ALGORITHM_QUASILINEAR    /* 32 and above */

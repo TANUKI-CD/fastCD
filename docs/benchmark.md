@@ -14,7 +14,20 @@ and complex octonion base case. Preserve those results when making a new
 comparison; the current [arithmetic counts](mathematics.md) describe the
 default quasilinear schedule.
 
-The [2026-10-19 T440 comparison](../benchmark-results/t440-20261019/README.md)
+The [2026-10-23 full T440 rerun](../benchmark-results/paper-v2-20261023/results.md)
+measures the current schedule through dimension 1024 using the original paper's
+protocol and identical input corpus hashes. Its
+[raw observations](../benchmark-results/paper-v2-20261023/results.json),
+[environment](../benchmark-results/paper-v2-20261023/environment.json),
+[commands](../benchmark-results/paper-v2-20261023/commands.json), and
+[validation record](../benchmark-results/paper-v2-20261023/validation.json)
+are archived together. The README tables use this run. All 600,000
+algorithm/mode verification checks passed with zero mismatches and finite
+outputs. The current and original runs used different compiler and kernel
+versions on a shared host, so historical timing differences do not isolate
+source-code changes.
+
+The earlier [2026-10-19 T440 comparison](../benchmark-results/t440-20261019/README.md)
 measures the current schedule against fastCD 1.0.0 through dimension 256,
 with raw observations, build hashes, arithmetic counts and correctness checks.
 
@@ -24,6 +37,15 @@ algorithm. The intervals use Student's t distribution with degrees of freedom
 capped at 30. The "fastest mean" column names the lowest verified mean, or
 reports a tie when the 95% interval of the paired per-block ratio between the
 two lowest means contains one.
+
+The current AUTO table selects quasilinear for dimension-4 singles, following
+its lower mean in the 2026-10-23 run (18.55 ns versus direct's 19.12 ns).
+The paired quasilinear/direct ratio is 0.978 with a 95% interval of
+0.952–1.004, so the report still labels the two a tie. Selecting the lower
+measured mean is a tuning decision; the fraction of a confidence interval
+below one is not a probability that one algorithm is faster. The README's
+default column reflects this later selection, while the archived reports
+preserve the defaults of the measured build.
 
 Both modes measure the kernels as the library ships them. Batch mode runs
 two products per SIMD instruction for quasilinear and Cariow–Cariowa at

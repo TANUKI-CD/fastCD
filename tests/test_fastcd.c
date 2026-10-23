@@ -643,7 +643,7 @@ static void test_algorithm_selection(void) {
              * table; that build is recognized by its batch choice at N=16. */
             static const FastCDAlgorithm documented_single[] = {
                 FASTCD_ALGORITHM_QUASILINEAR, FASTCD_ALGORITHM_QUASILINEAR,
-                FASTCD_ALGORITHM_DIRECT, FASTCD_ALGORITHM_DIRECT,
+                FASTCD_ALGORITHM_QUASILINEAR, FASTCD_ALGORITHM_DIRECT,
                 FASTCD_ALGORITHM_DIRECT
             };
             static const FastCDAlgorithm documented_batch[] = {

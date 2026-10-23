@@ -1,0 +1,72 @@
+{
+  "source_commit": "f9a61b28550cd01253d59115d1cefb47d4e3b991",
+  "c_tests": {
+    "status": "passed",
+    "tests": 4,
+    "log": "ctest.log",
+    "build": "fresh Release benchmark build with warnings as errors"
+  },
+  "python_tests": {
+    "status": "passed",
+    "tests": 79,
+    "method": "unittest discovery; current extension built with CMake in /tmp/fastcd-review-current and source modules staged in /tmp/fastcd-review-python with source-version distribution metadata; not a wheel-install check"
+  },
+  "benchmark_driver_tests": {
+    "status": "passed",
+    "tests": 12,
+    "method": "python3 -m unittest discover -s benchmarks -q"
+  },
+  "generated_headers": {
+    "status": "byte-identical regeneration",
+    "files": 4
+  },
+  "arithmetic_counts": {
+    "status": "passed",
+    "file": "operation-counts.json",
+    "maximum_dimension": 1024
+  },
+  "original_corpora": {
+    "status": "all SHA-256 hashes identical",
+    "dimensions": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+    ],
+    "manifest": "corpus-manifest.json"
+  },
+  "benchmark": {
+    "status": "passed",
+    "dimensions": 10,
+    "algorithms": 3,
+    "modes": 2,
+    "observations": 1440,
+    "verified_products": 600000,
+    "distinct_operand_pairs": 100000,
+    "mismatched_products": 0,
+    "all_finite": true,
+    "all_checksums_stable": true,
+    "all_method_orders_balanced": true,
+    "all_statistics_recomputed": true,
+    "all_source_and_build_hashes_match": true,
+    "original_protocol_and_corpora_match": true,
+    "max_absolute_error": 1.3322676295501878e-15,
+    "max_norm_scaled_error": 5.476876730115508e-16,
+    "quasilinear_max_norm_scaled_error": 5.476876730115508e-16,
+    "minimum_actual_observation_ms": 13.711611,
+    "note": "600000 algorithm/mode checks reuse 10000 distinct operand pairs at each of 10 dimensions. Verification is against a float64 defining-recursion oracle, not an exact product.",
+    "single_and_batch_checksums_identical": true
+  },
+  "documentation": {
+    "status": "passed",
+    "readme_tables": "exact output of benchmark.py mode_table on results.json",
+    "original_json_and_markdown": "byte-identical to HEAD",
+    "local_links": "all resolve"
+  }
+}

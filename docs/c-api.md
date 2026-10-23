@@ -166,7 +166,7 @@ and the caller's workspace.
 
 `FASTCD_ALGORITHM_AUTO` uses two tables selected from the benchmark:
 
-- Single products use direct at `N = 4, 8, 16` and quasilinear elsewhere.
+- Single products use direct at `N = 8, 16` and quasilinear elsewhere.
   This table also serves one-record batches and operator routines.
 - Batches of two or more products use direct at `N = 8`, Cariow–Cariowa at
   `N = 16`, and quasilinear elsewhere. Builds without SIMD pairing use the

@@ -1,0 +1,184 @@
+{
+  "status": "ok",
+  "method": "existing operator-instrumented scalar C++ probe extended from dimension 256 through 1024",
+  "compiler": "c++ (GCC) 16.2.1 20260810",
+  "convention": "paper arithmetic; known-zero operations and signs excluded",
+  "counts": [
+    {
+      "kind": "full",
+      "dimension": 1,
+      "M": 1,
+      "A": 0,
+      "S": 0,
+      "T": 1
+    },
+    {
+      "kind": "complex",
+      "dimension": 1,
+      "M": 0,
+      "A": 0,
+      "S": 0,
+      "T": 0
+    },
+    {
+      "kind": "full",
+      "dimension": 2,
+      "M": 4,
+      "A": 2,
+      "S": 0,
+      "T": 6
+    },
+    {
+      "kind": "complex",
+      "dimension": 2,
+      "M": 0,
+      "A": 0,
+      "S": 0,
+      "T": 0
+    },
+    {
+      "kind": "full",
+      "dimension": 4,
+      "M": 16,
+      "A": 12,
+      "S": 0,
+      "T": 28
+    },
+    {
+      "kind": "complex",
+      "dimension": 4,
+      "M": 18,
+      "A": 24,
+      "S": 0,
+      "T": 42
+    },
+    {
+      "kind": "full",
+      "dimension": 8,
+      "M": 58,
+      "A": 62,
+      "S": 0,
+      "T": 120
+    },
+    {
+      "kind": "complex",
+      "dimension": 8,
+      "M": 72,
+      "A": 158,
+      "S": 14,
+      "T": 244
+    },
+    {
+      "kind": "full",
+      "dimension": 16,
+      "M": 160,
+      "A": 244,
+      "S": 14,
+      "T": 418
+    },
+    {
+      "kind": "complex",
+      "dimension": 16,
+      "M": 270,
+      "A": 584,
+      "S": 56,
+      "T": 910
+    },
+    {
+      "kind": "full",
+      "dimension": 32,
+      "M": 454,
+      "A": 766,
+      "S": 56,
+      "T": 1276
+    },
+    {
+      "kind": "complex",
+      "dimension": 32,
+      "M": 810,
+      "A": 1740,
+      "S": 172,
+      "T": 2722
+    },
+    {
+      "kind": "full",
+      "dimension": 64,
+      "M": 1186,
+      "A": 2114,
+      "S": 172,
+      "T": 3472
+    },
+    {
+      "kind": "complex",
+      "dimension": 64,
+      "M": 2178,
+      "A": 4660,
+      "S": 468,
+      "T": 7306
+    },
+    {
+      "kind": "full",
+      "dimension": 128,
+      "M": 2938,
+      "A": 5418,
+      "S": 468,
+      "T": 8824
+    },
+    {
+      "kind": "complex",
+      "dimension": 128,
+      "M": 5490,
+      "A": 11716,
+      "S": 1188,
+      "T": 18394
+    },
+    {
+      "kind": "full",
+      "dimension": 256,
+      "M": 7018,
+      "A": 13242,
+      "S": 1188,
+      "T": 21448
+    },
+    {
+      "kind": "complex",
+      "dimension": 256,
+      "M": 13266,
+      "A": 28260,
+      "S": 2884,
+      "T": 44410
+    },
+    {
+      "kind": "full",
+      "dimension": 512,
+      "M": 16330,
+      "A": 31322,
+      "S": 2884,
+      "T": 50536
+    },
+    {
+      "kind": "complex",
+      "dimension": 512,
+      "M": 31122,
+      "A": 66212,
+      "S": 6788,
+      "T": 104122
+    },
+    {
+      "kind": "full",
+      "dimension": 1024,
+      "M": 37258,
+      "A": 72346,
+      "S": 6788,
+      "T": 116392
+    },
+    {
+      "kind": "complex",
+      "dimension": 1024,
+      "M": 71442,
+      "A": 151844,
+      "S": 15620,
+      "T": 238906
+    }
+  ]
+}

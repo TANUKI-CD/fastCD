@@ -220,7 +220,7 @@ because the paired SIMD kernels change the ranking below dimension 32.
 When fastCD is built without SIMD pairing, batches use the single-product
 choices.
 
-The current tables select direct for single products at `N = 4, 8, 16` and
+The current tables select direct for single products at `N = 8, 16` and
 quasilinear elsewhere. For batches, they select direct at `N = 8`,
 Cariow–Cariowa at `N = 16`, and quasilinear elsewhere. Both therefore use
 quasilinear from `N = 32` upward. You can inspect the choices with

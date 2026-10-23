@@ -1,0 +1,78 @@
+{
+  "collected": "2026-10-23T09:40:36.096806-04:00",
+  "machine": "server",
+  "system": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+  "product": "PowerEdge T440",
+  "cpu_model": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+  "compiler": "cc (GCC) 16.2.1 20260810",
+  "python": "3.14.8",
+  "numpy": "2.5.4",
+  "cpu": 0,
+  "thread_siblings": "0,40",
+  "cpu_state": {
+    "scaling_governor": null,
+    "intel_pstate_no_turbo": null,
+    "cpufreq_boost": null,
+    "smt_control": "on"
+  },
+  "load_average": [
+    1.4716796875,
+    1.81396484375,
+    1.775390625
+  ],
+  "isolation": "Pinned to CPU 0 to match original protocol; SMT sibling is 40. Shared host; no governor, turbo, SMT or service changes.",
+  "source_commit": "f9a61b28550cd01253d59115d1cefb47d4e3b991",
+  "source_git": {
+    "commit": "f9a61b28550cd01253d59115d1cefb47d4e3b991",
+    "dirty": false,
+    "describe": "v1.0.0-1-gf9a61b2"
+  },
+  "original_source_commit": "14bf30548487ccf35939de89cb7f7e98a1dab5c6",
+  "original_report_sha256": "2aedcdd09713aa664ca0a46827dd6b18d0cd3dee9b85d0f0f7fc48468c3e53c6",
+  "work_directory": "/tmp/fastcd-paper-v2-20261023-4goyx4ti",
+  "results_directory": "/hdd/math/fastCD/benchmark-results/paper-v2-20261023",
+  "original_corpora_sha256_match": true,
+  "protocol": {
+    "dimensions": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+    ],
+    "trials": 10000,
+    "blocks": 24,
+    "warmup": 2,
+    "min_time_ms": 20.0,
+    "seed": 20260906,
+    "norm_min": 0.5,
+    "norm_max": 2.0,
+    "verify_trials": 10000,
+    "max_direct_dimension": 1024,
+    "max_cc_dimension": 1024,
+    "cariow_cariowa_supported_dimension": 1024,
+    "modes": [
+      "batch",
+      "single"
+    ],
+    "cpu": 0,
+    "method_order": "shuffled (algorithm, mode) order rotated per block"
+  },
+  "comparison_limit": "Original run used GCC 16.1.1 and Linux 7.1.6; current run uses the recorded current compiler/kernel. Historical timing differences cannot be attributed exclusively to source changes.",
+  "finished": "2026-10-23T10:18:05-0400",
+  "load_average_after": [
+    2.6298828125,
+    2.4931640625,
+    2.583984375
+  ],
+  "benchmark_started": "2026-10-23T09:41:18-0400",
+  "thread_environment": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+  }
+}
