@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.18)
 # define through scikit-build-core, so the three cannot drift apart.  CMake
 # uses the numeric MAJOR.MINOR.PATCH part; a PEP 440 pre-release suffix such
 # as "rc1" is kept only in the library's version string.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/fastcd.c")
 file(STRINGS src/fastcd.c FASTCD_VERSION_LINE REGEX "^#define FASTCD_VERSION \"")
 string(REGEX REPLACE "^#define FASTCD_VERSION \"([0-9]+\\.[0-9]+\\.[0-9]+)[^\"]*\".*$" "\\1"
     FASTCD_VERSION_STRING "${FASTCD_VERSION_LINE}")

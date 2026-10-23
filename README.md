@@ -1,6 +1,6 @@
 ![fastCD](assets/fastCD.png)
 
-# fastCD - v1.0.0
+# fastCD - v1.1.0
 
 fastCD is a lean C kernel for Cayley-Dickson multiplication with a NumPy-compatible Python extension written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
 

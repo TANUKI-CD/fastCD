@@ -7,6 +7,8 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-23
+
 ### Changed
 
 - Automatic single-product selection at dimension 4 now uses quasilinear
@@ -16,7 +18,29 @@ All notable changes to fastCD are recorded in this file. The project follows
   differently from the previous direct default.
 - Quasilinear multiplication uses a fused local bilinear map and a specialized
   complex octonion alternating-product base case; arithmetic counts and
-  validation instructions are documented in `docs/mathematics.md`.
+  validation instructions are documented in `docs/mathematics.md`. Its
+  floating-point rounding can differ from version 1.0.0.
+- The C and Python stability documentation clarifies that AUTO choices,
+  workspace lengths, and arithmetic schedules can change between compatible
+  releases; bitwise floating-point reproducibility across versions is not
+  guaranteed.
+
+### Added
+
+- Full T440 benchmark data through dimension 1024 for the updated quasilinear
+  schedule, with the original input corpora and protocol. Source distributions
+  include the benchmark archives linked by the documentation.
+- CI checks for quasilinear arithmetic counts and the complete source
+  distribution to wheel to installed-package test path, including byte-for-byte
+  verification of the bundled benchmark archives.
+
+### Fixed
+
+- The kernel generator's three fixed-length `zip` traversals explicitly use
+  `strict=True`, satisfying the configured lint checks without changing the
+  generated kernels.
+- CMake reconfigures when the canonical version changes, including builds
+  with the benchmark disabled, keeping installed package metadata in sync.
 
 ## [1.0.0] - 2026-09-13
 

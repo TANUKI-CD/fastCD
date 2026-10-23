@@ -72,6 +72,12 @@ typedef struct FastCDBasisProduct { size_t index; int sign; } FastCDBasisProduct
   numerical results. Different algorithms and specialized formulas can
   round differently without returning an error.
 
+AUTO choices, workspace lengths, and arithmetic schedules may change in minor
+or patch releases while preserving the public calling contracts. Obtain
+workspace lengths from the query functions. Floating-point results are not
+guaranteed bitwise identical across versions, even for the same explicitly
+selected algorithm. Relevant numerical changes are recorded in `CHANGELOG.md`.
+
 **Aliasing**
 
 An exact alias has the same starting pointer and covers a complete element.
@@ -131,7 +137,7 @@ and the caller's workspace.
 
 - `const char* fastcd_version_string(void)`
 
-  Return the library version string, currently `"1.0.0"`.
+  Return the library version string, currently `"1.1.0"`.
 
 - `const char* fastcd_status_string(FastCDStatus status)`
 

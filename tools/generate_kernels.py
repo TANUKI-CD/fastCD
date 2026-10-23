@@ -201,10 +201,10 @@ def octonion_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
                 for i, j in ((1, 2), (2, 0), (0, 1))]
 
     results = []
-    for x, y in zip(maps(x_r, x_i), maps(y_r, y_i)):
-        p, q, w = [cross(a, b) for a, b in zip(x, y)]
+    for x, y in zip(maps(x_r, x_i), maps(y_r, y_i), strict=True):
+        p, q, w = [cross(a, b) for a, b in zip(x, y, strict=True)]
         results.append([(e.sub(a, b), e.sub(e.sub(c, a), b))
-                        for a, b, c in zip(p, q, w)])
+                        for a, b, c in zip(p, q, w, strict=True)])
     (a1, b1, c1), (a2, b2, c2), (a3, b3, c3), (a4, b4, c4) = results
     t, u = add(a3, a4), sub(a3, a4)
     v = add(c2, t)

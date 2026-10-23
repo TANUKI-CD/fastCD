@@ -6,7 +6,7 @@
 #include "fastcd_internal.h"
 #include "pair.h"
 
-#define FASTCD_VERSION "1.0.0"
+#define FASTCD_VERSION "1.1.0"
 
 /* ---------- Definitions of private structs ---------- */
 

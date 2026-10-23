@@ -447,5 +447,12 @@ pyfastcd follows semantic versioning, and its version string is the version of
 the fastCD C library it wraps. The public surface is the six names in
 `pyfastcd.__all__` together with the members documented on this page; modules
 and names with a leading underscore are private and may change without notice.
-Within a major version, documented behavior changes only with a deprecation
-note in `CHANGELOG.md`.
+Public API removals and incompatible calling-contract changes require a major
+version change and a prior deprecation note in `CHANGELOG.md`.
+
+AUTO algorithm choices and internal arithmetic schedules may change in minor
+or patch releases to improve performance or correctness. Workspace lengths
+are implementation details obtained through the C query functions.
+Floating-point results are not guaranteed bitwise identical across versions,
+even when selecting the same named algorithm explicitly. Relevant numerical
+changes are recorded in `CHANGELOG.md`.

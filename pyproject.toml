@@ -83,6 +83,7 @@ sdist.include = [
     "README.md",
     "pyproject.toml",
     "assets/**",
+    "benchmark-results/**",
     "benchmarks/**",
     "cmake/**",
     "docs/**",
