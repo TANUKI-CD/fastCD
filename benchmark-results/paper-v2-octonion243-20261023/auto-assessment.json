@@ -1,0 +1,646 @@
+{
+  "criterion": "Consider a change when an alternative has a lower arithmetic mean and its paired competitor/AUTO ratio has a 95% confidence interval wholly below one. This is tuning evidence on this host, not proof of hardware-independent optimality.",
+  "dimension_1": "Unchanged identical scalar multiplication, not timed by the original protocol.",
+  "results": [
+    {
+      "dimension": 2,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.2950475198265985,
+          "ci95": [
+            1.2735031913927657,
+            1.3169563216993685
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.5474439937790947,
+          "ci95": [
+            1.5197476920434057,
+            1.5756450405680913
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 2,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.0530765741358548,
+          "ci95": [
+            1.0328474929006255,
+            1.0737018568726944
+          ],
+          "competitor_faster_blocks": 4,
+          "competitor_slower_blocks": 20
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.1061462598441405,
+          "ci95": [
+            1.0860589129662988,
+            1.1266051349142134
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 4,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "tie (quasilinear, direct)",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.0183816085301798,
+          "ci95": [
+            0.9999298105786362,
+            1.0371738992283568
+          ],
+          "competitor_faster_blocks": 7,
+          "competitor_slower_blocks": 17
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.2149826091153606,
+          "ci95": [
+            1.1924695420129896,
+            1.2379207086168822
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 4,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "tie (quasilinear, direct)",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.00307354491443,
+          "ci95": [
+            0.9851117196028134,
+            1.021362873352956
+          ],
+          "competitor_faster_blocks": 16,
+          "competitor_slower_blocks": 8
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.104584512061101,
+          "ci95": [
+            1.078004094520273,
+            1.1318203246975846
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 8,
+      "mode": "batch",
+      "current_auto": "direct",
+      "lowest_mean": "direct",
+      "fastest_label": "direct",
+      "competitor_over_auto": {
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.1424085375946165,
+          "ci95": [
+            1.11427340353995,
+            1.1712540769822644
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "quasilinear": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.439550465325385,
+          "ci95": [
+            1.4080964377114693,
+            1.4717071123243373
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 8,
+      "mode": "single",
+      "current_auto": "direct",
+      "lowest_mean": "direct",
+      "fastest_label": "direct",
+      "competitor_over_auto": {
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.4670339299152695,
+          "ci95": [
+            1.437556137328036,
+            1.4971161790751908
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "quasilinear": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.3215707108478423,
+          "ci95": [
+            1.2941325505553622,
+            1.3495906142082275
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 16,
+      "mode": "batch",
+      "current_auto": "cariow_cariowa",
+      "lowest_mean": "cariow_cariowa",
+      "fastest_label": "cariow_cariowa",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.0964702824349652,
+          "ci95": [
+            1.0673996474183074,
+            1.1263326563493412
+          ],
+          "competitor_faster_blocks": 1,
+          "competitor_slower_blocks": 23
+        },
+        "quasilinear": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.0931867379508025,
+          "ci95": [
+            1.0681454361843459,
+            1.1188151009665201
+          ],
+          "competitor_faster_blocks": 1,
+          "competitor_slower_blocks": 23
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 16,
+      "mode": "single",
+      "current_auto": "direct",
+      "lowest_mean": "direct",
+      "fastest_label": "direct",
+      "competitor_over_auto": {
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.4127052803135522,
+          "ci95": [
+            1.3789009196913038,
+            1.4473383696579014
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "quasilinear": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.3875756456933472,
+          "ci95": [
+            1.3559041185216274,
+            1.4199869638426788
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 32,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.4737400693013936,
+          "ci95": [
+            1.451127306184909,
+            1.496705204710497
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.320906537544638,
+          "ci95": [
+            1.301961241198896,
+            1.3401275135667563
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 32,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 1.4211014297096327,
+          "ci95": [
+            1.392797820206776,
+            1.4499802083427595
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 2.1609012009235586,
+          "ci95": [
+            2.124035105499667,
+            2.1984071675945334
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 64,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 2.580316652435703,
+          "ci95": [
+            2.5427793391705893,
+            2.618408103397886
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 2.267613370573452,
+          "ci95": [
+            2.218732821545746,
+            2.3175707991830743
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 64,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 2.287300530002747,
+          "ci95": [
+            2.2394275736419536,
+            2.3361968817962384
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 3.684731528301687,
+          "ci95": [
+            3.5929322068458434,
+            3.7788763199569675
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 128,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 3.8036388147516185,
+          "ci95": [
+            3.705289384943508,
+            3.904598731714359
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 4.103859814023062,
+          "ci95": [
+            3.967766916866827,
+            4.244620645824764
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 128,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 3.702633287167462,
+          "ci95": [
+            3.637784874025824,
+            3.7686377105825537
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 6.327530180419727,
+          "ci95": [
+            6.21977023770989,
+            6.437157106122348
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 256,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 6.008672127611669,
+          "ci95": [
+            5.8744381879606875,
+            6.145973381953465
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 5.996207802532664,
+          "ci95": [
+            5.835242024617121,
+            6.1616138387186705
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 256,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 5.413922758823523,
+          "ci95": [
+            5.323521159805748,
+            5.505859516406399
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 9.0130083989535,
+          "ci95": [
+            8.846081907803999,
+            9.183084810456206
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 512,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 10.318836304982634,
+          "ci95": [
+            10.146859806658181,
+            10.493727588426768
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 9.818275693946172,
+          "ci95": [
+            9.632890885530761,
+            10.0072282295994
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 512,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 9.543374628613087,
+          "ci95": [
+            9.369464275699308,
+            9.720513000756208
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 14.944566928659745,
+          "ci95": [
+            14.648591749075415,
+            15.246522294492047
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 1024,
+      "mode": "batch",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 17.68106942233606,
+          "ci95": [
+            17.467617581188936,
+            17.897129615095945
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 26.32993301131597,
+          "ci95": [
+            26.082344922403745,
+            26.579871343734045
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    },
+    {
+      "dimension": 1024,
+      "mode": "single",
+      "current_auto": "quasilinear",
+      "lowest_mean": "quasilinear",
+      "fastest_label": "quasilinear",
+      "competitor_over_auto": {
+        "direct": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 17.23303806889793,
+          "ci95": [
+            16.96649880345961,
+            17.50376459659014
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        },
+        "cariow_cariowa": {
+          "definition": "competitor_ns / baseline_ns per block, geometric mean",
+          "paired_blocks": 24,
+          "geometric_mean": 25.87767592842475,
+          "ci95": [
+            25.533967082369124,
+            26.22601138696389
+          ],
+          "competitor_faster_blocks": 0,
+          "competitor_slower_blocks": 24
+        }
+      },
+      "alternatives_with_lower_mean_and_paired_ci_below_one": []
+    }
+  ]
+}

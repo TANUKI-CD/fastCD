@@ -106,45 +106,47 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 ## Benchmark
 
-The full comparison for the v2 paper was rerun on 2026-10-23 on the Dell PowerEdge T440, using one logical CPU of an Intel Xeon Gold 6148 and source revision `f9a61b2`. The current quasilinear implementation includes the fused local bilinear map and complex octonion base case. [Raw results](benchmark-results/paper-v2-20261023/results.json), the [complete generated report](benchmark-results/paper-v2-20261023/results.md), and [environment and build details](benchmark-results/paper-v2-20261023/environment.json) are archived together.
+The full comparison for the v2 paper was rerun on 2026-10-23 on the Dell PowerEdge T440, using one logical CPU of an Intel Xeon Gold 6148 and the revised **243-operation complex octonion leaf**. The measured source is revision `7da5a5f` plus the archived [source patch](benchmark-results/paper-v2-octonion243-20261023/source.patch); exact source and build hashes are recorded. [Raw results](benchmark-results/paper-v2-octonion243-20261023/results.json), the [complete generated report](benchmark-results/paper-v2-octonion243-20261023/results.md), and [environment and build details](benchmark-results/paper-v2-octonion243-20261023/environment.json) are archived together.
+
+The new leaf uses 72 input-dependent real multiplications, 156 additions/subtractions and 15 halvings. It saves one operation per leaf, or `N/16` in a full real product for `N >= 16`; dimension 16 now uses 417 operations. The [mathematics documentation](docs/mathematics.md) gives the revised formulas and the paper's addition-optimality result for the prescribed local-map decomposition. [Instrumented counts](benchmark-results/paper-v2-octonion243-20261023/operation-counts.json) verify the schedule through dimension 1024.
 
 The tables give mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timing blocks. They reproduce the original protocol: dimensions 2 through 1024, all three algorithms in single and batch modes, 10,000 operand pairs per dimension, two warmup passes, a 20 ms timing target, and CPU 0. Every input corpus matches the original SHA-256 hash. Python object overhead, allocation, and verification are outside the timed region. See the [benchmark documentation](docs/benchmark.md) for the timing boundaries and implementation details.
 
-The `fastest mean` column names the lowest verified mean, or a tie when the paired per-block ratio of the two lowest means does not separate them. The `default` column shows the library's current automatic selection for that mode and dimension. After this run, dimension-4 singles switched to quasilinear on the strength of its lower measured mean (18.55 ns versus 19.12 ns for direct). This is a tuning choice: the paired quasilinear/direct 95% interval, 0.952–1.004, still includes equal performance. The archived reports retain the defaults used when measured.
+The `fastest mean` column names the lowest verified mean, or a tie when the paired per-block ratio of the two lowest means does not separate them. The `default` column shows AUTO for the measured build. **No AUTO changes are warranted by this run**; the [paired comparisons](benchmark-results/paper-v2-octonion243-20261023/auto-assessment.json) support retaining the existing choices. Dimension-4 singles remain a close tie: quasilinear averaged 18.12 ns versus direct's 18.18 ns, with a paired quasilinear/direct 95% interval of 0.979–1.015.
 
-The [original paper data](benchmark-results/paper-results.json) and [report](benchmark-results/paper-results.md), measured at `14bf305`, remain archived, as does the [October 19 comparison through dimension 256](benchmark-results/t440-20261019/README.md). The new run uses GCC 16.2.1 and Linux 7.2.11; the original used GCC 16.1.1 and Linux 7.1.6. Historical timing differences therefore include compiler and host effects as well as the code changes. The T440 is a shared host, with no governor, turbo, SMT, or service changes made for this run.
+The [earlier full v2 comparison](benchmark-results/paper-v2-20261023/results.md), using the 244-operation leaf at `f9a61b2`, remains archived alongside the [original paper data](benchmark-results/paper-results.json) and [report](benchmark-results/paper-results.md), measured at `14bf305`, and the [October 19 comparison](benchmark-results/t440-20261019/README.md). [Comparisons with the previous leaf](benchmark-results/paper-v2-octonion243-20261023/comparison-previous-leaf.json) are descriptive ratios of means from separate runs. This run and the previous full v2 run use GCC 16.2.1 and Linux 7.2.11; the original used GCC 16.1.1 and Linux 7.1.6. The T440 is a shared host, with no governor, turbo, SMT, or service changes made for this run, so timing differences cannot be attributed solely to the leaf change.
 
-All 600,000 algorithm/mode verification checks passed with zero mismatches and finite outputs; the [validation record](benchmark-results/paper-v2-20261023/validation.json) also records the build, test, arithmetic-count, and data-integrity checks.
+All 600,000 algorithm/mode verification checks passed with zero mismatches and finite outputs; the [validation record](benchmark-results/paper-v2-octonion243-20261023/validation.json) also records the build, test, arithmetic-count, and data-integrity checks.
 
 ### Batch products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |
-| 2 | 1.32 [1.31, 1.34] | 1.53 [1.49, 1.57] | 1.18 [1.16, 1.20] | quasilinear | quasilinear |
-| 4 | 3.72 [3.57, 3.87] | 4.41 [4.35, 4.48] | 3.64 [3.49, 3.79] | tie (quasilinear, direct) | quasilinear |
-| 8 | 12.44 [12.26, 12.62] | 14.35 [14.12, 14.57] | 17.79 [17.56, 18.01] | direct | direct |
-| 16 | 55.70 [54.75, 56.66] | 50.26 [49.49, 51.04] | 54.72 [53.89, 55.55] | cariow_cariowa | cariow_cariowa |
-| 32 | 260.03 [255.89, 264.16] | 228.57 [225.45, 231.69] | 182.12 [179.61, 184.64] | quasilinear | quasilinear |
-| 64 | 1157.56 [1135.01, 1180.10] | 1030.75 [1017.72, 1043.79] | 460.16 [454.79, 465.53] | quasilinear | quasilinear |
-| 128 | 4617.52 [4536.22, 4698.83] | 4915.14 [4791.39, 5038.89] | 1234.76 [1209.71, 1259.82] | quasilinear | quasilinear |
-| 256 | 18115.11 [17890.99, 18339.23] | 17592.57 [17353.49, 17831.64] | 2993.77 [2949.73, 3037.82] | quasilinear | quasilinear |
-| 512 | 69768.05 [68774.94, 70761.16] | 64511.31 [63946.62, 65076.00] | 6791.81 [6688.70, 6894.93] | quasilinear | quasilinear |
-| 1024 | 272717.79 [270536.99, 274898.58] | 413297.56 [402950.61, 423644.51] | 15688.11 [15549.41, 15826.82] | quasilinear | quasilinear |
+| 2 | 1.31 [1.29, 1.32] | 1.57 [1.54, 1.60] | 1.01 [1.00, 1.02] | quasilinear | quasilinear |
+| 4 | 3.84 [3.78, 3.89] | 4.58 [4.50, 4.65] | 3.77 [3.72, 3.81] | tie (quasilinear, direct) | quasilinear |
+| 8 | 12.41 [12.20, 12.61] | 14.19 [13.82, 14.56] | 17.86 [17.57, 18.15] | direct | direct |
+| 16 | 55.34 [54.18, 56.49] | 50.46 [49.49, 51.43] | 55.15 [54.24, 56.06] | cariow_cariowa | cariow_cariowa |
+| 32 | 257.28 [252.91, 261.66] | 230.56 [227.19, 233.93] | 174.49 [172.83, 176.15] | quasilinear | quasilinear |
+| 64 | 1152.26 [1133.60, 1170.93] | 1012.92 [993.30, 1032.54] | 446.49 [440.03, 452.95] | quasilinear | quasilinear |
+| 128 | 4748.29 [4688.47, 4808.10] | 5136.17 [4962.06, 5310.28] | 1249.72 [1219.47, 1279.97] | quasilinear | quasilinear |
+| 256 | 18377.31 [18145.54, 18609.07] | 18353.65 [17953.07, 18754.24] | 3059.44 [3007.34, 3111.55] | quasilinear | quasilinear |
+| 512 | 70080.95 [69127.78, 71034.12] | 66708.04 [65482.11, 67933.97] | 6791.69 [6697.58, 6885.80] | quasilinear | quasilinear |
+| 1024 | 272762.00 [270235.59, 275288.41] | 406124.61 [403922.66, 408326.56] | 15426.99 [15279.98, 15573.99] | quasilinear | quasilinear |
 
 ### Single products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |
-| 2 | 16.42 [16.21, 16.63] | 17.00 [16.78, 17.23] | 15.37 [15.20, 15.53] | quasilinear | quasilinear |
-| 4 | 19.12 [17.56, 20.68] | 21.80 [19.50, 24.10] | 18.55 [17.77, 19.32] | tie (quasilinear, direct) | quasilinear |
-| 8 | 28.07 [27.66, 28.47] | 41.11 [40.56, 41.65] | 37.20 [36.69, 37.71] | direct | direct |
-| 16 | 82.44 [80.56, 84.32] | 114.64 [113.13, 116.15] | 111.54 [109.99, 113.08] | direct | direct |
-| 32 | 300.32 [296.59, 304.05] | 456.03 [450.17, 461.88] | 217.40 [212.48, 222.32] | quasilinear | quasilinear |
-| 64 | 1148.56 [1133.29, 1163.83] | 1944.67 [1921.60, 1967.75] | 511.60 [504.11, 519.09] | quasilinear | quasilinear |
-| 128 | 4516.08 [4453.89, 4578.27] | 7732.47 [7608.13, 7856.80] | 1227.89 [1206.02, 1249.75] | quasilinear | quasilinear |
-| 256 | 17367.15 [17238.01, 17496.29] | 28262.75 [27874.95, 28650.56] | 3176.66 [3131.20, 3222.12] | quasilinear | quasilinear |
-| 512 | 68849.27 [68178.55, 69519.99] | 106804.97 [105999.77, 107610.16] | 7307.34 [7191.12, 7423.57] | quasilinear | quasilinear |
-| 1024 | 274053.28 [271828.85, 276277.71] | 408040.98 [406100.25, 409981.72] | 15924.07 [15659.90, 16188.25] | quasilinear | quasilinear |
+| 2 | 15.93 [15.71, 16.16] | 16.73 [16.52, 16.95] | 15.14 [14.85, 15.42] | quasilinear | quasilinear |
+| 4 | 18.18 [17.88, 18.47] | 20.02 [19.67, 20.37] | 18.12 [17.85, 18.39] | tie (quasilinear, direct) | quasilinear |
+| 8 | 27.72 [27.19, 28.26] | 40.65 [40.10, 41.20] | 36.63 [36.01, 37.24] | direct | direct |
+| 16 | 81.65 [79.95, 83.34] | 115.26 [113.79, 116.74] | 113.28 [111.07, 115.48] | direct | direct |
+| 32 | 299.20 [294.51, 303.89] | 454.81 [449.85, 459.78] | 210.52 [207.60, 213.43] | quasilinear | quasilinear |
+| 64 | 1162.63 [1141.36, 1183.91] | 1873.65 [1833.21, 1914.10] | 508.11 [501.06, 515.17] | quasilinear | quasilinear |
+| 128 | 4592.40 [4521.08, 4663.72] | 7850.82 [7698.55, 8003.09] | 1240.04 [1224.28, 1255.79] | quasilinear | quasilinear |
+| 256 | 17641.62 [17449.49, 17833.76] | 29390.25 [28810.93, 29969.57] | 3259.17 [3214.80, 3303.53] | quasilinear | quasilinear |
+| 512 | 69431.66 [68744.19, 70119.14] | 108745.08 [107367.31, 110122.86] | 7281.07 [7135.00, 7427.14] | quasilinear | quasilinear |
+| 1024 | 270678.46 [269014.65, 272342.27] | 406446.84 [404362.16, 408531.51] | 15713.75 [15492.33, 15935.16] | quasilinear | quasilinear |
 
 ## Documentation
 

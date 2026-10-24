@@ -167,7 +167,7 @@ def input_ptr(name: str, n: int) -> Ptr:
 # ---------------------------------------------------------------------------
 def octonion_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
                    y_r: Ptr, y_i: Ptr) -> None:
-    """Emit C_3 using four sparse images of the three-dimensional cross."""
+    """Emit the 243-operation C_3 leaf, fusing the two scalar contributions."""
 
     def add(a, b):
         return (e.add(a[0], b[0]), e.add(a[1], b[1]))
@@ -201,18 +201,29 @@ def octonion_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
                 for i, j in ((1, 2), (2, 0), (0, 1))]
 
     results = []
-    for x, y in zip(maps(x_r, x_i), maps(y_r, y_i), strict=True):
+    scalar_terms = []
+    for j, (x, y) in enumerate(zip(maps(x_r, x_i), maps(y_r, y_i), strict=True)):
         p, q, w = [cross(a, b) for a, b in zip(x, y, strict=True)]
-        results.append([(e.sub(a, b), e.sub(e.sub(c, a), b))
-                        for a, b, c in zip(p, q, w, strict=True)])
-    (a1, b1, c1), (a2, b2, c2), (a3, b3, c3), (a4, b4, c4) = results
+        # C_1 and C_2 enter only h_hat; retain their real cross products
+        # instead of reconstructing those two complex coordinates separately.
+        if j < 2:
+            scalar_terms.append((p[2], q[2], w[2]))
+        results.append([(e.sub(p[i], q[i]), e.sub(e.sub(w[i], p[i]), q[i]))
+                        for i in range(2 if j < 2 else 3)])
+    (a1, b1), (a2, b2), (a3, b3, c3), (a4, b4, c4) = results
     t, u = add(a3, a4), sub(a3, a4)
-    v = add(c2, t)
     d1, d2 = add(a2, b3), add(b2, b4)
     e1, e2 = sub(c3, b2), add(a2, c4)
-    ih = times_i(half(v))
-    outputs = [sub(half(t), times_i(a1)), half(add(d1, d2)),
-               half(add(e1, e2)), sub((e.neg(ih[0]), e.neg(ih[1])), c1),
+    half_t = half(t)
+    (p1, q1, w1), (p2, q2, w2) = scalar_terms
+    h_e = e.add(p1, e.half(q2))
+    h_f = e.sub(q1, e.half(p2))
+    # Reuse T/2 from x_hat_1: h_hat = (f-e+w_2/2+t_I)
+    #                                  + iota (e+f-w_1-t_R).
+    h = (e.add(e.add(e.sub(h_f, h_e), e.half(w2)), half_t[1]),
+         e.sub(e.sub(e.add(h_e, h_f), w1), half_t[0]))
+    outputs = [sub(half_t, times_i(a1)), half(add(d1, d2)),
+               half(add(e1, e2)), h,
                times_i(sub(half(u), b1)), times_i(half(sub(d1, d2))),
                times_i(half(sub(e1, e2)))]
     wr(o_r, 0, "0.0")

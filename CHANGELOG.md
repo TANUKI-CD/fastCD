@@ -13,13 +13,19 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 - Automatic single-product selection at dimension 4 now uses quasilinear
   instead of direct, including one-record batches and composite operations.
-  This follows the lower measured mean in the 2026-10-23 T440 run; the paired
+  This follows the lower measured mean in the earlier 2026-10-23 T440 run; the paired
   95% interval still includes equal performance. AUTO results can round
   differently from the previous direct default.
 - Quasilinear multiplication uses a fused local bilinear map and a specialized
   complex octonion alternating-product base case; arithmetic counts and
   validation instructions are documented in `docs/mathematics.md`. Its
   floating-point rounding can differ from version 1.0.0.
+- Joint reconstruction of the complex octonion leaf's `h` coordinate reduces
+  its count to 72 products, 156 additions/subtractions and 15 halvings:
+  243 operations, saving one per leaf. A full dimension-16 real product now
+  uses 417 operations, and the arithmetic-count check covers dimensions
+  through 1024. The mathematics documentation states the paper's constrained
+  addition-optimality result for the fixed local-map decomposition.
 - The C and Python stability documentation clarifies that AUTO choices,
   workspace lengths, and arithmetic schedules can change between compatible
   releases; bitwise floating-point reproducibility across versions is not
@@ -27,9 +33,11 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ### Added
 
-- Full T440 benchmark data through dimension 1024 for the updated quasilinear
-  schedule, with the original input corpora and protocol. Source distributions
-  include the benchmark archives linked by the documentation.
+- Full T440 benchmark data through dimension 1024 for both the 244-operation
+  and revised 243-operation leaf schedules, preserving the original input
+  corpora and protocol. The revised-leaf run passes all 600,000 verification
+  checks and supports retaining AUTO. Source distributions include the
+  benchmark archives linked by the documentation.
 - CI checks for quasilinear arithmetic counts and the complete source
   distribution to wheel to installed-package test path, including byte-for-byte
   verification of the bundled benchmark archives.

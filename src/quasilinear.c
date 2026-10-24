@@ -19,8 +19,8 @@
  * Complex nodes through max(8, FASTCD_QL_COMPLEX_LEAF), and complete products
  * through FASTCD_QL_FULL_LEAF, run generated straight-line code.  The
  * dimension-8 mathematical base applies even with an unrolling cutoff of 4.
- * The default cutoffs are retained from the earlier benchmark; the updated
- * default schedule is measured in benchmark-results/t440-20261019/.
+ * The default cutoffs are retained from earlier benchmarks; docs/benchmark.md
+ * identifies the measured source snapshots and arithmetic schedules.
  *
  * Where the two-lane SIMD type exists, a single product above the full leaf
  * runs quasilinear_simd.h: the top complex node evaluates its two children

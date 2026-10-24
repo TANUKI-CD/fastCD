@@ -70,7 +70,7 @@ static void report(const char* kind, size_t n) {
         kind, n, products, additions, scalings, products + additions + scalings);
 }
 int main() {
-    for (size_t n = 1; n <= 256; n *= 2) {
+    for (size_t n = 1; n <= 1024; n *= 2) {
         std::vector<Number> x(n), y(n), xi(n), yi(n), out(n), oi(n), scratch(8*n);
         for (size_t i = 0; i < n; ++i) {
             x[i] = Number(0.25, false); y[i] = Number(0.5, false);
@@ -95,13 +95,13 @@ def expected(kind: str, n: int) -> tuple[int, int, int]:
             return {1: (1, 0, 0), 2: (4, 2, 0), 4: (16, 12, 0),
                     8: (58, 62, 0)}[n]
         return ((36 * level - 69) * n // 8 + 10,
-                (76 * level - 195) * n // 8 + 26,
-                (8 * level - 27) * n // 8 + 4)
+                (76 * level - 196) * n // 8 + 26,
+                (16 * level - 53) * n // 16 + 4)
     if n <= 4:
         return (18, 24, 0) if n == 4 else (0, 0, 0)
     return ((36 * level - 81) * n // 4 + 18,
-            (76 * level - 167) * n // 4 + 36,
-            (8 * level - 19) * n // 4 + 4)
+            (76 * level - 168) * n // 4 + 36,
+            (16 * level - 37) * n // 8 + 4)
 
 
 def main() -> None:

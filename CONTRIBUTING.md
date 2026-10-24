@@ -35,7 +35,7 @@ files match.
 For quasilinear arithmetic changes, run `python3 tools/check_quasilinear_counts.py`.
 This optional development check requires a C++ compiler (`c++` by default,
 or `CXX`) and instruments the scalar template and generated kernels through
-dimension 256. The library itself remains C11. CTest also checks the complex
+dimension 1024. The library itself remains C11. CTest also checks the complex
 octonion leaf against the independent defining-recursion reference on all
 196 real basis pairs and 256 dense dyadic cases.
 

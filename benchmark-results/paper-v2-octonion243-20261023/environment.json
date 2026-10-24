@@ -1,0 +1,88 @@
+{
+  "collected": "2026-10-23T19:15:25.671091-04:00",
+  "machine": "server",
+  "system": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+  "product": "PowerEdge T440",
+  "cpu_model": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+  "compiler": "cc (GCC) 16.2.1 20260810",
+  "python": "3.14.8",
+  "numpy": "2.5.4",
+  "cpu": 0,
+  "thread_siblings": "0,40",
+  "cpu_state": {
+    "scaling_governor": null,
+    "intel_pstate_no_turbo": null,
+    "cpufreq_boost": null,
+    "smt_control": "on"
+  },
+  "load_average": [
+    2.8515625,
+    2.111328125,
+    1.703125
+  ],
+  "isolation": "Pinned to CPU 0, matching the original full protocol. Shared host; no governor, turbo, SMT, or service changes.",
+  "source_commit": "7da5a5f46c08ef41dfe98aaafa13be4643c3b647",
+  "source_git": {
+    "commit": "7da5a5f46c08ef41dfe98aaafa13be4643c3b647",
+    "dirty": true,
+    "describe": "v1.0.0-3-g7da5a5f-dirty"
+  },
+  "source_patch": "source.patch",
+  "source_patch_sha256": "88de5752081ee4fbbcd1d5196ba3bcc8b3bda0077137936434a7aba789478aa0",
+  "library_version": "1.1.0",
+  "complex_octonion_leaf": {
+    "M": 72,
+    "A": 156,
+    "S": 15,
+    "T": 243
+  },
+  "original_corpora_sha256_match": true,
+  "protocol": {
+    "dimensions": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+    ],
+    "trials": 10000,
+    "blocks": 24,
+    "warmup": 2,
+    "min_time_ms": 20.0,
+    "seed": 20260906,
+    "norm_min": 0.5,
+    "norm_max": 2.0,
+    "verify_trials": 10000,
+    "max_direct_dimension": 1024,
+    "max_cc_dimension": 1024,
+    "cariow_cariowa_supported_dimension": 1024,
+    "modes": [
+      "batch",
+      "single"
+    ],
+    "cpu": 0,
+    "method_order": "shuffled (algorithm, mode) order rotated per block"
+  },
+  "thread_environment": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1"
+  },
+  "work_directory": "/tmp/fastcd-octonion243-benchmark-9wcha3hc",
+  "results_directory": "/hdd/math/fastCD/benchmark-results/paper-v2-octonion243-20261023",
+  "historical_reports": {
+    "paper-results.json": "2aedcdd09713aa664ca0a46827dd6b18d0cd3dee9b85d0f0f7fc48468c3e53c6",
+    "paper-v2-20261023/results.json": "4b169cd9f9a7b4df57018330a1561fe6cca4d5a4237f2556a8854c8a4f4f45aa"
+  },
+  "comparison_limit": "Historical/current ratios are descriptive ratios of means, not paired cross-version intervals. Runs occur at different times on a shared host; unchanged algorithms provide controls. The original paper additionally used different compiler/kernel versions.",
+  "finished": "2026-10-23T19:53:47-0400",
+  "load_average_after": [
+    2.03955078125,
+    2.4140625,
+    2.5439453125
+  ]
+}

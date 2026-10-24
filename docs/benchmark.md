@@ -14,22 +14,33 @@ and complex octonion base case. Preserve those results when making a new
 comparison; the current [arithmetic counts](mathematics.md) describe the
 default quasilinear schedule.
 
-The [2026-10-23 full T440 rerun](../benchmark-results/paper-v2-20261023/results.md)
-measures the current schedule through dimension 1024 using the original paper's
+The [243-operation-leaf T440 rerun](../benchmark-results/paper-v2-octonion243-20261023/results.md)
+measures the revised schedule through dimension 1024 using the original paper's
 protocol and identical input corpus hashes. Its
-[raw observations](../benchmark-results/paper-v2-20261023/results.json),
-[environment](../benchmark-results/paper-v2-20261023/environment.json),
-[commands](../benchmark-results/paper-v2-20261023/commands.json), and
-[validation record](../benchmark-results/paper-v2-20261023/validation.json)
-are archived together. The README tables use this run. All 600,000
-algorithm/mode verification checks passed with zero mismatches and finite
-outputs. The current and original runs used different compiler and kernel
-versions on a shared host, so historical timing differences do not isolate
-source-code changes.
+[raw observations](../benchmark-results/paper-v2-octonion243-20261023/results.json),
+[environment](../benchmark-results/paper-v2-octonion243-20261023/environment.json),
+[commands](../benchmark-results/paper-v2-octonion243-20261023/commands.json), and
+[validation record](../benchmark-results/paper-v2-octonion243-20261023/validation.json)
+are archived together. The measured source is revision `7da5a5f` plus the
+archived [source patch](../benchmark-results/paper-v2-octonion243-20261023/source.patch),
+with exact source hashes in the build record. The README tables use this run.
+All 600,000 algorithm/mode verification checks passed with zero mismatches and
+finite outputs. The [instrumented arithmetic counts](../benchmark-results/paper-v2-octonion243-20261023/operation-counts.json)
+confirm `(M, A, S) = (72, 156, 15)` for the complex octonion leaf: 243
+operations, saving one per leaf and `N/16` per full real product at `N >= 16`.
+
+The [earlier full 2026-10-23 rerun](../benchmark-results/paper-v2-20261023/results.md)
+measures the preceding 244-operation leaf at revision `f9a61b2`. It remains
+archived with its original observations and metadata. The
+[comparison of the two leaf versions](../benchmark-results/paper-v2-octonion243-20261023/comparison-previous-leaf.json)
+uses descriptive ratios of means from separate runs, not paired cross-version
+confidence intervals. Both v2 runs used GCC 16.2.1 and Linux 7.2.11; the
+original paper run used different compiler and kernel versions. The host is
+shared, so historical timing differences do not isolate source-code changes.
 
 The earlier [2026-10-19 T440 comparison](../benchmark-results/t440-20261019/README.md)
-measures the current schedule against fastCD 1.0.0 through dimension 256,
-with raw observations, build hashes, arithmetic counts and correctness checks.
+measures the 244-operation-leaf schedule against fastCD 1.0.0 through dimension
+256, with raw observations, build hashes, arithmetic counts and correctness checks.
 
 The results give the mean time with a 95% confidence interval, paired ratios
 against the quasilinear algorithm, and a paired single/batch ratio for each
@@ -38,14 +49,17 @@ capped at 30. The "fastest mean" column names the lowest verified mean, or
 reports a tie when the 95% interval of the paired per-block ratio between the
 two lowest means contains one.
 
-The current AUTO table selects quasilinear for dimension-4 singles, following
-its lower mean in the 2026-10-23 run (18.55 ns versus direct's 19.12 ns).
-The paired quasilinear/direct ratio is 0.978 with a 95% interval of
-0.952–1.004, so the report still labels the two a tie. Selecting the lower
-measured mean is a tuning decision; the fraction of a confidence interval
-below one is not a probability that one algorithm is faster. The README's
-default column reflects this later selection, while the archived reports
-preserve the defaults of the measured build.
+The [AUTO assessment](../benchmark-results/paper-v2-octonion243-20261023/auto-assessment.json)
+supports retaining the existing choices after the revised-leaf run. Singles
+use direct at dimensions 8 and 16 and quasilinear otherwise; SIMD batches
+use direct at 8, Cariow–Cariowa at 16 and quasilinear otherwise. Dimension-4
+singles still have close means: quasilinear 18.12 ns and direct 18.18 ns,
+with a paired quasilinear/direct ratio of 0.997 and a 95%
+interval of 0.979–1.015. That interval contains one, so the table labels them
+a tie. The quasilinear choice remains a tuning decision; the fraction of a
+confidence interval below one is not a probability that one algorithm is faster.
+The new report records the current defaults, while older reports preserve
+the defaults of their measured builds.
 
 Both modes measure the kernels as the library ships them. Batch mode runs
 two products per SIMD instruction for quasilinear and Cariow–Cariowa at

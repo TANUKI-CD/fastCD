@@ -100,19 +100,35 @@ Here `N = 2^n`.
 | --- | --- | --- | --- |
 | Direct | `N^2` | `N (N - 1)` | `0` |
 | Cariow–Cariowa (`4 <= N <= 1024`) | `N (N - 1) / 2 + 2` | `3 N n + (N (N - 3) + 4) / 2` | `2N` |
-| Quasilinear (`N >= 16`) | `(36n - 69) N / 8 + 10` | `(76n - 195) N / 8 + 26` | `(8n - 27) N / 8 + 4` |
+| Quasilinear (`N >= 16`) | `(36n - 69) N / 8 + 10` | `(76n - 196) N / 8 + 26` | `(16n - 53) N / 16 + 4` |
 
 The quasilinear counts `(M, A, S)` at `N = 1, 2, 4, 8` are respectively
 `(1, 0, 0)`, `(4, 2, 0)`, `(16, 12, 0)`, and `(58, 62, 0)`.
-For `N >= 16` its total is `(120n - 291) N / 8 + 40`. At dimension 16,
-this gives 418 operations, compared with 496 for direct multiplication and
+For `N >= 16` its total is `(240n - 583) N / 16 + 40`. At dimension 16,
+this gives 417 operations, compared with 496 for direct multiplication and
 452 for uniform Cariow–Cariowa. Quasilinear has fewer total operations than
 both from dimension 16 onward, and ties direct at dimension 8. Direct and
 Cariow–Cariowa remain quadratic; quasilinear uses `Theta(N log N)` arithmetic.
 These are schedule counts, not compiler-instruction counts or timing predictions.
-`python3 tools/check_quasilinear_counts.py` checks them through dimension 256
+`python3 tools/check_quasilinear_counts.py` checks them through dimension 1024
 by instrumenting the actual scalar template and generated kernels; this optional
 development check requires a C++ compiler, while the library itself is C11.
+
+The resulting quasilinear schedule counts are:
+
+| N | M | A | S | T |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 1 | 0 | 0 | 1 |
+| 2 | 4 | 2 | 0 | 6 |
+| 4 | 16 | 12 | 0 | 28 |
+| 8 | 58 | 62 | 0 | 120 |
+| 16 | 160 | 242 | 15 | 417 |
+| 32 | 454 | 762 | 58 | 1274 |
+| 64 | 1186 | 2106 | 176 | 3468 |
+| 128 | 2938 | 5402 | 476 | 8816 |
+| 256 | 7018 | 13210 | 1204 | 21432 |
+| 512 | 16330 | 31258 | 2916 | 50504 |
+| 1024 | 37258 | 72218 | 6852 | 116328 |
 
 For `x = alpha + X`, `y = beta + Y` with imaginary `X, Y`, quasilinear
 multiplication reconstructs
@@ -158,6 +174,20 @@ input transforms and child recombination, the complex-kernel counts satisfy
 `M_k = 2M_(k-1) + 18m`, `A_k = 2A_(k-1) + 38m + 2`, and
 `S_k = 2S_(k-1) + 4m` above the octonion base.
 
+The paper's **Local addition count** proposition proves that the `22m + 2`
+addition count is optimal for this prescribed `18m`-product decomposition:
+three real evaluations of `B`, using its six coordinate products per index.
+The incoming coordinates and elementary products are fixed, and the products
+are treated as independent inputs to the linear output program. Even when
+fixed real scalar multiplications are free, the two linear input programs
+and the linear output program together need at least `22m + 2` binary
+additions and subtractions. Writing `q = 2m + 1`, the required input sums
+cost at least `2q` additions, and the transposition-principle argument in the
+paper gives an output-program lower bound of `18m`; the implemented schedule
+attains both bounds. This optimality result is restricted to that fixed
+decomposition and does not claim global optimality of the octonion leaf or
+of full Cayley-Dickson multiplication.
+
 The dimension-8 complex base computes the alternating product on seven
 complex imaginary-octonion coordinates. For
 `X = (x1,x2,x3,h,y1,y2,y3)`, form
@@ -173,11 +203,78 @@ L3 X = (z+iota y1, b, c)        L4 X = (z-iota y1, r, s).
 With the ordinary three-dimensional cross product and ordinary transposes
 (without complex conjugation), the result is
 `-iota L1^T(L1 X cross L1 Y) + (1/2) sum_(j=2..4) Lj^T(Lj X cross Lj Y)`.
-Each complex three-dimensional cross uses three real crosses. The sparse
-linear maps and transpose reconstruction give `(M, A, S) = (72, 158, 14)`,
-or 244 operations. This complex leaf first enters a full real product at
-dimension 16. The smaller complex dimension-4 base uses the fused local map,
-with counts `(18, 24, 0)`.
+For each pair of transformed operands `u = u_R + iota u_I` and
+`v = v_R + iota v_I`, form three real crosses:
+
+```text
+P_j = u_R cross v_R
+Q_j = u_I cross v_I
+W_j = (u_R + u_I) cross (v_R + v_I)
+L_j X cross L_j Y = (P_j - Q_j) + iota ((W_j - P_j) - Q_j).
+```
+
+Write the complex cross outputs as `(A_j, B_j, C_j)` and form
+
+```text
+T = A3 + A4, U = A3 - A4
+d1 = A2 + B3, d2 = B2 + B4
+e1 = C3 - B2, e2 = A2 + C4.
+```
+
+The six output coordinates other than `h_hat` are
+
+```text
+x1_hat = T/2 - iota A1       y1_hat = iota (U/2 - B1)
+x2_hat = (d1 + d2)/2         y2_hat = iota (d1 - d2)/2
+x3_hat = (e1 + e2)/2         y3_hat = iota (e1 - e2)/2.
+```
+
+Only ten complex cross-output coordinates are reconstructed separately:
+`C1` and `C2` are needed only for `h_hat = -iota (C2 + T)/2 - C1`.
+Instead of forming them, retain the third coordinates `p_j, q_j, w_j` of
+`P_j, Q_j, W_j` for `j = 1, 2`. Reuse `t_R = Re_C(T/2)` and
+`t_I = Im_C(T/2)` from `x1_hat`, and compute
+
+```text
+e = p1 + q2/2
+f = q1 - p2/2
+Re_C h_hat = ((f - e) + w2/2) + t_I
+Im_C h_hat = ((e + f) - w1) - t_R.
+```
+
+Both input maps cost 36 real additions. The twelve real cross products cost
+72 products and 36 additions; their real-plus-imaginary inputs cost another
+22 additions, sharing the sum for `p` between `L1` and `L2` in each operand.
+Reconstructing ten complex coordinates costs 30 more additions. The final
+sparse reconstruction uses 32 additions and 15 halvings:
+
+| Phase | M | A | S |
+| --- | ---: | ---: | ---: |
+| Input linear maps | 0 | 36 | 0 |
+| Four complex cross products | 72 | 88 | 0 |
+| Output reconstruction | 0 | 32 | 15 |
+| Total | 72 | 156 | 15 |
+
+The complex leaf therefore uses **243 operations**, one fewer than the
+previous `(72, 158, 14)` schedule: two additions are saved at the cost of
+one extra halving. It first enters a full real product at dimension 16.
+The smaller complex dimension-4 base still uses the fused local map with
+counts `(18, 24, 0)`.
+
+With `(M_3, A_3, S_3) = (72, 156, 15)`, the complex-kernel recurrences give,
+for `K = 2^k` and `k >= 3`,
+
+```text
+M_k = (36k - 81) K/4 + 18
+A_k = (76k - 168) K/4 + 36
+S_k = (16k - 37) K/8 + 4.
+```
+
+The real-input root and full scalar-imaginary reconstruction add `6N - 8`
+products and `6N - 10` additions to one complex kernel of dimension `N/2`,
+with no halvings, yielding the full-product counts above. There are `N/16`
+complex octonion leaves in a full real product for `N >= 16`, so the new
+leaf saves `N/16` total operations compared with the previous schedule.
 
 Cariow–Cariowa is available through dimension 1024. Through dimension 64 it
 uses generated straight-line kernels; above that its irregular sign corrections
