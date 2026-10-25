@@ -44,6 +44,14 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ### Fixed
 
+- Scalar equality preserves the exact values of integers, decimals, fractions,
+  and NumPy scalars instead of rounding comparison operands to binary64.
+  Equal hashable scalars and `Element` values now remain interchangeable in
+  dictionaries and sets. `ElementArray` uses the same comparison rules;
+  supplying `__float__` alone does not imply numeric equality.
+- Cariow–Cariowa batches return immediately when SIMD pairing processes every
+  record, avoiding out-of-range tail pointers for minimally allocated padded
+  batches. Multiplication arithmetic and the archived paper data are unchanged.
 - The kernel generator's three fixed-length `zip` traversals explicitly use
   `strict=True`, satisfying the configured lint checks without changing the
   generated kernels.

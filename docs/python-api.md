@@ -28,8 +28,15 @@ an element array, and `r` is a real scalar.
 ### Scalars
 
 Real scalars are `bool`, `int`, `float`, `Decimal`, `Fraction`, real
-NumPy scalars, and real zero-dimensional ndarrays; complex, text, and object
-inputs are rejected.
+NumPy scalars, and real zero-dimensional ndarrays. Complex values, text, and
+arrays with an object dtype are rejected.
+
+Construction and arithmetic convert scalars to binary64. Equality compares
+their numeric values without that rounding: an element containing `0.1` is
+unequal to `Decimal("0.1")` or `Fraction(1, 10)`, and an element containing
+`2**53` is unequal to the integer `2**53 + 1`. The same rules apply to
+`ElementArray`. A custom `__float__` method permits conversion and arithmetic;
+numeric equality also requires the object's comparison protocol.
 
 ---
 

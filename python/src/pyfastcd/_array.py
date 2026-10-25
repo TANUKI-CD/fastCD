@@ -1428,7 +1428,14 @@ def _coordinate_equal(array: ElementArray, other: Any, *, invert: bool) -> Any:
     """Compare complete broadcast elements for equality or inequality."""
 
     if _is_real_scalar(other):
-        comparison = array._coefficients[..., 0] == float(other)
+        scalar = _core._comparison_scalar(other)
+        if scalar is NotImplemented:
+            return NotImplemented
+        real = array._coefficients[..., 0]
+        # NumPy's native numeric promotion can round large integers or narrow
+        # floats. Object comparison uses Python's exact numeric comparisons.
+        values = real if isinstance(scalar, float) else real.astype(object)
+        comparison = values == scalar
         if array.dimension > 1:
             comparison &= np.all(array._coefficients[..., 1:] == 0.0, axis=-1)
     elif (

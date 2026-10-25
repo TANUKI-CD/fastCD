@@ -197,6 +197,7 @@ static FASTCD_NOINLINE void cc_table_batch(double* restrict out,
         size_t paired = fastcd_pair_batch(out, out_stride, x, x_stride, y,
                 y_stride, count, dimension, cc_pair_table_mul);
 
+        if (paired == count) return;
         out += paired * out_stride;
         x += paired * x_stride;
         y += paired * y_stride;
