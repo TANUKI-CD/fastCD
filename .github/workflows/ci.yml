@@ -44,6 +44,50 @@ jobs:
         with: { python-version: "3.12" }
       - run: python3 tools/generate_kernels.py src/generated
       - run: git diff --exit-code -- src/generated
+      - name: Check quasilinear arithmetic counts
+        run: python3 tools/check_quasilinear_counts.py
+
+  distributions:
+    name: Source distribution and installed wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Set release paths outside the checkout
+        run: printf 'RELEASE_DIR=%s/fastcd-release\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Install build and test tools
+        run: python -m pip install build twine numpy pytest
+      - name: Build source distribution and wheel from it
+        run: |
+          python -m build --outdir "$RELEASE_DIR/dist"
+          python -m twine check --strict "$RELEASE_DIR"/dist/*
+      - name: Verify bundled benchmarks and extract source distribution
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import tarfile
+          from pathlib import Path
+
+          release = Path(os.environ["RELEASE_DIR"])
+          with tarfile.open(next((release / "dist").glob("*.tar.gz"))) as archive:
+              prefix = archive.getnames()[0].split("/", 1)[0]
+              for path in Path("benchmark-results").rglob("*"):
+                  if path.is_file():
+                      bundled = archive.extractfile(f"{prefix}/{path.as_posix()}")
+                      assert bundled is not None, path
+                      assert bundled.read() == path.read_bytes(), path
+              archive.extractall(release / "source", filter="data")
+          with Path(os.environ["GITHUB_ENV"]).open("a") as output:
+              output.write(f"RELEASE_SOURCE={release / 'source' / prefix}\n")
+          PY
+      - name: Install wheel and test outside the checkout
+        shell: bash
+        run: |
+          python -m pip install --no-deps "$RELEASE_DIR"/dist/*.whl
+          cd "$RELEASE_SOURCE" || exit 1
+          python -m pytest -q
 
   python:
     name: Python ${{ matrix.python }} / ${{ matrix.numpy }} (${{ matrix.os }})
