@@ -21,13 +21,25 @@ static inline FASTCD_NAME(FastCDComplex) FASTCD_NAME(complex_sub)(
     return result;
 }
 
-// Multiply two complex coefficients with three real products
-static inline FASTCD_NAME(FastCDComplex) FASTCD_NAME(complex_mul)(
-        FASTCD_NAME(FastCDComplex) x, FASTCD_NAME(FastCDComplex) y) {
-    FASTCD_REAL p = x.real * y.real;
-    FASTCD_REAL q = x.imag * y.imag;
-    FASTCD_REAL r = (x.real + x.imag) * (y.real + y.imag);
-    FASTCD_NAME(FastCDComplex) result = {p - q, (r - p) - q};
+// Reconstruct one complex output of the three real local-map evaluations
+static inline FASTCD_NAME(FastCDComplex) FASTCD_NAME(complex_recover)(
+        FASTCD_REAL p, FASTCD_REAL q, FASTCD_REAL w) {
+    FASTCD_NAME(FastCDComplex) result = {p - q, (w - p) - q};
+    return result;
+}
+
+typedef struct FASTCD_NAME(FastCDLocal) {
+    FASTCD_REAL first;
+    FASTCD_REAL scalar;
+    FASTCD_REAL second;
+} FASTCD_NAME(FastCDLocal);
+
+// One coordinate of B: (gamma t - delta s, s v - t u, delta u - gamma v)
+static inline FASTCD_NAME(FastCDLocal) FASTCD_NAME(local_bilinear)(
+        FASTCD_REAL u, FASTCD_REAL v, FASTCD_REAL s, FASTCD_REAL t,
+        FASTCD_REAL gamma, FASTCD_REAL delta) {
+    FASTCD_NAME(FastCDLocal) result = {gamma * t - delta * s,
+        s * v - t * u, delta * u - gamma * v};
     return result;
 }
 
@@ -62,10 +74,15 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
     FASTCD_REAL* child_workspace;
     FASTCD_NAME(FastCDComplex) gamma;
     FASTCD_NAME(FastCDComplex) delta;
-    FASTCD_NAME(FastCDComplex) scalar = {FASTCD_ZERO, FASTCD_ZERO};
+    FASTCD_REAL scalar_p = FASTCD_ZERO;
+    FASTCD_REAL scalar_q = FASTCD_ZERO;
+    FASTCD_REAL scalar_w = FASTCD_ZERO;
+    FASTCD_REAL gamma_sum;
+    FASTCD_REAL delta_sum;
 
-    // AltC_1 = 0 (dimension 2); dimension 1 is also zero.  Larger leaves
-    // expand the same AltC recurrence into generated straight-line code.
+    // AltC_1 = 0 (dimension 2); dimension 1 is also zero.  Dimension 4 uses
+    // the fused local map, dimension 8 the octonion leaf, and dimension 16
+    // unrolls the fused recurrence above that leaf when the cutoff allows it.
     switch (dimension) {
         case 1:
             out_real[0] = FASTCD_ZERO;
@@ -79,12 +96,10 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
             FASTCD_NAME(ql_complex_cross_4)(out_real, out_imag, x_real, x_imag,
                     y_real, y_imag);
             return;
-#if FASTCD_QL_COMPLEX_LEAF >= 8
         case 8:
             FASTCD_NAME(ql_complex_cross_8)(out_real, out_imag, x_real, x_imag,
                     y_real, y_imag);
             return;
-#endif
 #if FASTCD_QL_COMPLEX_LEAF >= 16
         case 16:
             FASTCD_NAME(ql_complex_cross_16)(out_real, out_imag, x_real, x_imag,
@@ -108,6 +123,8 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
     gamma.imag = x_imag[half];
     delta.real = y_real[half];
     delta.imag = y_imag[half];
+    gamma_sum = gamma.real + gamma.imag;
+    delta_sum = delta.real + delta.imag;
 
     // Keep the transformed operands in V_{n-1}^C: their scalar coordinate is 0.
     transformed_x_real[0] = FASTCD_ZERO;
@@ -147,25 +164,28 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
         FASTCD_NAME(FastCDComplex) t = {y_real[half + i], y_imag[half + i]};
         FASTCD_NAME(FastCDComplex) plus = {out_real[i], out_imag[i]};
         FASTCD_NAME(FastCDComplex) minus = {out_real[half + i], out_imag[half + i]};
-        // Contribution to lambda = <s,v>_bil - <t,u>_bil; no conjugation.
-        FASTCD_NAME(FastCDComplex) pair = FASTCD_NAME(complex_sub)(
-                FASTCD_NAME(complex_mul)(s, v), FASTCD_NAME(complex_mul)(t, u));
-        // Start F with (Z_+ + Z_-)/2.
-        FASTCD_NAME(FastCDComplex) first = FASTCD_NAME(complex_half)(
-                FASTCD_NAME(complex_add)(plus, minus));
+        // Fuse B across its products and reductions before complex recovery.
+        FASTCD_NAME(FastCDLocal) p = FASTCD_NAME(local_bilinear)(
+                u.real, v.real, s.real, t.real, gamma.real, delta.real);
+        FASTCD_NAME(FastCDLocal) q = FASTCD_NAME(local_bilinear)(
+                u.imag, v.imag, s.imag, t.imag, gamma.imag, delta.imag);
+        FASTCD_NAME(FastCDLocal) w = FASTCD_NAME(local_bilinear)(
+                u.real + u.imag, v.real + v.imag, s.real + s.imag,
+                t.real + t.imag, gamma_sum, delta_sum);
+        FASTCD_NAME(FastCDComplex) first = FASTCD_NAME(complex_recover)(
+                p.first, q.first, w.first);
+        FASTCD_NAME(FastCDComplex) second = FASTCD_NAME(complex_recover)(
+                p.second, q.second, w.second);
         // mixed = iota (Z_+ - Z_-)/2; iota(a + iota b) = -b + iota a.
         FASTCD_NAME(FastCDComplex) difference = FASTCD_NAME(complex_half)(
                 FASTCD_NAME(complex_sub)(plus, minus));
         FASTCD_NAME(FastCDComplex) mixed = {-difference.imag, difference.real};
-        // Start the non-scalar part of G with delta u - gamma v.
-        FASTCD_NAME(FastCDComplex) second = FASTCD_NAME(complex_sub)(
-                FASTCD_NAME(complex_mul)(delta, u),
-                FASTCD_NAME(complex_mul)(gamma, v));
-
-        // Sum lambda, then finish F and G with their remaining terms.
-        scalar = i == 1 ? pair : FASTCD_NAME(complex_add)(scalar, pair);
-        first = FASTCD_NAME(complex_add)(first, FASTCD_NAME(complex_mul)(gamma, t));
-        first = FASTCD_NAME(complex_sub)(first, FASTCD_NAME(complex_mul)(delta, s));
+        // Accumulate three real pairings; reconstruct lambda once below.
+        scalar_p = i == 1 ? p.scalar : scalar_p + p.scalar;
+        scalar_q = i == 1 ? q.scalar : scalar_q + q.scalar;
+        scalar_w = i == 1 ? w.scalar : scalar_w + w.scalar;
+        first = FASTCD_NAME(complex_add)(FASTCD_NAME(complex_half)(
+                    FASTCD_NAME(complex_add)(plus, minus)), first);
         second = FASTCD_NAME(complex_add)(second, mixed);
         // Replace Z_+, Z_- with coordinate i of F, G in the output halves.
         out_real[i] = first.real;
@@ -176,6 +196,8 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
     // Return (F,G): F has scalar coordinate 0 and G has scalar coordinate lambda.
     out_real[0] = FASTCD_ZERO;
     out_imag[0] = FASTCD_ZERO;
+    FASTCD_NAME(FastCDComplex) scalar = FASTCD_NAME(complex_recover)(
+            scalar_p, scalar_q, scalar_w);
     out_real[half] = scalar.real;
     out_imag[half] = scalar.imag;
 }

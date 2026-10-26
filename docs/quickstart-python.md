@@ -66,7 +66,7 @@ assert np.shares_memory(result.coefficients, out)
 ```
 
 The array passed as `out` must have the exact shape of the result and use
-native `float64` coefficients. Its storage must be writable and C-contiguous,
+native `float64` coefficients. Its storage must be writable, aligned, and C-contiguous,
 and it must not overlap an input. Methods such as `conjugate`, `square`, and
 `commutator` also work on arrays and allocate storage for their results.
 

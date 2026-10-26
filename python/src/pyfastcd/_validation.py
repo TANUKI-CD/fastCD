@@ -7,6 +7,8 @@ import struct
 import sys
 from typing import Any
 
+import numpy as np
+
 # Messages shared verbatim with the C extension (python/src/pyfastcd/_core.c)
 # so that both layers report identical conditions identically.
 DIFFERENT_ALGEBRA_MESSAGE = "operands belong to different algebras"
@@ -22,7 +24,7 @@ _MAX_ELEMENT_DIMENSION = sys.maxsize // struct.calcsize("d")
 def _index(value: Any, name: str) -> int:
     """Return *value* as a Python integer suitable for an index."""
 
-    if isinstance(value, bool):
+    if isinstance(value, (bool, np.bool_)):
         raise TypeError(f"{name} must be an integer, not bool")
     try:
         return operator.index(value)

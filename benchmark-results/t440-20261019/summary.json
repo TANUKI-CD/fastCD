@@ -1,0 +1,738 @@
+{
+  "status": "ok",
+  "baseline_commit": "d001c1e7fe5096253d7628fc1f57cb126d766919",
+  "updated_source_sha256": {
+    "src/quasilinear.c": "1a448a9540bc1759377c68c6b11d7d89ce9d821e9177748bab3c823cdd4c0db7",
+    "src/quasilinear_impl.h": "13462c6ff45e0cb64d70cd64833ffb00c568451509b7e03186ed301680fa6154",
+    "src/quasilinear_simd.h": "5307cd8342aa6a67015c229c3d88a7d54e2778c42cbcc376cd47c7fb75537464",
+    "src/generated/quasilinear_kernels.h": "d0eb0e9215885b8f113faff35755c601144abb4b3d4697f1972a5d4a6f1ac300",
+    "tools/generate_kernels.py": "27e026b83fbcaa920b868ed779a9339fb52a472860050b5b79ddb11e70dcb261",
+    "tools/check_quasilinear_counts.py": "98eaf8719a608fed8c10c8f618411660bce3f136820b24c69ad25cfa7a74e8a7",
+    "tests/test_quasilinear_leaf.c": "cbeac1a86f65dd76e3a56c68b75fd2473505c5a79ba6097c214ad36e37082953"
+  },
+  "protocol": {
+    "dimensions": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256
+    ],
+    "trials": 10000,
+    "blocks": 48,
+    "warmup": 2,
+    "min_time_ms": 100.0,
+    "seed": 20260906,
+    "norm_min": 0.5,
+    "norm_max": 2.0,
+    "verify_trials": 10000,
+    "max_direct_dimension": 1024,
+    "max_cc_dimension": 1024,
+    "cariow_cariowa_supported_dimension": 1024,
+    "modes": [
+      "batch",
+      "single"
+    ],
+    "cpu": 11,
+    "method_order": "shuffled (algorithm, mode) order rotated per block"
+  },
+  "environment": {
+    "collected": "2026-10-19T19:18:09-0400",
+    "system": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+    "product": "PowerEdge T440",
+    "cpu": 11,
+    "thread_siblings": "11,51",
+    "compiler": "gcc (GCC) 16.2.1 20260810",
+    "load_average": [
+      2.25830078125,
+      2.00146484375,
+      1.72509765625
+    ],
+    "isolation": "benchmark processes pinned to CPU 11; other host services left running; no governor, turbo, SMT, or service changes",
+    "pilot": "dimension-16 pilot used CPU 12; the main before/after measurements both use CPU 11"
+  },
+  "comparison": "successive baseline and updated runs on the same core and corpus; ratios of means, not paired before/after intervals",
+  "correctness": {
+    "baseline": {
+      "verified_products": 480000,
+      "mismatched_products": 0,
+      "all_finite": true,
+      "checksums_stable": true,
+      "max_absolute_error": 1.3322676295501878e-15,
+      "max_norm_scaled_error": 4.34622674122633e-16,
+      "quasilinear_max_norm_scaled_error": 4.2821381133552703e-16
+    },
+    "updated": {
+      "verified_products": 480000,
+      "mismatched_products": 0,
+      "all_finite": true,
+      "checksums_stable": true,
+      "max_absolute_error": 1.3322676295501878e-15,
+      "max_norm_scaled_error": 5.476876730115508e-16,
+      "quasilinear_max_norm_scaled_error": 5.476876730115508e-16
+    }
+  },
+  "quasilinear": [
+    {
+      "dimension": 2,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 15.5393118209062,
+            "sd": 0.44788646807884336,
+            "se": 0.06464684322792774,
+            "ci95": [
+              15.407285353595059,
+              15.67133828821734
+            ],
+            "median": 15.4806142704173,
+            "min": 14.649372612359551,
+            "max": 16.850174217585693
+          },
+          "updated": {
+            "count": 48,
+            "mean": 15.391217530610946,
+            "sd": 0.4437511152490383,
+            "se": 0.06404995646055724,
+            "ci95": [
+              15.260410068704337,
+              15.522024992517556
+            ],
+            "median": 15.439156539917029,
+            "min": 14.474713821138211,
+            "max": 16.49788693982074
+          },
+          "baseline_over_updated_mean": 1.009621999689155,
+          "time_reduction_percent": 0.9530299153660771,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.975948003953908,
+            "cariow_cariowa": 0.9920274330227896
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 1.0148174158848888,
+            "sd": 0.030375219278420098,
+            "se": 0.004384285256772438,
+            "ci95": [
+              1.0058635108644203,
+              1.0237713209053574
+            ],
+            "median": 1.0149534779135738,
+            "min": 0.9405770418374154,
+            "max": 1.0733307692307692
+          },
+          "updated": {
+            "count": 48,
+            "mean": 1.17634285309232,
+            "sd": 0.0387377010107251,
+            "se": 0.005591305526582344,
+            "ci95": [
+              1.1649238838206228,
+              1.187761822364017
+            ],
+            "median": 1.1731372870431704,
+            "min": 1.1021672776572669,
+            "max": 1.3039907186278767
+          },
+          "baseline_over_updated_mean": 0.8626884697919319,
+          "time_reduction_percent": -15.916699366711784,
+          "controls_baseline_over_updated_mean": {
+            "direct": 1.0017623310017822,
+            "cariow_cariowa": 0.9997867348881232
+          }
+        }
+      }
+    },
+    {
+      "dimension": 4,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 19.164171464380868,
+            "sd": 0.4921541286156253,
+            "se": 0.07103632965975425,
+            "ci95": [
+              19.019095924920105,
+              19.30924700384163
+            ],
+            "median": 19.197954779243798,
+            "min": 18.13995287162162,
+            "max": 20.273169982847342
+          },
+          "updated": {
+            "count": 48,
+            "mean": 18.218533149653734,
+            "sd": 0.5126317271083718,
+            "se": 0.07399201641029031,
+            "ci95": [
+              18.0674212925529,
+              18.369645006754567
+            ],
+            "median": 18.259565486223664,
+            "min": 17.078355094991366,
+            "max": 19.30405024311183
+          },
+          "baseline_over_updated_mean": 1.0519052937445246,
+          "time_reduction_percent": 4.934407503526705,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9676987319052354,
+            "cariow_cariowa": 1.0352094215926544
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 3.76469108688917,
+            "sd": 0.10158013824801826,
+            "se": 0.014661830040453187,
+            "ci95": [
+              3.7347476352386004,
+              3.7946345385397398
+            ],
+            "median": 3.7519373054997347,
+            "min": 3.5953929863418237,
+            "max": 4.004287955570982
+          },
+          "updated": {
+            "count": 48,
+            "mean": 3.795041076054407,
+            "sd": 0.123007823359594,
+            "se": 0.017754649982272882,
+            "ci95": [
+              3.7587812434243637,
+              3.8313009086844505
+            ],
+            "median": 3.79729927212218,
+            "min": 3.3682264321972446,
+            "max": 4.039390208333334
+          },
+          "baseline_over_updated_mean": 0.9920027244614725,
+          "time_reduction_percent": -0.8061747555047294,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9910188753076111,
+            "cariow_cariowa": 1.002197930814381
+          }
+        }
+      }
+    },
+    {
+      "dimension": 8,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 38.439821908770085,
+            "sd": 1.961850734155835,
+            "se": 0.2831687623686841,
+            "ci95": [
+              37.861514144899964,
+              39.01812967264021
+            ],
+            "median": 39.10313649540518,
+            "min": 33.50655081967213,
+            "max": 40.98390666666667
+          },
+          "updated": {
+            "count": 48,
+            "mean": 37.30960777625775,
+            "sd": 1.4283764661010885,
+            "se": 0.20616838430189746,
+            "ci95": [
+              36.88855576363811,
+              37.73065978887739
+            ],
+            "median": 37.3232674556213,
+            "min": 34.437286102719035,
+            "max": 41.80938303886926
+          },
+          "baseline_over_updated_mean": 1.0302928441191375,
+          "time_reduction_percent": 2.9402168802828865,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9905592781068883,
+            "cariow_cariowa": 0.9780932272956836
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 17.13703967723686,
+            "sd": 0.4537245015792068,
+            "se": 0.06548949078117096,
+            "ci95": [
+              17.00329229403736,
+              17.27078706043636
+            ],
+            "median": 17.12826849204955,
+            "min": 15.82761449044586,
+            "max": 18.01326099173554
+          },
+          "updated": {
+            "count": 48,
+            "mean": 17.890571343032068,
+            "sd": 0.48389176816657226,
+            "se": 0.06984376065240362,
+            "ci95": [
+              17.747931354407253,
+              18.033211331656883
+            ],
+            "median": 17.892187682767712,
+            "min": 16.970872302158273,
+            "max": 19.008692225609757
+          },
+          "baseline_over_updated_mean": 0.9578810731447831,
+          "time_reduction_percent": -4.397093547003483,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.986379026196597,
+            "cariow_cariowa": 0.9877720100850038
+          }
+        }
+      }
+    },
+    {
+      "dimension": 16,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 122.24470392834827,
+            "sd": 3.181789526715792,
+            "se": 0.45925175993852363,
+            "ci95": [
+              121.30678670851853,
+              123.18262114817801
+            ],
+            "median": 122.45312886119257,
+            "min": 116.71351914893617,
+            "max": 129.33074
+          },
+          "updated": {
+            "count": 48,
+            "mean": 113.65252029342423,
+            "sd": 3.1273580640664043,
+            "se": 0.4513952550352714,
+            "ci95": [
+              112.73064819716119,
+              114.57439238968728
+            ],
+            "median": 113.47798061640589,
+            "min": 105.456358,
+            "max": 121.05079361702127
+          },
+          "baseline_over_updated_mean": 1.0756004672200936,
+          "time_reduction_percent": 7.028675565331821,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9684581558899229,
+            "cariow_cariowa": 0.9422344997613576
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 59.65438827839939,
+            "sd": 1.5459415155941276,
+            "se": 0.2231374375449219,
+            "ci95": [
+              59.198680835732034,
+              60.11009572106674
+            ],
+            "median": 59.71720151170818,
+            "min": 54.08454033149171,
+            "max": 62.06440810810811
+          },
+          "updated": {
+            "count": 48,
+            "mean": 56.64128630939195,
+            "sd": 1.5249563002934248,
+            "se": 0.22010848261920615,
+            "ci95": [
+              56.19176481794076,
+              57.090807800843145
+            ],
+            "median": 56.91812053915276,
+            "min": 53.16857680412371,
+            "max": 60.3378835978836
+          },
+          "baseline_over_updated_mean": 1.0531962136691062,
+          "time_reduction_percent": 5.050930964115629,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9869103518936094,
+            "cariow_cariowa": 0.9971370508290304
+          }
+        }
+      }
+    },
+    {
+      "dimension": 32,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 235.65400574909765,
+            "sd": 6.3973943300546185,
+            "se": 0.923384334642305,
+            "ci95": [
+              233.76820335587877,
+              237.53980814231653
+            ],
+            "median": 236.08468522458628,
+            "min": 221.59836862745098,
+            "max": 248.31032978723405
+          },
+          "updated": {
+            "count": 48,
+            "mean": 216.9964774403369,
+            "sd": 5.858548783922474,
+            "se": 0.8456086793645489,
+            "ci95": [
+              215.26951412566245,
+              218.72344075501132
+            ],
+            "median": 218.49896274074075,
+            "min": 200.665378,
+            "max": 226.505488
+          },
+          "baseline_over_updated_mean": 1.0859807888535455,
+          "time_reduction_percent": 7.9173397666006835,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9863502429245097,
+            "cariow_cariowa": 0.996112734759154
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 197.6098311669315,
+            "sd": 5.178572305800239,
+            "se": 0.7474625286929273,
+            "ci95": [
+              196.0833090324656,
+              199.13635330139743
+            ],
+            "median": 196.99908959131545,
+            "min": 188.19592545454546,
+            "max": 207.8843709090909
+          },
+          "updated": {
+            "count": 48,
+            "mean": 185.7850669222819,
+            "sd": 5.162547198810787,
+            "se": 0.7451495037343892,
+            "ci95": [
+              184.26326861497955,
+              187.30686522958428
+            ],
+            "median": 185.43366807518373,
+            "min": 176.52952258064516,
+            "max": 200.2425234375
+          },
+          "baseline_over_updated_mean": 1.063647549507282,
+          "time_reduction_percent": 5.983894715572424,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9941745860758099,
+            "cariow_cariowa": 1.0048325713680824
+          }
+        }
+      }
+    },
+    {
+      "dimension": 64,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 558.5498023840615,
+            "sd": 13.380532255330492,
+            "se": 1.9313134748788825,
+            "ci95": [
+              554.6055340698354,
+              562.4940706982877
+            ],
+            "median": 555.6714605263157,
+            "min": 533.649605,
+            "max": 590.9597631578947
+          },
+          "updated": {
+            "count": 48,
+            "mean": 509.1373713445793,
+            "sd": 11.788159540317292,
+            "se": 1.701474270963111,
+            "ci95": [
+              505.6624973058882,
+              512.6122453832704
+            ],
+            "median": 508.8726357142857,
+            "min": 483.96840909090906,
+            "max": 535.0706666666666
+          },
+          "baseline_over_updated_mean": 1.0970512750006725,
+          "time_reduction_percent": 8.84655778743002,
+          "controls_baseline_over_updated_mean": {
+            "direct": 1.0204673122159904,
+            "cariow_cariowa": 0.9924167553919265
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 508.61940304803665,
+            "sd": 11.017868681265437,
+            "se": 1.590292362256137,
+            "ci95": [
+              505.37159275913666,
+              511.86721333693663
+            ],
+            "median": 511.00916630434784,
+            "min": 478.95695652173913,
+            "max": 530.0517782608696
+          },
+          "updated": {
+            "count": 48,
+            "mean": 457.9074977638076,
+            "sd": 11.613395593195458,
+            "se": 1.6762492679842529,
+            "ci95": [
+              454.4841400539103,
+              461.3308554737049
+            ],
+            "median": 459.3891919384058,
+            "min": 430.286476,
+            "max": 481.053744
+          },
+          "baseline_over_updated_mean": 1.1107470516029563,
+          "time_reduction_percent": 9.970501514555774,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9977213548048559,
+            "cariow_cariowa": 0.9934908779388069
+          }
+        }
+      }
+    },
+    {
+      "dimension": 128,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 1342.9257631076389,
+            "sd": 42.59710982325452,
+            "se": 6.148363205789012,
+            "ci95": [
+              1330.3691302811276,
+              1355.4823959341502
+            ],
+            "median": 1341.2973506944445,
+            "min": 1275.31795,
+            "max": 1508.4861125
+          },
+          "updated": {
+            "count": 48,
+            "mean": 1248.370013888889,
+            "sd": 32.49415967440768,
+            "se": 4.69012795877749,
+            "ci95": [
+              1238.7914947421552,
+              1257.9485330356226
+            ],
+            "median": 1252.3558588888889,
+            "min": 1171.22448,
+            "max": 1316.4861444444443
+          },
+          "baseline_over_updated_mean": 1.0757433678851291,
+          "time_reduction_percent": 7.041025782388766,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9784771478467239,
+            "cariow_cariowa": 1.012497473783015
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 1335.6473272569444,
+            "sd": 33.92190921175074,
+            "se": 4.896205853707584,
+            "ci95": [
+              1325.6479409015426,
+              1345.6467136123463
+            ],
+            "median": 1334.7958166666667,
+            "min": 1242.613225,
+            "max": 1411.9020222222223
+          },
+          "updated": {
+            "count": 48,
+            "mean": 1234.1516443981482,
+            "sd": 44.81112735692609,
+            "se": 6.467929110552971,
+            "ci95": [
+              1220.942370926365,
+              1247.3609178699314
+            ],
+            "median": 1226.0830677777776,
+            "min": 1175.28356,
+            "max": 1344.26562
+          },
+          "baseline_over_updated_mean": 1.0822392315559342,
+          "time_reduction_percent": 7.598988205010726,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9800995484946174,
+            "cariow_cariowa": 0.9869411316775681
+          }
+        }
+      }
+    },
+    {
+      "dimension": 256,
+      "modes": {
+        "single": {
+          "baseline": {
+            "count": 48,
+            "mean": 3535.7530881944444,
+            "sd": 106.2398751936996,
+            "se": 15.33440513543868,
+            "ci95": [
+              3504.4360549525927,
+              3567.070121436296
+            ],
+            "median": 3519.87675,
+            "min": 3304.0275,
+            "max": 3890.153766666667
+          },
+          "updated": {
+            "count": 48,
+            "mean": 3231.3200052083334,
+            "sd": 86.57196972253944,
+            "se": 12.495587505896069,
+            "ci95": [
+              3205.8006110197557,
+              3256.839399396911
+            ],
+            "median": 3226.056925,
+            "min": 3058.4909,
+            "max": 3404.572175
+          },
+          "baseline_over_updated_mean": 1.094213226327141,
+          "time_reduction_percent": 8.61013411831797,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9982072695869794,
+            "cariow_cariowa": 1.0245489058809447
+          }
+        },
+        "batch": {
+          "baseline": {
+            "count": 48,
+            "mean": 3321.4124973958333,
+            "sd": 84.49347239055113,
+            "se": 12.195582257362728,
+            "ci95": [
+              3296.5057956630803,
+              3346.319199128586
+            ],
+            "median": 3327.99835,
+            "min": 3166.95175,
+            "max": 3534.625025
+          },
+          "updated": {
+            "count": 48,
+            "mean": 3035.3217088541664,
+            "sd": 82.81721394066578,
+            "se": 11.953635190544555,
+            "ci95": [
+              3010.9091289518587,
+              3059.734288756474
+            ],
+            "median": 3040.787475,
+            "min": 2870.0132,
+            "max": 3215.099225
+          },
+          "baseline_over_updated_mean": 1.0942538603756984,
+          "time_reduction_percent": 8.613527791744547,
+          "controls_baseline_over_updated_mean": {
+            "direct": 0.9876968183701882,
+            "cariow_cariowa": 1.0088156218698512
+          }
+        }
+      }
+    }
+  ],
+  "counts": [
+    {
+      "kind": "full",
+      "dimension": 1,
+      "M": 1,
+      "A": 0,
+      "S": 0,
+      "T": 1
+    },
+    {
+      "kind": "full",
+      "dimension": 2,
+      "M": 4,
+      "A": 2,
+      "S": 0,
+      "T": 6
+    },
+    {
+      "kind": "full",
+      "dimension": 4,
+      "M": 16,
+      "A": 12,
+      "S": 0,
+      "T": 28
+    },
+    {
+      "kind": "full",
+      "dimension": 8,
+      "M": 58,
+      "A": 62,
+      "S": 0,
+      "T": 120
+    },
+    {
+      "kind": "full",
+      "dimension": 16,
+      "M": 160,
+      "A": 244,
+      "S": 14,
+      "T": 418
+    },
+    {
+      "kind": "full",
+      "dimension": 32,
+      "M": 454,
+      "A": 766,
+      "S": 56,
+      "T": 1276
+    },
+    {
+      "kind": "full",
+      "dimension": 64,
+      "M": 1186,
+      "A": 2114,
+      "S": 172,
+      "T": 3472
+    },
+    {
+      "kind": "full",
+      "dimension": 128,
+      "M": 2938,
+      "A": 5418,
+      "S": 468,
+      "T": 8824
+    },
+    {
+      "kind": "full",
+      "dimension": 256,
+      "M": 7018,
+      "A": 13242,
+      "S": 1188,
+      "T": 21448
+    }
+  ]
+}

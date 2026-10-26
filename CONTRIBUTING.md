@@ -32,12 +32,40 @@ the generator, regenerate with `python3 tools/generate_kernels.py src/generated`
 and commit both. Generation is deterministic, and CI checks that the committed
 files match.
 
+For quasilinear arithmetic changes, run `python3 tools/check_quasilinear_counts.py`.
+This optional development check requires a C++ compiler (`c++` by default,
+or `CXX`) and instruments the scalar template and generated kernels through
+dimension 1024. The library itself remains C11. CTest also checks the complex
+octonion leaf against the independent defining-recursion reference on all
+196 real basis pairs and 256 dense dyadic cases.
+
 ## Algorithm defaults
 
 The automatic selection tables live at the top of the algorithm-selection
 section of `src/fastcd.c` and are pinned by tests. Change them only on the
 basis of a new benchmark run (see `docs/benchmark.md`), and update the tables
 in `README.md`, `docs/c-api.md`, and `docs/mathematics.md` in the same commit.
+
+## Release checks
+
+Update the canonical version in `src/fastcd.c`, the README heading, the C API
+version description, and the version and release date in `CITATION.cff`.
+Move the pending changelog entries into a dated release section. CMake and
+Python package metadata read the canonical version automatically; historical
+versions and hashes in the benchmark archives describe the measured builds.
+
+Build and check the distributions in a development environment:
+
+```sh
+python -m build
+python -m twine check --strict dist/*
+```
+
+The default build creates a source distribution and then builds the wheel from
+it. CI also compares the bundled benchmark archives with the checkout,
+installs that wheel, and runs the tests from the extracted source distribution
+outside the checkout. This checks the distributed package and its actual
+version metadata rather than a staged extension or an editable install.
 
 ## Pull requests
 

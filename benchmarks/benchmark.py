@@ -433,9 +433,9 @@ def timing_cap_notes(document: dict[str, Any]) -> list[str]:
     if any(d > cc_cap for d in dimensions) and cc_limit > cc_cap:
         notes.append(f"Cariow–Cariowa was timed only through dimension {cc_cap}, although "
                      f"the library supports it through {cc_limit}. Above 64 its kernel is "
-                     "table-driven and its sparse sign corrections cannot be vectorized "
-                     "within a product, so timings there would measure that structural "
-                     "limitation rather than the algorithm's operation count; the "
+                     "table-driven and this implementation does not vectorize its sparse "
+                     "sign corrections within a product, so timings there reflect its "
+                     "access pattern as well as its arithmetic count; the "
                      "algorithm is not recommended above 64. See docs/benchmark.md.")
     if any(d > protocol["max_direct_dimension"] for d in dimensions):
         notes.append(f"Direct was timed only through dimension "

@@ -1,0 +1,13 @@
+Test project /tmp/fastcd-paper-v2-20261023-4goyx4ti/build
+    Start 1: fastcd.public_api_link
+1/4 Test #1: fastcd.public_api_link ...........   Passed    0.00 sec
+    Start 2: fastcd.tests
+2/4 Test #2: fastcd.tests .....................   Passed    3.85 sec
+    Start 3: fastcd.quasilinear_leaf
+3/4 Test #3: fastcd.quasilinear_leaf ..........   Passed    0.00 sec
+    Start 4: fastcd.benchmark_metadata
+4/4 Test #4: fastcd.benchmark_metadata ........   Passed    0.00 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   3.87 sec

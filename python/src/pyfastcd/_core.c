@@ -349,10 +349,18 @@ static bool pyfastcd_native_double_format(const char* format) {
             || strcmp(format, "!d") == 0));
 }
 
-// Recognize and convert one unambiguous real scalar object
-static int pyfastcd_as_real_scalar(PyObject* value, double* scalar) {
-    PyObject* converted;
+typedef enum {
+    PYFASTCD_NOT_SCALAR = 0,
+    PYFASTCD_SCALAR_OBJECT,
+    PYFASTCD_SCALAR_INTEGER_BUFFER,
+    PYFASTCD_SCALAR_FLOAT_BUFFER,
+    PYFASTCD_SCALAR_WIDE_BUFFER
+} PyFastCDScalarKind;
+
+// Recognize scalar semantics without rounding the value to binary64
+static PyFastCDScalarKind pyfastcd_real_scalar_kind(PyObject* value) {
     Py_buffer view = {0};
+    PyFastCDScalarKind kind = PYFASTCD_SCALAR_OBJECT;
 
     if (PyObject_TypeCheck(value, &PyFastCDElementType)) return 0;
     if (PyComplex_Check(value)) {
@@ -370,16 +378,27 @@ static int pyfastcd_as_real_scalar(PyObject* value, double* scalar) {
             PyBuffer_Release(&view);
             return 0;
         }
-        PyBuffer_Release(&view);
         if (is_complex) {
+            PyBuffer_Release(&view);
             PyErr_SetString(PyExc_TypeError, PYFASTCD_COMPLEX_SCALAR_MESSAGE);
             return 0;
         }
         if (!is_real_numeric) {
+            PyBuffer_Release(&view);
             PyErr_SetString(PyExc_TypeError,
                     "scalar must have a real numeric dtype");
             return 0;
         }
+        const char* format = view.format;
+        if (*format == '@' || *format == '=' || *format == '<'
+                || *format == '>' || *format == '!') format++;
+        if (strchr("efdg", *format) == NULL) {
+            kind = PYFASTCD_SCALAR_INTEGER_BUFFER;
+        } else {
+            kind = view.itemsize <= (Py_ssize_t)sizeof(double)
+                ? PYFASTCD_SCALAR_FLOAT_BUFFER : PYFASTCD_SCALAR_WIDE_BUFFER;
+        }
+        PyBuffer_Release(&view);
     } else if (PyErr_Occurred()) {
         if (PyErr_ExceptionMatches(PyExc_TypeError)
                 || PyErr_ExceptionMatches(PyExc_BufferError)) {
@@ -393,12 +412,36 @@ static int pyfastcd_as_real_scalar(PyObject* value, double* scalar) {
             return 0;
         }
     }
-    if (!PyNumber_Check(value)) return 0;
+    PyNumberMethods* number = Py_TYPE(value)->tp_as_number;
+    if (number == NULL || (number->nb_float == NULL && number->nb_index == NULL)) {
+        return 0;
+    }
+    return kind;
+}
+
+// Convert a recognized scalar for binary64 construction and arithmetic
+static int pyfastcd_as_real_scalar(PyObject* value, double* scalar) {
+    PyObject* converted;
+
+    if (pyfastcd_real_scalar_kind(value) == PYFASTCD_NOT_SCALAR) return 0;
     converted = PyNumber_Float(value);
     if (converted == NULL) return 0;
     *scalar = PyFloat_AS_DOUBLE(converted);
     Py_DECREF(converted);
     return 1;
+}
+
+// Keep exact integer, rational, decimal and extended-float comparison values
+static PyObject* pyfastcd_comparison_scalar(PyObject* value) {
+    PyFastCDScalarKind kind = pyfastcd_real_scalar_kind(value);
+
+    if (kind == PYFASTCD_NOT_SCALAR) {
+        if (PyErr_Occurred()) return NULL;
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+    if (kind == PYFASTCD_SCALAR_INTEGER_BUFFER) return PyNumber_Long(value);
+    if (kind == PYFASTCD_SCALAR_FLOAT_BUFFER) return PyNumber_Float(value);
+    return Py_NewRef(value);
 }
 
 /* ---------- Element construction ---------- */
@@ -810,21 +853,28 @@ static PyObject* pyfastcd_element_richcompare(PyObject* left_object,
             }
         }
     } else {
-        double scalar;
-        int scalar_result = pyfastcd_as_real_scalar(right_object, &scalar);
-        if (scalar_result) {
-            equal = left->coefficients[0] == scalar;
+        PyObject* scalar = pyfastcd_comparison_scalar(right_object);
+        if (scalar != NULL && scalar != Py_NotImplemented) {
+            PyObject* real = PyFloat_FromDouble(left->coefficients[0]);
+            if (real == NULL) {
+                Py_DECREF(scalar);
+                return NULL;
+            }
+            equal = PyObject_RichCompareBool(real, scalar, Py_EQ);
+            Py_DECREF(real);
+            Py_DECREF(scalar);
+            if (equal < 0) return NULL;
             for (Py_ssize_t i = 1; equal && i < Py_SIZE(left); i++) {
                 if (!(left->coefficients[i] == 0.0)) equal = 0;
             }
         } else if (PyErr_Occurred()) {
-            /* An operand of an unsupported type compares unequal instead of
-             * raising, as for ElementArray; other conversion failures such
-             * as a raising __float__ still propagate. */
+            /* Unsupported scalar types allow reflected comparison; other
+             * failures during scalar normalization still propagate. */
             if (!PyErr_ExceptionMatches(PyExc_TypeError)) return NULL;
             PyErr_Clear();
             Py_RETURN_NOTIMPLEMENTED;
         } else {
+            Py_XDECREF(scalar);
             Py_RETURN_NOTIMPLEMENTED;
         }
     }
@@ -1935,9 +1985,10 @@ PyDoc_STRVAR(pyfastcd_element_array_ufunc_doc,
 "__array_ufunc__($self, ufunc, method, *inputs, **kwargs)\n"
 "--\n\n"
 "Dispatch the intentional NumPy ufunc subset algebraically.\n\n"
-"Supported ``__call__`` ufuncs are ``add``, ``subtract``, ``negative``,\n"
-"``multiply``, ``square``, ``conjugate``, ``absolute``, ``equal``, and\n"
-"``not_equal``.  Multiplication remains Cayley--Dickson multiplication, never\n"
+"Supported ``__call__`` ufuncs are ``add``, ``subtract``, ``true_divide``,\n"
+"``power``, ``negative``, ``positive``, ``multiply``, ``square``,\n"
+"``conjugate``, ``absolute``, ``equal``, and ``not_equal``.\n"
+"Multiplication remains Cayley--Dickson multiplication, never\n"
 "coordinatewise multiplication.  Only multiplication accepts ``out=``; the\n"
 "output must be an exact-shape ElementArray or native ``float64`` ndarray.\n\n"
 "Unsupported ufuncs, nonscalar raw ndarray operands, methods such as\n"
@@ -3647,9 +3698,17 @@ static PyObject* pyfastcd_version(PyObject* Py_UNUSED(module),
     return PyUnicode_FromString(fastcd_version_string());
 }
 
+// Share exact scalar comparison normalization with ElementArray
+static PyObject* pyfastcd_comparison_scalar_entry(PyObject* Py_UNUSED(module),
+        PyObject* value) {
+    return pyfastcd_comparison_scalar(value);
+}
+
 static PyMethodDef pyfastcd_module_methods[] = {
     {"_version", pyfastcd_version, METH_NOARGS,
         "Return the linked fastCD library version."},
+    {"_comparison_scalar", pyfastcd_comparison_scalar_entry, METH_O,
+        "Normalize a scalar for comparison without losing numeric precision."},
     {"_element", pyfastcd_element_from_object, METH_VARARGS,
         "Construct an owned Element for an Algebra."},
     {"_scalar", pyfastcd_scalar_element, METH_VARARGS,

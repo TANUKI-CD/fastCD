@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.18)
 # define through scikit-build-core, so the three cannot drift apart.  CMake
 # uses the numeric MAJOR.MINOR.PATCH part; a PEP 440 pre-release suffix such
 # as "rc1" is kept only in the library's version string.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/fastcd.c")
 file(STRINGS src/fastcd.c FASTCD_VERSION_LINE REGEX "^#define FASTCD_VERSION \"")
 string(REGEX REPLACE "^#define FASTCD_VERSION \"([0-9]+\\.[0-9]+\\.[0-9]+)[^\"]*\".*$" "\\1"
     FASTCD_VERSION_STRING "${FASTCD_VERSION_LINE}")
@@ -116,6 +118,12 @@ if(BUILD_TESTING)
     fastcd_configure_target(fastcd_tests)
     add_test(NAME fastcd.tests COMMAND fastcd_tests)
     set_tests_properties(fastcd.tests PROPERTIES TIMEOUT 600)
+
+    add_executable(fastcd_leaf_tests tests/test_quasilinear_leaf.c)
+    target_include_directories(fastcd_leaf_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    target_link_libraries(fastcd_leaf_tests PRIVATE fastcd_reference)
+    fastcd_configure_target(fastcd_leaf_tests)
+    add_test(NAME fastcd.quasilinear_leaf COMMAND fastcd_leaf_tests)
 endif()
 
 if(FASTCD_BUILD_BENCHMARK)

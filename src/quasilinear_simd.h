@@ -3,7 +3,7 @@
  * Included once from quasilinear.c, after the scalar and paired
  * instantiations of quasilinear_impl.h, and only when FASTCD_HAVE_PAIR.
  *
- * A complex alternating node evaluates its two half-dimensional children as
+ * The top complex alternating node evaluates its half-dimensional children as
  * the two lanes of the paired kernel, and performs its own O(K) work two
  * coordinates per instruction.  Every output coordinate follows exactly the
  * arithmetic schedule of the scalar recursion (the sequential sums keep
@@ -64,13 +64,10 @@ static inline FastCDComplexLanes ql_lanes_sub(FastCDComplexLanes x,
     return result;
 }
 
-// Multiply complex coefficients in each lane with the three-product schedule
-static inline FastCDComplexLanes ql_lanes_mul(FastCDComplexLanes x,
-        FastCDComplexLanes y) {
-    FastCDPair p = x.real * y.real;
-    FastCDPair q = x.imag * y.imag;
-    FastCDPair r = (x.real + x.imag) * (y.real + y.imag);
-    FastCDComplexLanes result = {p - q, (r - p) - q};
+// Recover the complex vector outputs of three real local-map evaluations
+static inline FastCDComplexLanes ql_lanes_recover(FastCDPair p,
+        FastCDPair q, FastCDPair w) {
+    FastCDComplexLanes result = {p - q, (w - p) - q};
     return result;
 }
 
@@ -143,12 +140,18 @@ static void ql_simd_complex_cross(double* restrict out_real,
     FastCDPair* child_workspace;
     fastcd_FastCDComplex gamma;
     fastcd_FastCDComplex delta;
-    fastcd_FastCDComplex scalar = {0.0, 0.0};
+    double scalar_p = 0.0;
+    double scalar_q = 0.0;
+    double scalar_w = 0.0;
+    double gamma_sum;
+    double delta_sum;
+    FastCDPair gamma_sum_lanes;
+    FastCDPair delta_sum_lanes;
     FastCDComplexLanes gamma_lanes;
     FastCDComplexLanes delta_lanes;
 
     // Small AltC_n nodes use the scalar leaves, including AltC_1 = 0.
-    if (dimension <= FASTCD_QL_COMPLEX_LEAF) {
+    if (dimension <= 8 || dimension <= FASTCD_QL_COMPLEX_LEAF) {
         fastcd_complex_cross(out_real, out_imag, x_real, x_imag, y_real,
                 y_imag, dimension, workspace);
         return;
@@ -172,6 +175,10 @@ static void ql_simd_complex_cross(double* restrict out_real,
     delta.imag = y_imag[half];
     gamma_lanes = ql_broadcast(gamma);
     delta_lanes = ql_broadcast(delta);
+    gamma_sum = gamma.real + gamma.imag;
+    delta_sum = delta.real + delta.imag;
+    gamma_sum_lanes = (FastCDPair){gamma_sum, gamma_sum};
+    delta_sum_lanes = (FastCDPair){delta_sum, delta_sum};
 
     // Pack u +/- iota s and v +/- iota t, with plus in lane 0, minus in lane 1.
     ql_simd_transform(tx_real, tx_imag, x_real, x_imag, half);
@@ -194,25 +201,27 @@ static void ql_simd_complex_cross(double* restrict out_real,
             ql_low(child_imag[i], child_imag[i + 1])};
         FastCDComplexLanes minus = {ql_high(child_real[i], child_real[i + 1]),
             ql_high(child_imag[i], child_imag[i + 1])};
-        // Contributions to lambda = <s,v>_bil - <t,u>_bil; no conjugation.
-        FastCDComplexLanes pair = ql_lanes_sub(ql_lanes_mul(s, v),
-                ql_lanes_mul(t, u));
-        // Start F = (Z_+ + Z_-)/2; mixed = iota (Z_+ - Z_-)/2.
-        FastCDComplexLanes first = ql_lanes_half(ql_lanes_add(plus, minus));
+        // Evaluate the whole local map on real, imaginary and summed inputs.
+        fastcd_pair_FastCDLocal p = fastcd_pair_local_bilinear(
+                u.real, v.real, s.real, t.real, gamma_lanes.real, delta_lanes.real);
+        fastcd_pair_FastCDLocal q = fastcd_pair_local_bilinear(
+                u.imag, v.imag, s.imag, t.imag, gamma_lanes.imag, delta_lanes.imag);
+        fastcd_pair_FastCDLocal w = fastcd_pair_local_bilinear(
+                u.real + u.imag, v.real + v.imag, s.real + s.imag,
+                t.real + t.imag, gamma_sum_lanes, delta_sum_lanes);
+        FastCDComplexLanes first = ql_lanes_recover(p.first, q.first, w.first);
+        FastCDComplexLanes second = ql_lanes_recover(p.second, q.second, w.second);
         FastCDComplexLanes difference = ql_lanes_half(ql_lanes_sub(plus, minus));
         FastCDComplexLanes mixed = {-difference.imag, difference.real};
-        // Start the non-scalar part of G with delta u - gamma v.
-        FastCDComplexLanes second = ql_lanes_sub(ql_lanes_mul(delta_lanes, u),
-                ql_lanes_mul(gamma_lanes, v));
-        fastcd_FastCDComplex pair_low = {pair.real[0], pair.imag[0]};
-        fastcd_FastCDComplex pair_high = {pair.real[1], pair.imag[1]};
 
-        // Accumulate lambda in scalar coordinate order, i then i+1.
-        scalar = i == 1 ? pair_low : fastcd_complex_add(scalar, pair_low);
-        scalar = fastcd_complex_add(scalar, pair_high);
-        // Finish F with gamma t - delta s and G with iota (Z_+ - Z_-)/2.
-        first = ql_lanes_add(first, ql_lanes_mul(gamma_lanes, t));
-        first = ql_lanes_sub(first, ql_lanes_mul(delta_lanes, s));
+        // Keep each reduction in scalar coordinate order, i then i+1.
+        scalar_p = i == 1 ? p.scalar[0] : scalar_p + p.scalar[0];
+        scalar_p = scalar_p + p.scalar[1];
+        scalar_q = i == 1 ? q.scalar[0] : scalar_q + q.scalar[0];
+        scalar_q = scalar_q + q.scalar[1];
+        scalar_w = i == 1 ? w.scalar[0] : scalar_w + w.scalar[0];
+        scalar_w = scalar_w + w.scalar[1];
+        first = ql_lanes_add(ql_lanes_half(ql_lanes_add(plus, minus)), first);
         second = ql_lanes_add(second, mixed);
         // Store the non-scalar coordinates of (F,G) in the two output halves.
         ql_store2(out_real + i, first.real);
@@ -229,19 +238,23 @@ static void ql_simd_complex_cross(double* restrict out_real,
         fastcd_FastCDComplex t = {y_real[half + i], y_imag[half + i]};
         fastcd_FastCDComplex plus = {child_real[i][0], child_imag[i][0]};
         fastcd_FastCDComplex minus = {child_real[i][1], child_imag[i][1]};
-        fastcd_FastCDComplex pair = fastcd_complex_sub(
-                fastcd_complex_mul(s, v), fastcd_complex_mul(t, u));
-        fastcd_FastCDComplex first = fastcd_complex_half(
-                fastcd_complex_add(plus, minus));
+        fastcd_FastCDLocal p = fastcd_local_bilinear(
+                u.real, v.real, s.real, t.real, gamma.real, delta.real);
+        fastcd_FastCDLocal q = fastcd_local_bilinear(
+                u.imag, v.imag, s.imag, t.imag, gamma.imag, delta.imag);
+        fastcd_FastCDLocal w = fastcd_local_bilinear(
+                u.real + u.imag, v.real + v.imag, s.real + s.imag,
+                t.real + t.imag, gamma_sum, delta_sum);
+        fastcd_FastCDComplex first = fastcd_complex_recover(p.first, q.first, w.first);
+        fastcd_FastCDComplex second = fastcd_complex_recover(p.second, q.second, w.second);
         fastcd_FastCDComplex difference = fastcd_complex_half(
                 fastcd_complex_sub(plus, minus));
         fastcd_FastCDComplex mixed = {-difference.imag, difference.real};
-        fastcd_FastCDComplex second = fastcd_complex_sub(
-                fastcd_complex_mul(delta, u), fastcd_complex_mul(gamma, v));
-
-        scalar = i == 1 ? pair : fastcd_complex_add(scalar, pair);
-        first = fastcd_complex_add(first, fastcd_complex_mul(gamma, t));
-        first = fastcd_complex_sub(first, fastcd_complex_mul(delta, s));
+        scalar_p = i == 1 ? p.scalar : scalar_p + p.scalar;
+        scalar_q = i == 1 ? q.scalar : scalar_q + q.scalar;
+        scalar_w = i == 1 ? w.scalar : scalar_w + w.scalar;
+        first = fastcd_complex_add(fastcd_complex_half(
+                    fastcd_complex_add(plus, minus)), first);
         second = fastcd_complex_add(second, mixed);
         out_real[i] = first.real;
         out_imag[i] = first.imag;
@@ -251,6 +264,7 @@ static void ql_simd_complex_cross(double* restrict out_real,
     // Return (F,G): F has scalar coordinate 0 and G has scalar coordinate lambda.
     out_real[0] = 0.0;
     out_imag[0] = 0.0;
+    fastcd_FastCDComplex scalar = fastcd_complex_recover(scalar_p, scalar_q, scalar_w);
     out_real[half] = scalar.real;
     out_imag[half] = scalar.imag;
 }

@@ -14,6 +14,8 @@ import struct
 import sys
 import unittest
 import weakref
+from decimal import Decimal
+from fractions import Fraction
 from typing import Any
 
 import numpy as np
@@ -601,6 +603,41 @@ class AlgebraTests(FastCDTestCase):
         self.assertEqual(copied, element)
         self.assertIsNot(copied, element)
 
+    def test_boolean_dimensions_levels_and_basis_indices_are_rejected(self) -> None:
+        """Reject Python and NumPy booleans without rejecting integer scalars."""
+
+        algebra = fcd.Algebra(dimension=4)
+        element = algebra.one()
+        for value in (True, False, np.bool_(True), np.bool_(False)):
+            calls = {
+                "dimension": lambda value=value: fcd.Algebra(dimension=value),
+                "level": lambda value=value: fcd.Algebra(level=value),
+                "basis": lambda value=value: algebra.basis(value),
+                "left basis index": lambda value=value: algebra.basis_product(
+                    value, 0
+                ),
+                "right basis index": lambda value=value: algebra.basis_product(
+                    0, value
+                ),
+                "left basis action": lambda value=value: algebra.left_basis_multiply(
+                    value, element
+                ),
+                "right basis action": lambda value=value: algebra.right_basis_multiply(
+                    element, value
+                ),
+            }
+            for name, call in calls.items():
+                with self.subTest(operation=name, type=type(value), value=value):
+                    with self.assertRaisesRegex(
+                        TypeError, "must be an integer, not bool"
+                    ):
+                        call()
+        self.assertIs(fcd.Algebra(dimension=np.uint64(4)), algebra)
+        self.assertIs(fcd.Algebra(level=np.int32(2)), algebra)
+        self.assertEqual(algebra.basis(np.int64(1)), algebra.basis(1))
+        self.assertEqual(algebra.scalar(np.bool_(True)), 1)
+        self.assertEqual(algebra.scalar(np.bool_(False)), 0)
+
     def test_constructor_validation(self) -> None:
         """Reject malformed coefficients, unsupported scalars, and indices."""
 
@@ -883,10 +920,90 @@ class ElementProtocolTests(FastCDTestCase):
             def __float__(self) -> float:
                 raise ValueError("synthetic conversion failure")
 
-        with self.assertRaises(ValueError):
-            _ = self.element == RaisingFloat()
+        # A float conversion alone does not define numeric equality.
+        self.assertFalse(self.element == RaisingFloat())
         nan_element = self.algebra([math.nan, 0, 0, 0])
         self.assertNotEqual(nan_element, nan_element)
+
+    def test_scalar_equality_preserves_precision_and_hashes(self) -> None:
+        """Compare numeric values exactly before dictionary and set lookup."""
+
+        cases = [
+            (2**53, 2**53 + 1, False),
+            (-2**53, -2**53 - 1, False),
+            (0.1, Decimal("0.1"), False),
+            (0.1, Fraction(1, 10), False),
+            (0.0, Fraction(1, 10**400), False),
+            (math.inf, 10**1000, False),
+            (math.inf, Decimal("1e1000"), False),
+            (math.inf, Fraction(10**1000), False),
+            (2**53, np.int64(2**53 + 1), False),
+            (2**64, np.uint64(2**64 - 1), False),
+            (0.1, np.float32(0.1), False),
+            (0.1, np.array(0.1, dtype=np.float32), False),
+            (2**53, np.array(2**53 + 1, dtype=np.int64), False),
+            (2**64, np.array(2**64 - 1, dtype=np.uint64), False),
+            (0.5, Decimal("0.5"), True),
+            (0.5, Fraction(1, 2), True),
+            (2**53, 2**53, True),
+            (2**53, np.int64(2**53), True),
+            (0.5, np.float32(0.5), True),
+            (0.1, np.float64(0.1), True),
+            (0.5, np.longdouble(0.5), True),
+            (0.5, np.array(0.5), True),
+            (1.0, np.bool_(True), True),
+            (-0.0, Fraction(0), True),
+            (math.inf, Decimal("Infinity"), True),
+            (math.nan, math.nan, False),
+        ]
+        if np.finfo(np.longdouble).nmant > np.finfo(np.float64).nmant:
+            wide = np.nextafter(np.longdouble(1), np.longdouble(2))
+            cases.extend([(1.0, wide, False), (1.0, np.array(wide), False)])
+        for value, other, expected in cases:
+            with self.subTest(value=value, other=repr(other), type=type(other)):
+                element = self.algebra.scalar(value)
+                self.assertEqual(bool(element == other), expected)
+                self.assertEqual(bool(other == element), expected)
+                self.assertEqual(bool(element != other), not expected)
+                self.assertEqual(bool(other != element), not expected)
+                self.assertEqual(bool(np.equal(element, other)), expected)
+                self.assertEqual(bool(np.not_equal(other, element)), not expected)
+                if not isinstance(other, np.ndarray):
+                    self.assertEqual(other in {element}, expected)
+                    self.assertEqual(element in {other}, expected)
+                    if expected:
+                        self.assertEqual(hash(element), hash(other))
+                        self.assertEqual({element: "found"}[other], "found")
+                        self.assertEqual({other: "found"}[element], "found")
+                for shape in ((), (2,), (2, 0)):
+                    coefficients = np.zeros(shape + (self.algebra.dimension,))
+                    coefficients[..., 0] = value
+                    batch = self.algebra.array(coefficients)
+                    for actual in (batch == other, other == batch,
+                                   np.equal(batch, other)):
+                        np.testing.assert_array_equal(actual, np.full(shape, expected))
+                    for actual in (batch != other, other != batch,
+                                   np.not_equal(other, batch)):
+                        np.testing.assert_array_equal(
+                            actual, np.full(shape, not expected)
+                        )
+
+    def test_float_protocol_does_not_imply_scalar_equality(self) -> None:
+        """Require numeric equality instead of equating arbitrary float providers."""
+
+        class FloatOnly:
+            def __float__(self) -> float:
+                return 2.0
+
+        other = FloatOnly()
+        element = self.algebra.scalar(2)
+        batch = self.algebra.array([[2, 0, 0, 0]])
+        self.assertNotEqual(element, other)
+        self.assertNotIn(other, {element})
+        np.testing.assert_array_equal(batch == other, [False])
+        mixed = self.algebra.array([[2, 0, 0, 0], [2, 1, 0, 0]])
+        np.testing.assert_array_equal(element == mixed, [True, False])
+        np.testing.assert_array_equal(element != mixed, [False, True])
 
     def test_foreign_algebra_comparisons_are_unequal_like_numpy(self) -> None:
         """Compare across algebras as all-unequal instead of raising."""
@@ -1464,7 +1581,7 @@ class MultiplicationAlgorithmTests(FastCDTestCase):
                 self.assertIsInstance(batch_name, str)
                 self.assertIn(name, CONCRETE_ALGORITHM_NAMES)
                 self.assertIn(batch_name, CONCRETE_ALGORITHM_NAMES)
-                if dimension >= 64:
+                if dimension == 4 or dimension >= 64:
                     self.assertEqual(name, "quasilinear")
                     self.assertEqual(batch_name, "quasilinear")
                 self.assertIn(name, _supported_algorithms(dimension))

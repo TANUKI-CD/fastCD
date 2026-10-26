@@ -1,0 +1,75 @@
+{
+  "configure": [
+    "cmake",
+    "-S",
+    "/hdd/math/fastCD",
+    "-B",
+    "/tmp/fastcd-octonion243-benchmark-9wcha3hc/build",
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DBUILD_SHARED_LIBS=OFF",
+    "-DBUILD_TESTING=ON",
+    "-DFASTCD_BUILD_BENCHMARK=ON",
+    "-DFASTCD_BUILD_PYTHON=OFF",
+    "-DFASTCD_WARNINGS_AS_ERRORS=ON"
+  ],
+  "build": [
+    "cmake",
+    "--build",
+    "/tmp/fastcd-octonion243-benchmark-9wcha3hc/build",
+    "--parallel",
+    "4"
+  ],
+  "ctest": [
+    "ctest",
+    "--test-dir",
+    "/tmp/fastcd-octonion243-benchmark-9wcha3hc/build",
+    "--output-on-failure"
+  ],
+  "benchmark": [
+    "python3",
+    "/hdd/math/fastCD/benchmarks/benchmark.py",
+    "--runner",
+    "/tmp/fastcd-octonion243-benchmark-9wcha3hc/build/fastcd_benchmark",
+    "--dimensions",
+    "2,4,8,16,32,64,128,256,512,1024",
+    "--trials",
+    "10000",
+    "--blocks",
+    "24",
+    "--warmup",
+    "2",
+    "--min-time-ms",
+    "20",
+    "--seed",
+    "20260906",
+    "--norm-min",
+    "0.5",
+    "--norm-max",
+    "2.0",
+    "--verify-trials",
+    "10000",
+    "--max-direct-dimension",
+    "1024",
+    "--max-cc-dimension",
+    "1024",
+    "--modes",
+    "batch,single",
+    "--cpu",
+    "0",
+    "--corpora",
+    "/tmp/fastcd-paper-v2-20261023-4goyx4ti/corpora",
+    "--output",
+    "/hdd/math/fastCD/benchmark-results/paper-v2-octonion243-20261023/results.json"
+  ],
+  "operation_counts": [
+    "python3",
+    "/hdd/math/fastCD/tools/check_quasilinear_counts.py",
+    "--output",
+    "operation-counts.json"
+  ],
+  "environment": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  }
+}

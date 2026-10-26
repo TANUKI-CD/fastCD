@@ -1,0 +1,15 @@
+{
+  "collected": "2026-10-19T19:18:09-0400",
+  "system": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+  "product": "PowerEdge T440",
+  "cpu": 11,
+  "thread_siblings": "11,51",
+  "compiler": "gcc (GCC) 16.2.1 20260810",
+  "load_average": [
+    2.25830078125,
+    2.00146484375,
+    1.72509765625
+  ],
+  "isolation": "benchmark processes pinned to CPU 11; other host services left running; no governor, turbo, SMT, or service changes",
+  "pilot": "dimension-16 pilot used CPU 12; the main before/after measurements both use CPU 11"
+}

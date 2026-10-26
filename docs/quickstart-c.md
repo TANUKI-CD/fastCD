@@ -73,8 +73,9 @@ if (fastcd_algorithm_supports_dimension(FASTCD_ALGORITHM_CARIOW_CARIOWA, N)) {
 ```
 
 The Cariow–Cariowa algorithm is available through dimension 1024, though it
-is not recommended above 64, where quasilinear is already faster. Asking for
-it at a higher dimension returns `FASTCD_UNSUPPORTED_ALGORITHM`, while the
+is not recommended above 64, where quasilinear is already faster in the
+recorded benchmarks. Asking for it above 1024 returns
+`FASTCD_UNSUPPORTED_ALGORITHM`, while the
 direct and quasilinear algorithms support every dimension.
 
 ## Batches

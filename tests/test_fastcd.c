@@ -643,7 +643,7 @@ static void test_algorithm_selection(void) {
              * table; that build is recognized by its batch choice at N=16. */
             static const FastCDAlgorithm documented_single[] = {
                 FASTCD_ALGORITHM_QUASILINEAR, FASTCD_ALGORITHM_QUASILINEAR,
-                FASTCD_ALGORITHM_DIRECT, FASTCD_ALGORITHM_DIRECT,
+                FASTCD_ALGORITHM_QUASILINEAR, FASTCD_ALGORITHM_DIRECT,
                 FASTCD_ALGORITHM_DIRECT
             };
             static const FastCDAlgorithm documented_batch[] = {
@@ -2960,6 +2960,73 @@ static void test_batch_backends(void) {
     }
 }
 
+// Use separate, minimally sized allocations for padded even and odd batches
+static void test_batch_minimal_spans(void) {
+    const size_t dimensions[] = {128, 256, 512};
+
+    printf("\n=== minimally allocated padded batches ===\n");
+    for (size_t d = 0; d < sizeof(dimensions) / sizeof(dimensions[0]); d++) {
+        size_t dimension = dimensions[d];
+        GuardedWorkspace workspace;
+
+        if (!workspace_for_algorithm(&workspace, dimension,
+                    FASTCD_ALGORITHM_CARIOW_CARIOWA)) {
+            CHECK(false, "allocate minimal-span workspace N=%zu", dimension);
+            continue;
+        }
+        for (size_t count = 2; count <= 4; count++) {
+            for (unsigned broadcast = 0; broadcast < 4; broadcast++) {
+                size_t out_stride = dimension + 3;
+                size_t x_stride = (broadcast & 1) ? 0 : dimension + 1;
+                size_t y_stride = (broadcast & 2) ? 0 : dimension + 2;
+                size_t out_span = (count - 1) * out_stride + dimension;
+                size_t x_span = (count - 1) * x_stride + dimension;
+                size_t y_span = (count - 1) * y_stride + dimension;
+                double* out = allocate_block(1, out_span);
+                double* x = allocate_block(1, x_span);
+                double* y = allocate_block(1, y_span);
+                double* expected = allocate_block(1, dimension);
+                bool ready = out != NULL && x != NULL && y != NULL
+                    && expected != NULL;
+
+                CHECK(ready, "allocate minimal spans N=%zu count=%zu",
+                        dimension, count);
+                if (ready) {
+                    fill_small_integers(x, x_span);
+                    fill_small_integers(y, y_span);
+                    fill_array(out, out_span, SENTINEL);
+                    CHECK(fastcd_mul_batch_with_algorithm_f64(out, out_stride,
+                                x, x_stride, y, y_stride, count, dimension,
+                                FASTCD_ALGORITHM_CARIOW_CARIOWA,
+                                &workspace.value) == FASTCD_SUCCESS,
+                            "minimal-span batch N=%zu count=%zu broadcast=%u",
+                            dimension, count, broadcast);
+                    for (size_t k = 0; k < count; k++) {
+                        CHECK(oracle_mul(expected, x + k * x_stride,
+                                    y + k * y_stride, dimension)
+                                && arrays_exact(out + k * out_stride, expected,
+                                    dimension),
+                                "minimal-span oracle N=%zu record=%zu",
+                                dimension, k);
+                        if (k + 1 < count) {
+                            CHECK(array_is(out + k * out_stride + dimension,
+                                        out_stride - dimension, SENTINEL),
+                                    "minimal-span preserves output padding");
+                        }
+                    }
+                    CHECK(guarded_workspace_intact(&workspace),
+                            "minimal-span preserves workspace guards");
+                }
+                free(out);
+                free(x);
+                free(y);
+                free(expected);
+            }
+        }
+        guarded_workspace_free(&workspace);
+    }
+}
+
 // Check complete products against the oracle above the SIMD pairing limit
 static void test_large_dimension_products(void) {
     const size_t dimensions[] = {2048, 4096, 8192};
@@ -3684,6 +3751,7 @@ int main(void) {
     test_numerical_fixtures();
     test_batch_multiplication();
     test_batch_backends();
+    test_batch_minimal_spans();
     test_large_dimension_products();
     test_nonfinite_propagation();
     test_composite_products();

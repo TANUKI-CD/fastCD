@@ -32,16 +32,16 @@
  * 2N scratch coefficients and the correction terms of each output summed in
  * four interleaved partial sums, because the unrolled form grows with N^2
  * and is about 13 MB of code at dimension 1024.  The algorithm is not
- * recommended above 64: quasilinear is already twice as fast there, and the
- * gathered sign corrections cannot be vectorized within a product, which the
- * benchmark shows at every dimension (see docs/benchmark.md).
+ * recommended above 64: quasilinear is faster in the recorded benchmarks,
+ * and this implementation does not vectorize the gathered sign corrections
+ * within a product (see docs/benchmark.md).
  *
  * A single product runs the scalar kernel.  Unlike the direct and
- * quasilinear schedules, the sign corrections cannot share SIMD lanes within
+ * quasilinear schedules, the sign corrections do not share SIMD lanes within
  * one product: adjacent outputs need different subsets of the terms (about
  * one quarter in common), so only batches of two or more products use the
  * paired kernel.  The optional FASTCD_CC_DOUBLING=1 build instead evaluates
- * every product of dimension 16 and above as the four half-dimensional
+ * products at dimensions 16 through 64 as the four half-dimensional
  * products of one Cayley--Dickson doubling step, two per SIMD lane.  That
  * keeps N(N-1)/2 - N/2 + 8 multiplications but roughly doubles the
  * Walsh--Hadamard additions, so it is a different arithmetic schedule from
@@ -197,6 +197,7 @@ static FASTCD_NOINLINE void cc_table_batch(double* restrict out,
         size_t paired = fastcd_pair_batch(out, out_stride, x, x_stride, y,
                 y_stride, count, dimension, cc_pair_table_mul);
 
+        if (paired == count) return;
         out += paired * out_stride;
         x += paired * x_stride;
         y += paired * y_stride;

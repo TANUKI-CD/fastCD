@@ -1176,9 +1176,10 @@ class ElementArray:
     ) -> Any:
         """Dispatch the intentional NumPy ufunc subset algebraically.
 
-        Supported ``__call__`` ufuncs are ``add``, ``subtract``, ``negative``,
-        ``multiply``, ``square``, ``conjugate``, ``absolute``, ``equal``, and
-        ``not_equal``.  Multiplication remains Cayley--Dickson multiplication,
+        Supported ``__call__`` ufuncs are ``add``, ``subtract``, ``true_divide``,
+        ``power``, ``negative``, ``positive``, ``multiply``, ``square``,
+        ``conjugate``, ``absolute``, ``equal``, and ``not_equal``.
+        Multiplication remains Cayley--Dickson multiplication,
         never coordinatewise multiplication.  Only ``multiply`` accepts
         ``out=``; it uses :meth:`Algebra.multiply`'s exact-shape,
         C-contiguous, nonoverlapping output contract.
@@ -1428,7 +1429,14 @@ def _coordinate_equal(array: ElementArray, other: Any, *, invert: bool) -> Any:
     """Compare complete broadcast elements for equality or inequality."""
 
     if _is_real_scalar(other):
-        comparison = array._coefficients[..., 0] == float(other)
+        scalar = _core._comparison_scalar(other)
+        if scalar is NotImplemented:
+            return NotImplemented
+        real = array._coefficients[..., 0]
+        # NumPy's native numeric promotion can round large integers or narrow
+        # floats. Object comparison uses Python's exact numeric comparisons.
+        values = real if isinstance(scalar, float) else real.astype(object)
+        comparison = values == scalar
         if array.dimension > 1:
             comparison &= np.all(array._coefficients[..., 1:] == 0.0, axis=-1)
     elif (

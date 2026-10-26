@@ -1,0 +1,38 @@
+{
+  "changes": "comments and generator module docstring only; no arithmetic changes",
+  "compiled_translation_units": {
+    "src/quasilinear.c": {
+      "preprocessed_sha256": "5cd2f4a2569782e76776dbeb86b68329a6cd894d3f549e95acadfaf45d72e9d6",
+      "status": "identical to measured snapshot"
+    },
+    "src/cariow_cariowa.c": {
+      "preprocessed_sha256": "be5937653bbf9eb395f47e52eed1001013090c9a38a95973167730d592c783eb",
+      "status": "identical to measured snapshot"
+    }
+  },
+  "generator_ast": "identical excluding module docstring",
+  "generated_headers": "four files byte-identical",
+  "operation_counts": "identical through dimension 256",
+  "files": {
+    "src/quasilinear.c": {
+      "measured_sha256": "1a448a9540bc1759377c68c6b11d7d89ce9d821e9177748bab3c823cdd4c0db7",
+      "current_sha256": "2f5b973e594fe9a5555c269c286baa232b4026fabd77c0e36ae7e27e1392a784"
+    },
+    "src/quasilinear_impl.h": {
+      "measured_sha256": "13462c6ff45e0cb64d70cd64833ffb00c568451509b7e03186ed301680fa6154",
+      "current_sha256": "f182a3e9353f50f2d258a1850d55437adfc7ce965e5a1c083c205fe7ff6e09d5"
+    },
+    "src/quasilinear_simd.h": {
+      "measured_sha256": "5307cd8342aa6a67015c229c3d88a7d54e2778c42cbcc376cd47c7fb75537464",
+      "current_sha256": "2bccf3886c6c371fc733679f03446b8b5303452c6aaf767bf0638f9f91ef525b"
+    },
+    "src/cariow_cariowa.c": {
+      "measured_sha256": "bbe369fd411cdca5e33ae89e15d62c6432174110b757878d7501dea154421296",
+      "current_sha256": "9d04efa2f3fcf94f497a213694647394d1db78bc075338dae40d8e611d3141ab"
+    },
+    "tools/generate_kernels.py": {
+      "measured_sha256": "27e026b83fbcaa920b868ed779a9339fb52a472860050b5b79ddb11e70dcb261",
+      "current_sha256": "6233424d41127d361a6a587fa8ede829dc58e5fa0988d4221f1ad0f48aa8a507"
+    }
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "protocol": {
+    "generator": "PCG64 SeedSequence([seed, dimension]); normalize then scale",
+    "trials": 10000,
+    "seed": 20260906,
+    "norm_min": 0.5,
+    "norm_max": 2.0,
+    "byteorder": "little"
+  },
+  "corpora": {
+    "2": {
+      "file": "corpus-n2.f64",
+      "dimension": 2,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        2
+      ],
+      "sha256": "15827c3547585d257589c7b7993a34cace993608dbe6ae2429900e9a83fe119c",
+      "bytes": 480000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "4": {
+      "file": "corpus-n4.f64",
+      "dimension": 4,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        4
+      ],
+      "sha256": "0ab68d39354c5b59315a9b21dee9d1b5418484ff9f3d2d389435eabc8dc77443",
+      "bytes": 960000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "8": {
+      "file": "corpus-n8.f64",
+      "dimension": 8,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        8
+      ],
+      "sha256": "b0eddd77d45a515fc160f0b6897662c08726688fd1c4139d4f1aa221bd2b5f8e",
+      "bytes": 1920000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "16": {
+      "file": "corpus-n16.f64",
+      "dimension": 16,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        16
+      ],
+      "sha256": "3a4b687c4f4436d4cf0708a63086bd95f3c4606bdd0e43ef7d214e5fbab91257",
+      "bytes": 3840000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "32": {
+      "file": "corpus-n32.f64",
+      "dimension": 32,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        32
+      ],
+      "sha256": "904e17652d2807c42e83bfacacc4abfdda63153f53151c9018eadcc0b147bf8c",
+      "bytes": 7680000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "64": {
+      "file": "corpus-n64.f64",
+      "dimension": 64,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        64
+      ],
+      "sha256": "571dac5948d68989e00084256efec9a77182a58a5bdfe0c5fb2f7742cc31be12",
+      "bytes": 15360000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "128": {
+      "file": "corpus-n128.f64",
+      "dimension": 128,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        128
+      ],
+      "sha256": "d7dd78f785f9922bec89d0922830700e6888b53f41906b33dc550bae165f0a2c",
+      "bytes": 30720000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "256": {
+      "file": "corpus-n256.f64",
+      "dimension": 256,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        256
+      ],
+      "sha256": "10bc33b9294bb6e3762737e12ef2cb762dd89e214c7bdabadc40784c81d5b472",
+      "bytes": 61440000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "512": {
+      "file": "corpus-n512.f64",
+      "dimension": 512,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        512
+      ],
+      "sha256": "1bd90b06d8917a26758ae2b0da9e1ada36ceec8cabc65476aeaa3b40edd493e6",
+      "bytes": 122880000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    },
+    "1024": {
+      "file": "corpus-n1024.f64",
+      "dimension": 1024,
+      "trials": 10000,
+      "seed": [
+        20260906,
+        1024
+      ],
+      "sha256": "9d88eb60fd7e41e333a390c175979a2d0945ab1984fca72aa9c629cca15831e5",
+      "bytes": 245760000,
+      "layout": "native float64 [operand=3][trial][coordinate], C order",
+      "direction": "independent Uniform[-1,1) coordinates normalized to unit norm",
+      "radius": "Uniform[0.5,2.0)",
+      "rng": "NumPy Generator(PCG64)"
+    }
+  }
+}

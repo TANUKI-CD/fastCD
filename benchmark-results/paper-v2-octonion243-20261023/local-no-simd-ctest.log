@@ -1,0 +1,107 @@
+Start testing: Oct 23 19:13 EDT
+----------------------------------------------------------
+1/3 Testing: fastcd.public_api_link
+1/3 Test: fastcd.public_api_link
+Command: "/tmp/fastcd-auto-dim4-no-simd/fastcd_public_link_test"
+Directory: /tmp/fastcd-auto-dim4-no-simd
+"fastcd.public_api_link" start time: Oct 23 19:13 EDT
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"fastcd.public_api_link" end time: Oct 23 19:13 EDT
+"fastcd.public_api_link" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/3 Testing: fastcd.tests
+2/3 Test: fastcd.tests
+Command: "/tmp/fastcd-auto-dim4-no-simd/fastcd_tests"
+Directory: /tmp/fastcd-auto-dim4-no-simd
+"fastcd.tests" start time: Oct 23 19:13 EDT
+Output:
+----------------------------------------------------------
+fastCD automated test suite (library 1.1.0)
+
+=== library information ===
+
+=== dimension utilities ===
+
+=== algorithm selection ===
+
+=== workspace contracts ===
+
+=== construction and coordinate arithmetic ===
+
+=== overlap validation ===
+
+=== structural operations ===
+
+=== numerical edge cases ===
+
+=== signed zero ===
+
+=== squares ===
+
+=== oracle sanity and hand-computed products ===
+
+=== exhaustive basis products ===
+
+=== basis validation ===
+
+=== randomized exact products ===
+
+=== randomized floating products ===
+  auto (public): worst error / tolerance = 0.0006
+  auto (explicit): worst error / tolerance = 0.0006
+  direct: worst error / tolerance = 0.0013
+  cariow_cariowa: worst error / tolerance = 0.0028
+  quasilinear: worst error / tolerance = 0.0007
+
+=== multiplication accuracy and finite range ===
+  990 products; maximum error / (epsilon ||x||2 ||y||2):
+    auto (public) 5.966250
+    auto (explicit) 5.966250
+    direct 2.215625
+    cariow_cariowa 1.212937
+    quasilinear 5.966250
+
+=== batched multiplication ===
+
+=== batch backend boundaries ===
+
+=== large-dimension products against the oracle ===
+
+=== NaN and infinity propagation ===
+
+=== composite products ===
+
+=== size overflow boundaries ===
+
+63513 checks, 63513 passed, 0 failed in 3.84 s
+<end of output>
+Test time =   3.86 sec
+----------------------------------------------------------
+Test Passed.
+"fastcd.tests" end time: Oct 23 19:13 EDT
+"fastcd.tests" time elapsed: 00:00:03
+----------------------------------------------------------
+
+3/3 Testing: fastcd.quasilinear_leaf
+3/3 Test: fastcd.quasilinear_leaf
+Command: "/tmp/fastcd-auto-dim4-no-simd/fastcd_leaf_tests"
+Directory: /tmp/fastcd-auto-dim4-no-simd
+"fastcd.quasilinear_leaf" start time: Oct 23 19:13 EDT
+Output:
+----------------------------------------------------------
+452 complex octonion leaf checks passed (196 basis, 256 dense)
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"fastcd.quasilinear_leaf" end time: Oct 23 19:13 EDT
+"fastcd.quasilinear_leaf" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 23 19:13 EDT

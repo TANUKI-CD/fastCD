@@ -72,6 +72,12 @@ typedef struct FastCDBasisProduct { size_t index; int sign; } FastCDBasisProduct
   numerical results. Different algorithms and specialized formulas can
   round differently without returning an error.
 
+AUTO choices, workspace lengths, and arithmetic schedules may change in minor
+or patch releases while preserving the public calling contracts. Obtain
+workspace lengths from the query functions. Floating-point results are not
+guaranteed bitwise identical across versions, even for the same explicitly
+selected algorithm. Relevant numerical changes are recorded in `CHANGELOG.md`.
+
 **Aliasing**
 
 An exact alias has the same starting pointer and covers a complete element.
@@ -112,15 +118,16 @@ products use two products per instruction at these dimensions:
 - Direct: dimension 64 through 512.
 
 On the same targets, a single quasilinear product above dimension 16
-evaluates the two children of every complex node in the two SIMD lanes,
-using the caller's workspace; the workspace query reports the larger
-requirement of that form. Single direct and Cariow–Cariowa products use the
-scalar kernels.
+evaluates the two children of the top complex node in the two SIMD lanes
+and continues through the paired kernel, using the caller's workspace; the
+workspace query reports the larger requirement of that form. Single direct
+and Cariow–Cariowa products use scalar kernels, which the compiler may
+vectorize.
 
 The scalar and SIMD kernels share an arithmetic schedule and produce
 identical finite results for the same algorithm; NaN payloads may differ.
 Odd tails use a scalar kernel. Packing needs no extra alignment of caller
-storage and uses at most 40 KiB of stack space. Outside these thresholds,
+storage and uses a fixed 40 KiB stack array. Outside these thresholds,
 or on other compiler/target combinations, batches use the scalar kernels
 and the caller's workspace.
 
@@ -130,7 +137,7 @@ and the caller's workspace.
 
 - `const char* fastcd_version_string(void)`
 
-  Return the library version string, currently `"1.0.0"`.
+  Return the library version string, currently `"1.1.0"`.
 
 - `const char* fastcd_status_string(FastCDStatus status)`
 
@@ -165,7 +172,7 @@ and the caller's workspace.
 
 `FASTCD_ALGORITHM_AUTO` uses two tables selected from the benchmark:
 
-- Single products use direct at `N = 4, 8, 16` and quasilinear elsewhere.
+- Single products use direct at `N = 8, 16` and quasilinear elsewhere.
   This table also serves one-record batches and operator routines.
 - Batches of two or more products use direct at `N = 8`, Cariow–Cariowa at
   `N = 16`, and quasilinear elsewhere. Builds without SIMD pairing use the
@@ -195,10 +202,11 @@ Each query writes a scratch length in doubles. Errors are
 `FASTCD_NULL_POINTER`, `FASTCD_INVALID_DIMENSION`, `FASTCD_SIZE_OVERFLOW`,
 and, where an algorithm is involved, `FASTCD_UNSUPPORTED_ALGORITHM`.
 
-All lengths are `Theta(N)` doubles and do not depend on the batch count.
-Current lengths are zero for Cariow–Cariowa through `N = 64` and `2N` above
-that, where its table-driven kernel runs. Direct needs zero doubles for
-`N <= 16` and `2N - 32` above that. Quasilinear needs zero for `N <= 16`;
+Lengths are `O(N)` doubles and do not depend on the batch count.
+With the default leaf cutoffs, lengths are zero for Cariow–Cariowa through
+`N = 64` and `2N` above that, where its table-driven kernel runs.
+Direct needs zero doubles for `N <= 16` and `2N - 32` above that.
+Quasilinear needs zero for `N <= 16`;
 above that it needs `5N - 63` on targets with the two-lane SIMD kernels and
 `2N - 32` otherwise. Composite operations add `2N`. Use the queries in your
 code, as these sizes describe the current implementation;

@@ -22,14 +22,22 @@ an element array, and `r` is a real scalar.
 
   Construct an element, inferring its dimension from the length of the
   coefficient vector. The input must be a one-dimensional sequence or array,
-  not an iterator, and its length must be a positive power of two; other
-  inputs raise `ValueError`.
+  not an iterator, and its length must be a positive power of two. Invalid
+  shape or length raises `ValueError`; complex, object-valued, or nonnumeric
+  coefficient arrays raise `TypeError`. An existing `Element` is copied.
 
 ### Scalars
 
 Real scalars are `bool`, `int`, `float`, `Decimal`, `Fraction`, real
-NumPy scalars, and real zero-dimensional ndarrays; complex, text, and object
-inputs are rejected.
+NumPy scalars, and real zero-dimensional ndarrays. Complex values, text, and
+arrays with an object dtype are rejected.
+
+Construction and arithmetic convert scalars to binary64. Equality compares
+their numeric values without that rounding: an element containing `0.1` is
+unequal to `Decimal("0.1")` or `Fraction(1, 10)`, and an element containing
+`2**53` is unequal to the integer `2**53 + 1`. The same rules apply to
+`ElementArray`. A custom `__float__` method permits conversion and arithmetic;
+numeric equality also requires the object's comparison protocol.
 
 ---
 
@@ -49,7 +57,7 @@ subclassed.
 - `dimension`: a positive power of two.
 - `level`: the doubling level, where `dimension = 2**level`.
 
-Supply exactly one parameter. Boolean values are rejected.
+Supply exactly one parameter. Boolean values, including `numpy.bool_`, are rejected.
 
 ### Properties
 
@@ -219,7 +227,8 @@ writeability from their NumPy storage.
 
 ### Methods
 
-These methods allocate new results. Element-valued results have the same
+These methods allocate new results, except when a NumPy view is requested
+with `to_numpy(copy=False)`. Element-valued results have the same
 class as the receiver. `Element` methods take positional `Element` operands
 only, while `ElementArray` methods accept `Element` or `ElementArray`
 operands and broadcast; to combine an element with an array, call the method
@@ -322,14 +331,20 @@ are new objects, and arrays broadcast their leading axes.
 - `x == y`, `x != y`
 
   Compare whole elements exactly, returning a Boolean array for batches.
-  An operand that is neither a same-parent fastCD object nor a real scalar,
-  such as a `str`, `complex`, `None`, or `list`, returns `NotImplemented`,
-  so `==` is `False` and `!=` is `True` rather than raising. A fastCD object
-  of another algebra compares unequal everywhere, giving `False` for an
-  element and an all-`False` array of the broadcast batch shape for an
-  array, as NumPy does for incomparable operands. Two cases raise: a raw
-  `ndarray` operand is routed through `np.equal` and raises `TypeError`, and
-  a non-broadcastable shape raises `ValueError`.
+  Supported real scalars include real zero-dimensional ndarrays. An
+  unsupported operand makes the fastCD comparison method return
+  `NotImplemented`, allowing reflected comparison. With ordinary Python
+  operands such as `str`, `complex`, `None`, and `list`, `==` is `False`
+  and `!=` is `True`. A fastCD object of another algebra compares unequal
+  everywhere, giving `False` for an element and an all-`False` array of the
+  broadcast batch shape for an
+  array. Incompatible batch shapes raise `ValueError`.
+
+  NumPy comparison dispatch with an unsupported operand, such as a
+  nonscalar ndarray or a complex NumPy scalar, raises `TypeError`. Scalar
+  comparisons can also propagate exceptions from the operand's comparison
+  protocol; for example, comparing with `Decimal("sNaN")` raises
+  `decimal.InvalidOperation` when that decimal trap is enabled.
 
 ### Indexing and iteration
 
@@ -354,8 +369,12 @@ are new objects, and arrays broadcast their leading axes.
 ### Storage
 
 - Coefficients have shape `batch_shape + (N,)`. Only leading axes broadcast.
-- Zero-copy sharing through `A.asarray` requires native `float64`, NumPy
-  alignment, and a unit final stride. Other inputs are converted and copied.
+- Zero-copy sharing through `A.asarray` requires native `float64` and aligned
+  coefficient storage. The final stride must be one coefficient, except
+  that dimension 1 also permits zero stride and empty C-contiguous arrays
+  need no final-stride check. Leading axes may be strided, reversed, or
+  broadcast. Supported real numeric inputs with an incompatible dtype or
+  layout are converted and copied unless `copy=False` forbids it.
 - Inputs are read-only and may share storage, as in `X[:-1] * X[1:]` or
   `X * X[:1]`, as long as each pair of corresponding elements is identical
   or disjoint. Partially overlapping elements raise `ValueError`.
@@ -373,9 +392,10 @@ are new objects, and arrays broadcast their leading axes.
   ndarray, whereas `A.multiply` returns a new `ElementArray` wrapper.
 - Other ufuncs and methods, including `reduce`, `accumulate`, and `where=`,
   return `NotImplemented`.
-- NumPy functions that are not ufuncs, such as `np.mean` and `np.stack`,
-  read coefficients through `__array__` or the buffer and act coordinatewise,
-  returning plain ndarrays rather than fastCD objects.
+- Functions such as `np.mean` and `np.stack`, which are not ufuncs,
+  read coefficients through `__array__` or the buffer and use ordinary NumPy
+  array semantics. `np.mean(x)` returns a NumPy scalar when all axes are
+  reduced; `np.stack` returns a plain ndarray.
 
 ### DLPack interfaces
 
@@ -388,7 +408,9 @@ are new objects, and arrays broadcast their leading axes.
   Report the DLPack device.
 
 - `A.array` and `A.asarray` import host-accessible DLPack producers through
-  `np.from_dlpack`.
+  `np.from_dlpack`. Requiring `copy=False` for a generic DLPack producer
+  needs NumPy 2.1 or newer; older supported NumPy versions raise `ValueError`
+  for that request.
 
 ### Copying and serialization
 
@@ -447,5 +469,12 @@ pyfastcd follows semantic versioning, and its version string is the version of
 the fastCD C library it wraps. The public surface is the six names in
 `pyfastcd.__all__` together with the members documented on this page; modules
 and names with a leading underscore are private and may change without notice.
-Within a major version, documented behavior changes only with a deprecation
-note in `CHANGELOG.md`.
+Public API removals and incompatible calling-contract changes require a major
+version change and a prior deprecation note in `CHANGELOG.md`.
+
+AUTO algorithm choices and internal arithmetic schedules may change in minor
+or patch releases to improve performance or correctness. Workspace lengths
+are implementation details obtained through the C query functions.
+Floating-point results are not guaranteed bitwise identical across versions,
+even when selecting the same named algorithm explicitly. Relevant numerical
+changes are recorded in `CHANGELOG.md`.

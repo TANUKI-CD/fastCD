@@ -1,10 +1,10 @@
-![fastCD](assets/fastCD.png)
+![fastCD](https://git.tanuki-cd.com/algebraity/fastCD/raw/branch/main/assets/fastCD.png)
 
-# fastCD - v1.0.0
+# fastCD - v1.1.0
 
-fastCD is a lean C kernel for Cayley-Dickson multiplication with a NumPy-compatible Python extension written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
+fastCD is a lean C kernel for Cayley-Dickson multiplication with a NumPy-compatible Python extension written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
 
-In addition to this new quasilinear algorithm, both direct Cayley-Dickson multiplication and an algorithm due to [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09) are also included in the library. The default multiplication algorithm for each dimension has been selected based on explicit single-core benchmarking for both single and batched multiplication, and while quasilinear is provably asymptotically the fastest, it is not the fastest for all lower dimensions. The direct and Cariow-Cariowa algorithms are also used for some low dimensions; see [Benchmark](#benchmark) for more information on this.
+In addition to this new quasilinear algorithm, both direct Cayley-Dickson multiplication and an algorithm due to [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09) are also included in the library. The default multiplication algorithm for each dimension has been selected based on explicit single-core benchmarking for both single and batched multiplication. Quasilinear has the best asymptotic complexity of these three algorithms, but it is not the fastest at every lower dimension. The direct and Cariow-Cariowa algorithms are also used for some low dimensions; see [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) for more information on this.
 
 The canonical source repository is
 [git.tanuki-cd.com/algebraity/fastCD](https://git.tanuki-cd.com/algebraity/fastCD).
@@ -17,7 +17,7 @@ A_0 = R,   A_n = A_(n-1) x A_(n-1),   (a,b)(c,d) = (ac - conjugate(d) b, d a + b
 
 An element is stored as a contiguous array of `N = 2^n` `double` coefficients in the
 recursive standard basis, where coordinate zero is the scalar and the two halves of
-the array are the pair `(a, b)`. [Conventions and results](docs/mathematics.md)
+the array are the pair `(a, b)`. [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
 should be read for full information on conventions and a brief explanation of the mathematical
 foundations of fastCD.
 
@@ -49,7 +49,7 @@ int main(void) {
 }
 ```
 
-For more information on how to get started using fastCD in C and to familiarize yourself with the API, take a look at [C quick start](docs/quickstart-c.md) and [C API reference](docs/c-api.md).
+For more information on how to get started using fastCD in C and to familiarize yourself with the API, take a look at [C quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-c.md) and [C API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/c-api.md).
 
 ## Using Python
 
@@ -82,8 +82,8 @@ z = O.multiply(x, b, algorithm="quasilinear")
 ```
 
 The `Element` class is immutable and represents a unique Cayley-Dickson element, while `ElementArray` stores a mutable array of Elements and processes batches of shape `(..., N)`
-in compiled code. See the [Python quick start](docs/quickstart-python.md) and
-the [Python API reference](docs/python-api.md) for more information on how each class works.
+in compiled code. See the [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
+the [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md) for more information on how each class works.
 
 ## Building the C library
 
@@ -106,57 +106,60 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 ## Benchmark
 
-In order to demonstrate the efficiency of the new quasilinear algorithm in comparison with the direct and Cariow-Cariowa algorithms, and to justify the choice of default algorithm for batched and single multiplications, a benchmark has been designed. The benchmark generates 10,000 pairs of Cayley-Dickson elements and performs multiplications with them in blocks, timing each algorithm while also verifying the accuracy of each one via an independent direct implementation.
+The full comparison for the v2 paper was rerun on 2026-10-23 on the Dell PowerEdge T440, using one logical CPU of an Intel Xeon Gold 6148 and the revised **243-operation complex octonion leaf**. The measured source is revision `7da5a5f` plus the archived [source patch](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/source.patch); exact source and build hashes are recorded. [Raw results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/results.json), the [complete generated report](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/results.md), and [environment and build details](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/environment.json) are archived together.
 
-The results of the canonical benchmark from which algorithm defaults were chosen for the 1.0.0 release are located at `benchmark-results/paper-results.json`, with the generated report beside it in `benchmark-results/paper-results.md`. More information on the results is also available in the [Benchmark](docs/benchmark.md) documentation.
+The tables give mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timing blocks. They reproduce the original protocol: dimensions 2 through 1024, all three algorithms in single and batch modes, 10,000 operand pairs per dimension, two warmup passes, a 20 ms timing target, and CPU 0. Every input corpus matches the original SHA-256 hash. Python object overhead, allocation, and verification are outside the timed region, so the benchmark focuses on the multiplication kernel alone. See the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) for the timing boundaries and implementation details.
 
-Here are the exact results of the canonical benchmark, run on one core of an Intel Xeon Gold 6148 at commit `14bf305` with a clean tree. The `fastest mean` column names the lowest verified mean, or a tie when the paired per-block ratio of the two lowest means does not separate them, and the `default` column shows the algorithm the library selects for that mode and dimension. Cariow-Cariowa is timed at every dimension; the [Benchmark](docs/benchmark.md) documentation explains why its times above `N = 64` reflect its irregular sign corrections rather than its operation count.
+The `fastest mean` column names the lowest verified mean, or a tie when the paired per-block ratio of the two lowest means does not separate them. The `default` column shows AUTO for the measured build. Dimension-4 singles remain a close tie: quasilinear averaged 18.12 ns versus direct's 18.18 ns, with a paired quasilinear/direct 95% interval of 0.979–1.015.
+
+The [earlier full v2 comparison](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-20261023/results.md), using the 244-operation leaf at `f9a61b2`, remains archived alongside the [v1 paper data](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-results.json) and [report](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-results.md), measured at `14bf305`, and the [October 19 comparison](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261019/README.md). [Comparisons with the previous leaf](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/comparison-previous-leaf.json) are descriptive ratios of means from separate runs. This run and the previous full v2 run use GCC 16.2.1 and Linux 7.2.11, while the v1 paper run used GCC 16.1.1 and Linux 7.1.6. The T440 is a shared host, with no governor, turbo, or SMT changes made for this run, so timing differences cannot be attributed solely to the leaf change.
+
+All 600,000 algorithm/mode verification checks passed with zero mismatches and finite outputs. The [validation record](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/validation.json) also records the build, test, arithmetic-count, and data-integrity checks.
 
 ### Batch products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |
-| 2 | 1.34 [1.33, 1.35] | 1.53 [1.50, 1.56] | 1.02 [1.01, 1.03] | quasilinear | quasilinear |
-| 4 | 3.87 [3.78, 3.97] | 4.58 [4.49, 4.66] | 3.80 [3.71, 3.89] | tie (quasilinear, direct) | quasilinear |
-| 8 | 11.89 [11.68, 12.09] | 13.53 [13.25, 13.82] | 16.22 [15.96, 16.49] | direct | direct |
-| 16 | 54.68 [53.91, 55.45] | 49.38 [48.60, 50.16] | 56.95 [56.04, 57.85] | cariow_cariowa | cariow_cariowa |
-| 32 | 257.63 [252.67, 262.58] | 221.01 [217.27, 224.76] | 193.27 [191.00, 195.54] | quasilinear | quasilinear |
-| 64 | 1124.05 [1101.38, 1146.72] | 947.05 [935.01, 959.09] | 492.65 [483.39, 501.92] | quasilinear | quasilinear |
-| 128 | 4468.17 [4362.50, 4573.85] | 4908.83 [4771.93, 5045.73] | 1322.56 [1304.49, 1340.63] | quasilinear | quasilinear |
-| 256 | 17757.92 [17535.51, 17980.33] | 17663.82 [17465.57, 17862.08] | 3149.78 [3101.79, 3197.78] | quasilinear | quasilinear |
-| 512 | 69138.03 [68183.42, 70092.64] | 65786.36 [64987.60, 66585.12] | 7485.61 [7376.06, 7595.15] | quasilinear | quasilinear |
-| 1024 | 273693.44 [270572.17, 276814.71] | 408225.87 [406200.31, 410251.42] | 17483.64 [17250.55, 17716.73] | quasilinear | quasilinear |
+| 2 | 1.31 [1.29, 1.32] | 1.57 [1.54, 1.60] | 1.01 [1.00, 1.02] | quasilinear | quasilinear |
+| 4 | 3.84 [3.78, 3.89] | 4.58 [4.50, 4.65] | 3.77 [3.72, 3.81] | tie (quasilinear, direct) | quasilinear |
+| 8 | 12.41 [12.20, 12.61] | 14.19 [13.82, 14.56] | 17.86 [17.57, 18.15] | direct | direct |
+| 16 | 55.34 [54.18, 56.49] | 50.46 [49.49, 51.43] | 55.15 [54.24, 56.06] | cariow_cariowa | cariow_cariowa |
+| 32 | 257.28 [252.91, 261.66] | 230.56 [227.19, 233.93] | 174.49 [172.83, 176.15] | quasilinear | quasilinear |
+| 64 | 1152.26 [1133.60, 1170.93] | 1012.92 [993.30, 1032.54] | 446.49 [440.03, 452.95] | quasilinear | quasilinear |
+| 128 | 4748.29 [4688.47, 4808.10] | 5136.17 [4962.06, 5310.28] | 1249.72 [1219.47, 1279.97] | quasilinear | quasilinear |
+| 256 | 18377.31 [18145.54, 18609.07] | 18353.65 [17953.07, 18754.24] | 3059.44 [3007.34, 3111.55] | quasilinear | quasilinear |
+| 512 | 70080.95 [69127.78, 71034.12] | 66708.04 [65482.11, 67933.97] | 6791.69 [6697.58, 6885.80] | quasilinear | quasilinear |
+| 1024 | 272762.00 [270235.59, 275288.41] | 406124.61 [403922.66, 408326.56] | 15426.99 [15279.98, 15573.99] | quasilinear | quasilinear |
 
 ### Single products (ns per product)
 
 | N | direct | cariow_cariowa | quasilinear | fastest mean | default |
 | ---: | --- | --- | --- | --- | --- |
-| 2 | 16.90 [15.83, 17.96] | 17.92 [16.97, 18.87] | 15.69 [15.45, 15.92] | quasilinear | quasilinear |
-| 4 | 19.33 [18.06, 20.60] | 22.15 [20.77, 23.52] | 19.89 [18.76, 21.02] | tie (direct, quasilinear) | direct |
-| 8 | 27.78 [27.35, 28.21] | 39.42 [38.68, 40.16] | 36.45 [35.45, 37.46] | direct | direct |
-| 16 | 78.06 [76.52, 79.60] | 103.90 [102.22, 105.58] | 119.59 [117.61, 121.57] | direct | direct |
-| 32 | 286.89 [282.76, 291.03] | 439.21 [430.02, 448.41] | 225.86 [221.96, 229.76] | quasilinear | quasilinear |
-| 64 | 1121.00 [1105.23, 1136.76] | 1851.90 [1819.35, 1884.44] | 542.68 [534.57, 550.79] | quasilinear | quasilinear |
-| 128 | 4390.47 [4334.93, 4446.01] | 7833.73 [7680.01, 7987.44] | 1334.23 [1316.20, 1352.27] | quasilinear | quasilinear |
-| 256 | 17314.96 [17119.93, 17509.99] | 28830.79 [28140.17, 29521.40] | 3381.47 [3323.64, 3439.30] | quasilinear | quasilinear |
-| 512 | 69029.59 [68325.12, 69734.07] | 107873.78 [106494.36, 109253.20] | 7913.86 [7851.24, 7976.47] | quasilinear | quasilinear |
-| 1024 | 274511.31 [272437.03, 276585.59] | 411259.09 [406462.40, 416055.78] | 17525.01 [17348.44, 17701.58] | quasilinear | quasilinear |
-
+| 2 | 15.93 [15.71, 16.16] | 16.73 [16.52, 16.95] | 15.14 [14.85, 15.42] | quasilinear | quasilinear |
+| 4 | 18.18 [17.88, 18.47] | 20.02 [19.67, 20.37] | 18.12 [17.85, 18.39] | tie (quasilinear, direct) | quasilinear |
+| 8 | 27.72 [27.19, 28.26] | 40.65 [40.10, 41.20] | 36.63 [36.01, 37.24] | direct | direct |
+| 16 | 81.65 [79.95, 83.34] | 115.26 [113.79, 116.74] | 113.28 [111.07, 115.48] | direct | direct |
+| 32 | 299.20 [294.51, 303.89] | 454.81 [449.85, 459.78] | 210.52 [207.60, 213.43] | quasilinear | quasilinear |
+| 64 | 1162.63 [1141.36, 1183.91] | 1873.65 [1833.21, 1914.10] | 508.11 [501.06, 515.17] | quasilinear | quasilinear |
+| 128 | 4592.40 [4521.08, 4663.72] | 7850.82 [7698.55, 8003.09] | 1240.04 [1224.28, 1255.79] | quasilinear | quasilinear |
+| 256 | 17641.62 [17449.49, 17833.76] | 29390.25 [28810.93, 29969.57] | 3259.17 [3214.80, 3303.53] | quasilinear | quasilinear |
+| 512 | 69431.66 [68744.19, 70119.14] | 108745.08 [107367.31, 110122.86] | 7281.07 [7135.00, 7427.14] | quasilinear | quasilinear |
+| 1024 | 270678.46 [269014.65, 272342.27] | 406446.84 [404362.16, 408531.51] | 15713.75 [15492.33, 15935.16] | quasilinear | quasilinear |
 
 ## Documentation
 
-- [C quick start](docs/quickstart-c.md) and [C API reference](docs/c-api.md)
-- [Python quick start](docs/quickstart-python.md) and
-  [Python API reference](docs/python-api.md)
-- [Conventions and results](docs/mathematics.md)
-- [Benchmark](docs/benchmark.md)
+- [C quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-c.md) and [C API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/c-api.md)
+- [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
+  [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md)
+- [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
+- [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md)
 
 ## License and Attribution
 
-All code is released under the [MIT License](LICENSE) and is presented with no warranty or guarantees. You may use it in any way for any purpose and are not restricted by the original author of the code. To cite the software, use the metadata in [CITATION.cff](CITATION.cff); the changelog is in [CHANGELOG.md](CHANGELOG.md).
+All code is released under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) and is presented with no warranty or guarantees. You may use it in any way for any purpose and are not restricted by the original author of the code. To cite the software, use the metadata in [CITATION.cff](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CITATION.cff). The changelog is in [CHANGELOG.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CHANGELOG.md).
 
 The quasilinear algorithm is due to Harrison Lemley (me!), [*Quasilinear
-multiplication in the real Cayley–Dickson tower*](https://arxiv.org/abs/2609.11588) . The
+multiplication in the Cayley–Dickson tower*](https://arxiv.org/abs/2609.11588) . The
 Cariow–Cariowa algorithm follows Aleksandr Cariow and Galina Cariowa,
 [*An unified approach for developing rationalized algorithms for hypercomplex
 number multiplication*](https://doi.org/10.15199/48.2015.02.09), *Przegląd

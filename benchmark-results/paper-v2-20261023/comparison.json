@@ -1,0 +1,459 @@
+{
+  "original_report": "../paper-results.json",
+  "current_report": "results.json",
+  "original_commit": "14bf30548487ccf35939de89cb7f7e98a1dab5c6",
+  "current_commit": "f9a61b28550cd01253d59115d1cefb47d4e3b991",
+  "definition": "Ratios of historical and current means; no paired cross-version confidence intervals. Both full runs use the same protocol and corpus hashes. Compiler and kernel changed between the runs, and the host is shared, so differences do not isolate the source-code optimization.",
+  "results": [
+    {
+      "dimension": 2,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 1.339919127068403,
+            "current_mean_ns": 1.3243874130406732,
+            "original_over_current_mean": 1.0117274702815775,
+            "time_reduction_percent": 1.1591530946879924
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 1.530580921623159,
+            "current_mean_ns": 1.529089354140474,
+            "original_over_current_mean": 1.0009754612957353,
+            "time_reduction_percent": 0.09745106982669283
+          },
+          "quasilinear": {
+            "original_mean_ns": 1.0180395756031098,
+            "current_mean_ns": 1.1819176898778427,
+            "original_over_current_mean": 0.861345577887348,
+            "time_reduction_percent": -16.097420788150394
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 16.89674433278377,
+            "current_mean_ns": 16.420987236114264,
+            "original_over_current_mean": 1.028972502677743,
+            "time_reduction_percent": 2.8156731693360637
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 17.917187223173485,
+            "current_mean_ns": 17.004463611522905,
+            "original_over_current_mean": 1.0536755308783796,
+            "time_reduction_percent": 5.0941233145685665
+          },
+          "quasilinear": {
+            "original_mean_ns": 15.686699055734591,
+            "current_mean_ns": 15.365726569985185,
+            "original_over_current_mean": 1.0208888583489688,
+            "time_reduction_percent": 2.046144218162127
+          }
+        }
+      }
+    },
+    {
+      "dimension": 4,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 3.8744102485531617,
+            "current_mean_ns": 3.7211238044052783,
+            "original_over_current_mean": 1.0411935888739885,
+            "time_reduction_percent": 3.95638134100863
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 4.577997362751402,
+            "current_mean_ns": 4.412567353031063,
+            "original_over_current_mean": 1.0374906480706074,
+            "time_reduction_percent": 3.613589013098828
+          },
+          "quasilinear": {
+            "original_mean_ns": 3.8017720017424295,
+            "current_mean_ns": 3.641439907850097,
+            "original_over_current_mean": 1.044029861249857,
+            "time_reduction_percent": 4.217299033683474
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 19.325963218352133,
+            "current_mean_ns": 19.1225396717418,
+            "original_over_current_mean": 1.0106378938207115,
+            "time_reduction_percent": 1.0525920199266348
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 22.14503860858386,
+            "current_mean_ns": 21.79925609935638,
+            "original_over_current_mean": 1.0158621242693546,
+            "time_reduction_percent": 1.561444598671624
+          },
+          "quasilinear": {
+            "original_mean_ns": 19.88811283028143,
+            "current_mean_ns": 18.547122815486414,
+            "original_over_current_mean": 1.072301781151485,
+            "time_reduction_percent": 6.742670992660694
+          }
+        }
+      }
+    },
+    {
+      "dimension": 8,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 11.885700460363097,
+            "current_mean_ns": 12.439489305297242,
+            "original_over_current_mean": 0.9554813842158039,
+            "time_reduction_percent": -4.659286566920828
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 13.534100717968885,
+            "current_mean_ns": 14.3457252276666,
+            "original_over_current_mean": 0.9434239470771092,
+            "time_reduction_percent": -5.99688539793517
+          },
+          "quasilinear": {
+            "original_mean_ns": 16.22409361440602,
+            "current_mean_ns": 17.7861256983793,
+            "original_over_current_mean": 0.9121769344002997,
+            "time_reduction_percent": -9.627854233941857
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 27.77967506430289,
+            "current_mean_ns": 28.067018301665147,
+            "original_over_current_mean": 0.9897622456979974,
+            "time_reduction_percent": -1.0343650049798425
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 39.41948105421532,
+            "current_mean_ns": 41.10645475355145,
+            "original_over_current_mean": 0.9589608564044219,
+            "time_reduction_percent": -4.279543145217879
+          },
+          "quasilinear": {
+            "original_mean_ns": 36.45323544419339,
+            "current_mean_ns": 37.20324980795032,
+            "original_over_current_mean": 0.9798400847337628,
+            "time_reduction_percent": -2.0574699464060986
+          }
+        }
+      }
+    },
+    {
+      "dimension": 16,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 54.6795195143928,
+            "current_mean_ns": 55.701476314365095,
+            "original_over_current_mean": 0.9816529674329523,
+            "time_reduction_percent": -1.8689937458270744
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 49.37729460704668,
+            "current_mean_ns": 50.26499786682259,
+            "original_over_current_mean": 0.9823395345180779,
+            "time_reduction_percent": -1.7977964707066585
+          },
+          "quasilinear": {
+            "original_mean_ns": 56.94814906349827,
+            "current_mean_ns": 54.72158688985359,
+            "original_over_current_mean": 1.0406889182166157,
+            "time_reduction_percent": 3.909806043322006
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 78.05824071387298,
+            "current_mean_ns": 82.44175761052459,
+            "original_over_current_mean": 0.946828924762128,
+            "time_reduction_percent": -5.615700349588515
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 103.90104697787577,
+            "current_mean_ns": 114.63948414856587,
+            "original_over_current_mean": 0.9063286331891224,
+            "time_reduction_percent": -10.33525405473219
+          },
+          "quasilinear": {
+            "original_mean_ns": 119.5912314907264,
+            "current_mean_ns": 111.53621262460128,
+            "original_over_current_mean": 1.072218866649489,
+            "time_reduction_percent": 6.7354594193218436
+          }
+        }
+      }
+    },
+    {
+      "dimension": 32,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 257.62793290509256,
+            "current_mean_ns": 260.02577274305554,
+            "original_over_current_mean": 0.990778453179207,
+            "time_reduction_percent": -0.9307375217136649
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 221.0149427272727,
+            "current_mean_ns": 228.56920669612794,
+            "original_over_current_mean": 0.9669497738647784,
+            "time_reduction_percent": -3.4179878860846946
+          },
+          "quasilinear": {
+            "original_mean_ns": 193.2674339330808,
+            "current_mean_ns": 182.12397905982905,
+            "original_over_current_mean": 1.0611860938399058,
+            "time_reduction_percent": 5.76582130081481
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 286.8949953125,
+            "current_mean_ns": 300.31645900297616,
+            "original_over_current_mean": 0.9553089306692206,
+            "time_reduction_percent": -4.678179790434078
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 439.2148702777777,
+            "current_mean_ns": 456.0254884722222,
+            "original_over_current_mean": 0.9631366697270289,
+            "time_reduction_percent": -3.827424646122002
+          },
+          "quasilinear": {
+            "original_mean_ns": 225.8639720664983,
+            "current_mean_ns": 217.4024543939394,
+            "original_over_current_mean": 1.0389209850281929,
+            "time_reduction_percent": 3.746289235570377
+          }
+        }
+      }
+    },
+    {
+      "dimension": 64,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 1124.0487444444445,
+            "current_mean_ns": 1157.5564708333334,
+            "original_over_current_mean": 0.9710530525005261,
+            "time_reduction_percent": -2.980985171194672
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 947.0510430555555,
+            "current_mean_ns": 1030.7509291666668,
+            "original_over_current_mean": 0.9187971761725403,
+            "time_reduction_percent": -8.83794878057078
+          },
+          "quasilinear": {
+            "original_mean_ns": 492.6511083333333,
+            "current_mean_ns": 460.15978277777776,
+            "original_over_current_mean": 1.0706087901889645,
+            "time_reduction_percent": 6.595199930733031
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 1120.9956833333333,
+            "current_mean_ns": 1148.5596819444445,
+            "original_over_current_mean": 0.9760012483074045,
+            "time_reduction_percent": -2.4588853481708695
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 1851.8961312499998,
+            "current_mean_ns": 1944.6721354166666,
+            "original_over_current_mean": 0.9522922129252454,
+            "time_reduction_percent": -5.009784436670572
+          },
+          "quasilinear": {
+            "original_mean_ns": 542.6808289583333,
+            "current_mean_ns": 511.60212875,
+            "original_over_current_mean": 1.0607477929856703,
+            "time_reduction_percent": 5.726883750065093
+          }
+        }
+      }
+    },
+    {
+      "dimension": 128,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 4468.174079166666,
+            "current_mean_ns": 4617.5246,
+            "original_over_current_mean": 0.9676557173440216,
+            "time_reduction_percent": -3.342540334981492
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 4908.82705,
+            "current_mean_ns": 4915.143483333333,
+            "original_over_current_mean": 0.9987149035720418,
+            "time_reduction_percent": -0.1286750025820016
+          },
+          "quasilinear": {
+            "original_mean_ns": 1322.56145625,
+            "current_mean_ns": 1234.76325625,
+            "original_over_current_mean": 1.0711052904721547,
+            "time_reduction_percent": 6.638496803690586
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 4390.468954166667,
+            "current_mean_ns": 4516.0826875,
+            "original_over_current_mean": 0.972185245039685,
+            "time_reduction_percent": -2.8610550409227553
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 7833.727483333333,
+            "current_mean_ns": 7732.4659125,
+            "original_over_current_mean": 1.0130956375338995,
+            "time_reduction_percent": 1.2926358626691115
+          },
+          "quasilinear": {
+            "original_mean_ns": 1334.2341270833333,
+            "current_mean_ns": 1227.8884375,
+            "original_over_current_mean": 1.0866085927153568,
+            "time_reduction_percent": 7.97054185803262
+          }
+        }
+      }
+    },
+    {
+      "dimension": 256,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 17757.919850000002,
+            "current_mean_ns": 18115.107120833334,
+            "original_over_current_mean": 0.9802823539242256,
+            "time_reduction_percent": -2.0114251773319713
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 17663.823641666666,
+            "current_mean_ns": 17592.566104166664,
+            "original_over_current_mean": 1.0040504345459373,
+            "time_reduction_percent": 0.4034094709364888
+          },
+          "quasilinear": {
+            "original_mean_ns": 3149.7843958333337,
+            "current_mean_ns": 2993.7730666666666,
+            "original_over_current_mean": 1.0521119422523142,
+            "time_reduction_percent": 4.953079625800594
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 17314.959495833333,
+            "current_mean_ns": 17367.1485,
+            "original_over_current_mean": 0.9969949583740436,
+            "time_reduction_percent": -0.3014099119274638
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 28830.785058333335,
+            "current_mean_ns": 28262.754108333334,
+            "original_over_current_mean": 1.0200982164661905,
+            "time_reduction_percent": 1.970223664914783
+          },
+          "quasilinear": {
+            "original_mean_ns": 3381.472416666667,
+            "current_mean_ns": 3176.6619916666664,
+            "original_over_current_mean": 1.064473471064054,
+            "time_reduction_percent": 6.0568415105362705
+          }
+        }
+      }
+    },
+    {
+      "dimension": 512,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 69138.03012083333,
+            "current_mean_ns": 69768.0479625,
+            "original_over_current_mean": 0.9909698227187709,
+            "time_reduction_percent": -0.9112464450687696
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 65786.36194583333,
+            "current_mean_ns": 64511.309975000004,
+            "original_over_current_mean": 1.0197647818859583,
+            "time_reduction_percent": 1.9381706680834054
+          },
+          "quasilinear": {
+            "original_mean_ns": 7485.606820833334,
+            "current_mean_ns": 6791.814658333333,
+            "original_over_current_mean": 1.10215122134535,
+            "time_reduction_percent": 9.268348967636065
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 69029.594125,
+            "current_mean_ns": 68849.2693375,
+            "original_over_current_mean": 1.0026191242003755,
+            "time_reduction_percent": 0.2612282308562808
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 107873.78007083334,
+            "current_mean_ns": 106804.96500000001,
+            "original_over_current_mean": 1.0100071665285721,
+            "time_reduction_percent": 0.990801536880892
+          },
+          "quasilinear": {
+            "original_mean_ns": 7913.8578375,
+            "current_mean_ns": 7307.344529166668,
+            "original_over_current_mean": 1.0830005080385199,
+            "time_reduction_percent": 7.663939898684491
+          }
+        }
+      }
+    },
+    {
+      "dimension": 1024,
+      "modes": {
+        "batch": {
+          "direct": {
+            "original_mean_ns": 273693.4381458333,
+            "current_mean_ns": 272717.7884,
+            "original_over_current_mean": 1.0035775068122887,
+            "time_reduction_percent": 0.35647538809953083
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 408225.8681,
+            "current_mean_ns": 413297.5611666667,
+            "original_over_current_mean": 0.9877287128132328,
+            "time_reduction_percent": -1.2423742498905765
+          },
+          "quasilinear": {
+            "original_mean_ns": 17483.64260833333,
+            "current_mean_ns": 15688.114566666665,
+            "original_over_current_mean": 1.1144514870819286,
+            "time_reduction_percent": 10.269759465403695
+          }
+        },
+        "single": {
+          "direct": {
+            "original_mean_ns": 274511.30817083333,
+            "current_mean_ns": 274053.28102083335,
+            "original_over_current_mean": 1.001671306938176,
+            "time_reduction_percent": 0.1668518331911284
+          },
+          "cariow_cariowa": {
+            "original_mean_ns": 411259.0898625,
+            "current_mean_ns": 408040.98238749994,
+            "original_over_current_mean": 1.0078867261228774,
+            "time_reduction_percent": 0.7825012393223973
+          },
+          "quasilinear": {
+            "original_mean_ns": 17525.011429166665,
+            "current_mean_ns": 15924.071908333333,
+            "original_over_current_mean": 1.1005358133302283,
+            "time_reduction_percent": 9.135169624876294
+          }
+        }
+      }
+    }
+  ]
+}

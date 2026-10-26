@@ -9,8 +9,8 @@ abstract: >-
 authors:
   - family-names: Lemley
     given-names: Harrison
-version: 1.0.0
-date-released: 2026-09-13
+version: 1.1.0
+date-released: 2026-10-26
 license: MIT
 repository-code: "https://git.tanuki-cd.com/algebraity/fastCD"
 keywords:
@@ -22,7 +22,7 @@ keywords:
   - fast multiplication
 preferred-citation:
   type: article
-  title: "Quasilinear multiplication in the real Cayley--Dickson tower"
+  title: "Quasilinear multiplication in the Cayley--Dickson tower"
   authors:
     - family-names: Lemley
       given-names: Harrison
