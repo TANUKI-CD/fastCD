@@ -7,7 +7,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-10-25
+## [1.1.0] - 2026-10-26
 
 ### Changed
 
@@ -46,8 +46,8 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 - Documentation matches scalar-comparison exceptions, NumPy return types,
   zero-copy layout rules, and the current arithmetic schedules. The local-map
-  addition-count argument is self-contained rather than attributed to the
-  earlier published paper.
+  addition-count argument is given in full, and the mathematics documentation
+  follows the notation of the paper's v2.
 - NumPy boolean scalars are rejected as dimensions, levels, and basis indices,
   matching Python booleans consistently across supported NumPy versions.
 - README image and file links use absolute URLs on `git.tanuki-cd.com`, so the

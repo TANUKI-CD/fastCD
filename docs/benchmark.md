@@ -9,14 +9,14 @@ per algorithm and mode, in the first block, against an independent
 implementation of the defining recursion.
 
 The archived `benchmark-results/paper-results.json` and its Markdown report
-measure revision `14bf305`, before the current quasilinear local-map fusion
-and complex octonion base case. Preserve those results when making a new
-comparison; the current [arithmetic counts](mathematics.md) describe the
-default quasilinear schedule.
+measure revision `14bf305` for the paper's v1, before the current
+quasilinear local-map fusion and complex octonion base case. Preserve those
+results when making a new comparison; the current
+[arithmetic counts](mathematics.md) describe the default quasilinear schedule.
 
 The [243-operation-leaf T440 rerun](../benchmark-results/paper-v2-octonion243-20261023/results.md)
-measures the revised schedule through dimension 1024 using the original paper's
-protocol and identical input corpus hashes. Its
+measures the revised schedule through dimension 1024 using the v1 paper run's
+protocol and identical input corpus hashes; the paper's v2 reports this run. Its
 [raw observations](../benchmark-results/paper-v2-octonion243-20261023/results.json),
 [environment](../benchmark-results/paper-v2-octonion243-20261023/environment.json),
 [commands](../benchmark-results/paper-v2-octonion243-20261023/commands.json), and
@@ -26,7 +26,8 @@ archived [source patch](../benchmark-results/paper-v2-octonion243-20261023/sourc
 with exact source hashes in the build record. The README tables use this run.
 All 600,000 algorithm/mode verification checks passed with zero mismatches and
 finite outputs. The [instrumented arithmetic counts](../benchmark-results/paper-v2-octonion243-20261023/operation-counts.json)
-confirm `(M, A, S) = (72, 156, 15)` for the complex octonion leaf: 243
+confirm `(M, A, E) = (72, 156, 15)`, stored under the keys `M`, `A`, and `S`,
+for the complex octonion leaf: 243
 operations, saving one per leaf and `N/16` per full real product at `N >= 16`.
 
 The [earlier full 2026-10-23 rerun](../benchmark-results/paper-v2-20261023/results.md)
@@ -35,7 +36,7 @@ archived with its original observations and metadata. The
 [comparison of the two leaf versions](../benchmark-results/paper-v2-octonion243-20261023/comparison-previous-leaf.json)
 uses descriptive ratios of means from separate runs, not paired cross-version
 confidence intervals. Both v2 runs used GCC 16.2.1 and Linux 7.2.11; the
-original paper run used different compiler and kernel versions. The host is
+v1 paper run used different compiler and kernel versions. The host is
 shared, so historical timing differences do not isolate source-code changes.
 
 The earlier [2026-10-19 T440 comparison](../benchmark-results/t440-20261019/README.md)
