@@ -22,10 +22,10 @@ All notable changes to fastCD are recorded in this file. The project follows
   floating-point rounding can differ from version 1.0.0.
 - Joint reconstruction of the complex octonion leaf's `h` coordinate reduces
   its count to 72 products, 156 additions/subtractions and 15 halvings:
-  243 operations, saving one per leaf. A full dimension-16 real product now
-  uses 417 operations, and the arithmetic-count check covers dimensions
-  through 1024. The mathematics documentation states the paper's constrained
-  addition-optimality result for the fixed local-map decomposition.
+  243 operations, saving one per leaf. A full dimension-16 real quasilinear
+  product now uses 417 operations, and the arithmetic-count check covers dimensions
+  through 1024. The mathematics documentation gives the constrained
+  addition-count argument for the fixed local-map decomposition.
 - The C and Python stability documentation clarifies that AUTO choices,
   workspace lengths, and arithmetic schedules can change between compatible
   releases; bitwise floating-point reproducibility across versions is not
@@ -44,6 +44,10 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ### Fixed
 
+- Documentation matches scalar-comparison exceptions, NumPy return types,
+  zero-copy layout rules, and the current arithmetic schedules. The local-map
+  addition-count argument is self-contained rather than attributed to the
+  earlier published paper.
 - NumPy boolean scalars are rejected as dimensions, levels, and basis indices,
   matching Python booleans consistently across supported NumPy versions.
 - README image and file links use absolute URLs on `git.tanuki-cd.com`, so the
@@ -56,7 +60,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 - Cariow–Cariowa batches return immediately when SIMD pairing processes every
   record, avoiding out-of-range tail pointers for minimally allocated padded
   batches. Multiplication arithmetic and the archived paper data are unchanged.
-- The kernel generator's three fixed-length `zip` traversals explicitly use
+- The kernel generator's fixed-length `zip` traversals explicitly use
   `strict=True`, satisfying the configured lint checks without changing the
   generated kernels.
 - CMake reconfigures when the canonical version changes, including builds
@@ -81,7 +85,7 @@ The first public release.
   hashes with its results.
 - Single quasilinear products above dimension 16 evaluate the two children
   of the top complex node in the two SIMD lanes and continue through the
-  paired kernel, bitwise identical to the
+  paired kernel, bitwise identical for finite results to the
   scalar and batched forms; the quasilinear workspace query grows
   accordingly. The `FASTCD_CC_DOUBLING=1` tuning option evaluates
   Cariow–Cariowa products through one doubling step with paired

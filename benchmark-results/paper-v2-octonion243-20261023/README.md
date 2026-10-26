@@ -28,7 +28,8 @@ dimension `N >= 16` saves `N/16` operations. See
 [operation-counts.json](operation-counts.json),
 [operation-count-comparison.json](operation-count-comparison.json), and the
 [mathematical description](../../docs/mathematics.md) for the instrumented
-counts and the restricted addition-optimality statement from the paper.
+counts and the restricted addition-count argument for the fixed local-map
+decomposition.
 
 ## Protocol and artifacts
 

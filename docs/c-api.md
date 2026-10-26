@@ -127,7 +127,7 @@ vectorize.
 The scalar and SIMD kernels share an arithmetic schedule and produce
 identical finite results for the same algorithm; NaN payloads may differ.
 Odd tails use a scalar kernel. Packing needs no extra alignment of caller
-storage and uses at most 40 KiB of stack space. Outside these thresholds,
+storage and uses a fixed 40 KiB stack array. Outside these thresholds,
 or on other compiler/target combinations, batches use the scalar kernels
 and the caller's workspace.
 
@@ -202,10 +202,11 @@ Each query writes a scratch length in doubles. Errors are
 `FASTCD_NULL_POINTER`, `FASTCD_INVALID_DIMENSION`, `FASTCD_SIZE_OVERFLOW`,
 and, where an algorithm is involved, `FASTCD_UNSUPPORTED_ALGORITHM`.
 
-All lengths are `Theta(N)` doubles and do not depend on the batch count.
-Current lengths are zero for Cariow–Cariowa through `N = 64` and `2N` above
-that, where its table-driven kernel runs. Direct needs zero doubles for
-`N <= 16` and `2N - 32` above that. Quasilinear needs zero for `N <= 16`;
+Lengths are `O(N)` doubles and do not depend on the batch count.
+With the default leaf cutoffs, lengths are zero for Cariow–Cariowa through
+`N = 64` and `2N` above that, where its table-driven kernel runs.
+Direct needs zero doubles for `N <= 16` and `2N - 32` above that.
+Quasilinear needs zero for `N <= 16`;
 above that it needs `5N - 63` on targets with the two-lane SIMD kernels and
 `2N - 32` otherwise. Composite operations add `2N`. Use the queries in your
 code, as these sizes describe the current implementation;

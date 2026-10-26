@@ -2,7 +2,10 @@
 
 This page describes the conventions used to represent Cayley-Dickson
 elements in fastCD and the mathematical results behind the implementation.
-The accompanying paper gives the derivations and proofs.
+The [paper's v1](https://arxiv.org/abs/2609.11588v1) derives the quasilinear
+recursion using an earlier arithmetic schedule. This page describes the
+current implementation, including the later local-map fusion and
+243-operation complex octonion leaf.
 
 ## Algebra and coordinates
 
@@ -62,7 +65,8 @@ quaternions:  e_1 e_2 = e_3,   e_2 e_3 = e_1,   e_3 e_1 = e_2
 octonions:    e_1 e_2 = e_3,   e_1 e_4 = e_5,   e_2 e_4 = e_6,   e_3 e_4 = e_7
 ```
 
-Reversing the factors changes the sign in every nontrivial case.
+For distinct nonzero indices, `e_j e_i = -e_i e_j`. Equal indices and
+products with `e_0` follow the identities above.
 
 ## Derived operations
 
@@ -81,8 +85,9 @@ x^(-1)         = conjugate(x) / <x, x>,   x x^(-1) = x^(-1) x = 1.
 ```
 
 Here `<x, y> = sum_i x[i] y[i]` is the Euclidean inner product, and
-`Q(x) = <x, x>` is the squared norm. The parentheses in these formulas
-matter. From dimension 16 onward, the algebra is neither associative nor
+`Q(x) = <x, x>` is the squared norm. The reciprocal identity assumes
+`x != 0`. The parentheses in these formulas matter. From dimension 16
+onward, the algebra is neither associative nor
 alternative, so `x^(-1)(xy)` need not equal `y`, and multiplication by
 `ab - ba` need not give either operator commutator.
 
@@ -110,6 +115,8 @@ this gives 417 operations, compared with 496 for direct multiplication and
 both from dimension 16 onward, and ties direct at dimension 8. Direct and
 Cariow–Cariowa remain quadratic; quasilinear uses `Theta(N log N)` arithmetic.
 These are schedule counts, not compiler-instruction counts or timing predictions.
+They use the default leaf cutoffs and the uniform Cariow–Cariowa schedule
+(`FASTCD_CC_DOUBLING=0`).
 `python3 tools/check_quasilinear_counts.py` checks them through dimension 1024
 by instrumenting the actual scalar template and generated kernels; this optional
 development check requires a C++ compiler, while the library itself is C11.
@@ -174,19 +181,32 @@ input transforms and child recombination, the complex-kernel counts satisfy
 `M_k = 2M_(k-1) + 18m`, `A_k = 2A_(k-1) + 38m + 2`, and
 `S_k = 2S_(k-1) + 4m` above the octonion base.
 
-The paper's **Local addition count** proposition proves that the `22m + 2`
-addition count is optimal for this prescribed `18m`-product decomposition:
+The `22m + 2` addition count is optimal for this prescribed
+`18m`-product decomposition with `m >= 1`:
 three real evaluations of `B`, using its six coordinate products per index.
 The incoming coordinates and elementary products are fixed, and the products
 are treated as independent inputs to the linear output program. Even when
 fixed real scalar multiplications are free, the two linear input programs
 and the linear output program together need at least `22m + 2` binary
-additions and subtractions. Writing `q = 2m + 1`, the required input sums
-cost at least `2q` additions, and the transposition-principle argument in the
-paper gives an output-program lower bound of `18m`; the implemented schedule
-attains both bounds. This optimality result is restricted to that fixed
-decomposition and does not claim global optimality of the octonion leaf or
-of full Cayley-Dickson multiplication.
+additions and subtractions.
+
+To see the lower bound, write `q = 2m + 1`. The input programs must form
+`q` real-plus-imaginary coordinate sums for each operand. These are `2q`
+distinct nontrivial linear forms, so they require at least `2q` additions.
+The output program maps `18m` independent products to `2q` real output
+coordinates. Its transpose requires, for each real/imaginary output pair
+`(r, s)`, the two forms `r - s` and `r + s`, up to signs, together with
+copies of `s`. Across the `q` pairs these give `2q` distinct nontrivial
+directions, each requiring an addition even with free fixed scalings.
+This output map has no zero rows or columns. The
+[linear-circuit transposition principle](https://cr.yp.to/bib/2003/bostan.pdf)
+gives an addition-count upper bound of `L + 2q - 18m` for its transpose,
+where `L` is its original addition count and fixed scalings remain free.
+Consequently `L >= 18m`.
+Adding the input bound gives `2q + 18m = 22m + 2`, attained by the
+implemented schedule. This argument concerns only the fixed local-map
+decomposition; it does not establish global optimality of the octonion
+leaf or full Cayley-Dickson multiplication.
 
 The dimension-8 complex base computes the alternating product on seven
 complex imaginary-octonion coordinates. For
@@ -281,11 +301,12 @@ uses generated straight-line kernels; above that its irregular sign corrections
 use table-driven gathered loads. Fewer arithmetic operations do not necessarily
 make that access pattern faster (see [benchmark.md](benchmark.md)).
 
-Every workspace is `Theta(N)` doubles, the same order as one operand, and
+Workspace requirements are `O(N)` doubles, at most the order of one operand, and
 independent of the batch size: a batch reuses one workspace for all of its
 products, and the paired batch kernels use fixed internal storage instead.
-The direct recursion and the scalar quasilinear recursion keep one level of
-half-dimensional temporaries per recursion level above the straight-line
+With the default leaf cutoffs, the direct recursion and the scalar
+quasilinear recursion keep one level of half-dimensional temporaries
+per recursion level above the straight-line
 leaves, `2N - 32` doubles in total. The single-product quasilinear SIMD
 path holds the transformed input planes and the outputs of both children of
 the top complex node in pair layout, `3N` doubles, plus one alignment word
@@ -305,8 +326,9 @@ recursive arithmetic. Each SIMD lane holds an independent product, so
 batching does not change the number of operations per product. A single
 quasilinear product above dimension 16 places the two children of the
 top complex node in the two lanes, and continues through the paired kernel.
-It preserves the operations and their order per coordinate, so it agrees
-bitwise with the scalar and batched forms. The [C API reference](c-api.md)
+It preserves the operations and their order per coordinate, so finite results
+agree bitwise with the scalar and batched forms; NaN payloads may differ.
+The [C API reference](c-api.md)
 describes the internal packing storage and the cases where batches use scalar
 kernels.
 
@@ -327,8 +349,8 @@ algorithms in both modes on the same input corpus.
 
 ## Floating-point statements
 
-Coefficients are IEEE binary64 `double` values, and each arithmetic
-operation is correctly rounded. This does not make the complete product
+Coefficients are IEEE binary64 `double` values. Multiplication evaluates a
+sequence of floating-point operations, so the complete product need not be
 correctly rounded, and the three algorithms can give different rounded
 results. The benchmark compares every coordinate with an independent
 float64 implementation of the defining recursion, using

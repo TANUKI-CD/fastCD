@@ -55,7 +55,7 @@ The operator-instrumented scalar template and actual generated leaves match the 
 | 128 | 2938 | 5418 | 468 | 8824 |
 | 256 | 7018 | 13242 | 1188 | 21448 |
 
-The complex dimension-8 leaf independently counts `(M,A,S)=(72,158,14)`, total 244. See [operation-counts.json](operation-counts.json) and the derivation in [mathematics.md](../../docs/mathematics.md).
+The complex dimension-8 leaf independently counts `(M,A,S)=(72,158,14)`, total 244. See [operation-counts.json](operation-counts.json) for this measured schedule. The current [mathematics.md](../../docs/mathematics.md) describes the later 243-operation leaf.
 
 ## Correctness and build checks
 

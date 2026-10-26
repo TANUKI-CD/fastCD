@@ -61,13 +61,14 @@ confidence interval below one is not a probability that one algorithm is faster.
 The new report records the current defaults, while older reports preserve
 the defaults of their measured builds.
 
-Both modes measure the kernels as the library ships them. Batch mode runs
+Both modes measure the kernels as the library ships them. With the default
+SIMD configuration on supported GCC/Clang targets, batch mode runs
 two products per SIMD instruction for quasilinear and Cariow–Cariowa at
 dimensions 16 through 512 and for direct at 64 through 512, with scalar
-kernels elsewhere. In single mode each algorithm uses the SIMD
-form its arithmetic allows: the compiler vectorizes the dense direct kernels
-two outputs per instruction; the quasilinear product evaluates the two
-children of the top complex node in the two lanes from dimension 32; the
+kernels elsewhere. In the archived Xeon build, the compiler vectorizes the
+dense direct kernels two outputs per instruction in single mode. The
+quasilinear product evaluates the two children of the top complex node in
+the two lanes from dimension 32; the
 Cariow–Cariowa product runs scalar code: adjacent outputs need different
 subsets of its sign-correction terms, and this implementation does not
 vectorize them within one product. Single mode includes per-call validation;
@@ -99,7 +100,8 @@ dimension).
 Two build options change what is measured. `FASTCD_DISABLE_SIMD=1` removes
 the explicit SIMD kernels but not the compiler's own vectorization, so it is
 not a scalar-only comparison; add `-fno-tree-vectorize` to `CMAKE_C_FLAGS`
-for that. `FASTCD_CC_DOUBLING=1` evaluates Cariow–Cariowa products at
+for that with GCC. On targets with the explicit SIMD kernels,
+`FASTCD_CC_DOUBLING=1` evaluates Cariow–Cariowa products at
 dimensions 16 through 64 as the four half-dimensional products of one
 Cayley–Dickson doubling step, two per lane, in both modes. That is a
 different arithmetic schedule from the paper's fixed-dimension procedure
