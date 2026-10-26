@@ -603,6 +603,41 @@ class AlgebraTests(FastCDTestCase):
         self.assertEqual(copied, element)
         self.assertIsNot(copied, element)
 
+    def test_boolean_dimensions_levels_and_basis_indices_are_rejected(self) -> None:
+        """Reject Python and NumPy booleans without rejecting integer scalars."""
+
+        algebra = fcd.Algebra(dimension=4)
+        element = algebra.one()
+        for value in (True, False, np.bool_(True), np.bool_(False)):
+            calls = {
+                "dimension": lambda value=value: fcd.Algebra(dimension=value),
+                "level": lambda value=value: fcd.Algebra(level=value),
+                "basis": lambda value=value: algebra.basis(value),
+                "left basis index": lambda value=value: algebra.basis_product(
+                    value, 0
+                ),
+                "right basis index": lambda value=value: algebra.basis_product(
+                    0, value
+                ),
+                "left basis action": lambda value=value: algebra.left_basis_multiply(
+                    value, element
+                ),
+                "right basis action": lambda value=value: algebra.right_basis_multiply(
+                    element, value
+                ),
+            }
+            for name, call in calls.items():
+                with self.subTest(operation=name, type=type(value), value=value):
+                    with self.assertRaisesRegex(
+                        TypeError, "must be an integer, not bool"
+                    ):
+                        call()
+        self.assertIs(fcd.Algebra(dimension=np.uint64(4)), algebra)
+        self.assertIs(fcd.Algebra(level=np.int32(2)), algebra)
+        self.assertEqual(algebra.basis(np.int64(1)), algebra.basis(1))
+        self.assertEqual(algebra.scalar(np.bool_(True)), 1)
+        self.assertEqual(algebra.scalar(np.bool_(False)), 0)
+
     def test_constructor_validation(self) -> None:
         """Reject malformed coefficients, unsupported scalars, and indices."""
 

@@ -56,7 +56,7 @@ subclassed.
 - `dimension`: a positive power of two.
 - `level`: the doubling level, where `dimension = 2**level`.
 
-Supply exactly one parameter. Boolean values are rejected.
+Supply exactly one parameter. Boolean values, including `numpy.bool_`, are rejected.
 
 ### Properties
 

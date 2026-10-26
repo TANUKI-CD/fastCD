@@ -7,7 +7,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-10-23
+## [1.1.0] - 2026-10-25
 
 ### Changed
 
@@ -44,6 +44,10 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ### Fixed
 
+- NumPy boolean scalars are rejected as dimensions, levels, and basis indices,
+  matching Python booleans consistently across supported NumPy versions.
+- README image and file links use absolute URLs on `git.tanuki-cd.com`, so the
+  package description links to the canonical repository when rendered on PyPI.
 - Scalar equality preserves the exact values of integers, decimals, fractions,
   and NumPy scalars instead of rounding comparison operands to binary64.
   Equal hashable scalars and `Element` values now remain interchangeable in

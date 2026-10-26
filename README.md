@@ -1,10 +1,10 @@
-![fastCD](assets/fastCD.png)
+![fastCD](https://git.tanuki-cd.com/algebraity/fastCD/raw/branch/main/assets/fastCD.png)
 
 # fastCD - v1.1.0
 
-fastCD is a lean C kernel for Cayley-Dickson multiplication with a NumPy-compatible Python extension written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
+fastCD is a lean C kernel for Cayley-Dickson multiplication with a NumPy-compatible Python extension written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
 
-In addition to this new quasilinear algorithm, both direct Cayley-Dickson multiplication and an algorithm due to [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09) are also included in the library. The default multiplication algorithm for each dimension has been selected based on explicit single-core benchmarking for both single and batched multiplication. Quasilinear has the best asymptotic complexity of these three algorithms, but it is not the fastest at every lower dimension. The direct and Cariow-Cariowa algorithms are also used for some low dimensions; see [Benchmark](#benchmark) for more information on this.
+In addition to this new quasilinear algorithm, both direct Cayley-Dickson multiplication and an algorithm due to [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09) are also included in the library. The default multiplication algorithm for each dimension has been selected based on explicit single-core benchmarking for both single and batched multiplication. Quasilinear has the best asymptotic complexity of these three algorithms, but it is not the fastest at every lower dimension. The direct and Cariow-Cariowa algorithms are also used for some low dimensions; see [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) for more information on this.
 
 The canonical source repository is
 [git.tanuki-cd.com/algebraity/fastCD](https://git.tanuki-cd.com/algebraity/fastCD).
@@ -17,7 +17,7 @@ A_0 = R,   A_n = A_(n-1) x A_(n-1),   (a,b)(c,d) = (ac - conjugate(d) b, d a + b
 
 An element is stored as a contiguous array of `N = 2^n` `double` coefficients in the
 recursive standard basis, where coordinate zero is the scalar and the two halves of
-the array are the pair `(a, b)`. [Conventions and results](docs/mathematics.md)
+the array are the pair `(a, b)`. [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
 should be read for full information on conventions and a brief explanation of the mathematical
 foundations of fastCD.
 
@@ -49,7 +49,7 @@ int main(void) {
 }
 ```
 
-For more information on how to get started using fastCD in C and to familiarize yourself with the API, take a look at [C quick start](docs/quickstart-c.md) and [C API reference](docs/c-api.md).
+For more information on how to get started using fastCD in C and to familiarize yourself with the API, take a look at [C quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-c.md) and [C API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/c-api.md).
 
 ## Using Python
 
@@ -82,8 +82,8 @@ z = O.multiply(x, b, algorithm="quasilinear")
 ```
 
 The `Element` class is immutable and represents a unique Cayley-Dickson element, while `ElementArray` stores a mutable array of Elements and processes batches of shape `(..., N)`
-in compiled code. See the [Python quick start](docs/quickstart-python.md) and
-the [Python API reference](docs/python-api.md) for more information on how each class works.
+in compiled code. See the [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
+the [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md) for more information on how each class works.
 
 ## Building the C library
 
@@ -106,15 +106,15 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 ## Benchmark
 
-The full comparison for the v2 paper was rerun on 2026-10-23 on the Dell PowerEdge T440, using one logical CPU of an Intel Xeon Gold 6148 and the revised **243-operation complex octonion leaf**. The measured source is revision `7da5a5f` plus the archived [source patch](benchmark-results/paper-v2-octonion243-20261023/source.patch); exact source and build hashes are recorded. [Raw results](benchmark-results/paper-v2-octonion243-20261023/results.json), the [complete generated report](benchmark-results/paper-v2-octonion243-20261023/results.md), and [environment and build details](benchmark-results/paper-v2-octonion243-20261023/environment.json) are archived together.
+The full comparison for the v2 paper was rerun on 2026-10-23 on the Dell PowerEdge T440, using one logical CPU of an Intel Xeon Gold 6148 and the revised **243-operation complex octonion leaf**. The measured source is revision `7da5a5f` plus the archived [source patch](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/source.patch); exact source and build hashes are recorded. [Raw results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/results.json), the [complete generated report](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/results.md), and [environment and build details](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/environment.json) are archived together.
 
-The tables give mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timing blocks. They reproduce the original protocol: dimensions 2 through 1024, all three algorithms in single and batch modes, 10,000 operand pairs per dimension, two warmup passes, a 20 ms timing target, and CPU 0. Every input corpus matches the original SHA-256 hash. Python object overhead, allocation, and verification are outside the timed region, so the benchmark focuses on the multiplication kernel alone. See the [benchmark documentation](docs/benchmark.md) for the timing boundaries and implementation details.
+The tables give mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timing blocks. They reproduce the original protocol: dimensions 2 through 1024, all three algorithms in single and batch modes, 10,000 operand pairs per dimension, two warmup passes, a 20 ms timing target, and CPU 0. Every input corpus matches the original SHA-256 hash. Python object overhead, allocation, and verification are outside the timed region, so the benchmark focuses on the multiplication kernel alone. See the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) for the timing boundaries and implementation details.
 
 The `fastest mean` column names the lowest verified mean, or a tie when the paired per-block ratio of the two lowest means does not separate them. The `default` column shows AUTO for the measured build. Dimension-4 singles remain a close tie: quasilinear averaged 18.12 ns versus direct's 18.18 ns, with a paired quasilinear/direct 95% interval of 0.979–1.015.
 
-The [earlier full v2 comparison](benchmark-results/paper-v2-20261023/results.md), using the 244-operation leaf at `f9a61b2`, remains archived alongside the [original paper data](benchmark-results/paper-results.json) and [report](benchmark-results/paper-results.md), measured at `14bf305`, and the [October 19 comparison](benchmark-results/t440-20261019/README.md). [Comparisons with the previous leaf](benchmark-results/paper-v2-octonion243-20261023/comparison-previous-leaf.json) are descriptive ratios of means from separate runs. This run and the previous full v2 run use GCC 16.2.1 and Linux 7.2.11, while the original used GCC 16.1.1 and Linux 7.1.6. The T440 is a shared host, with no governor, turbo, or SMT changes made for this run, so timing differences cannot be attributed solely to the leaf change.
+The [earlier full v2 comparison](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-20261023/results.md), using the 244-operation leaf at `f9a61b2`, remains archived alongside the [original paper data](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-results.json) and [report](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-results.md), measured at `14bf305`, and the [October 19 comparison](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261019/README.md). [Comparisons with the previous leaf](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/comparison-previous-leaf.json) are descriptive ratios of means from separate runs. This run and the previous full v2 run use GCC 16.2.1 and Linux 7.2.11, while the original used GCC 16.1.1 and Linux 7.1.6. The T440 is a shared host, with no governor, turbo, or SMT changes made for this run, so timing differences cannot be attributed solely to the leaf change.
 
-All 600,000 algorithm/mode verification checks passed with zero mismatches and finite outputs. The [validation record](benchmark-results/paper-v2-octonion243-20261023/validation.json) also records the build, test, arithmetic-count, and data-integrity checks.
+All 600,000 algorithm/mode verification checks passed with zero mismatches and finite outputs. The [validation record](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/paper-v2-octonion243-20261023/validation.json) also records the build, test, arithmetic-count, and data-integrity checks.
 
 ### Batch products (ns per product)
 
@@ -148,15 +148,15 @@ All 600,000 algorithm/mode verification checks passed with zero mismatches and f
 
 ## Documentation
 
-- [C quick start](docs/quickstart-c.md) and [C API reference](docs/c-api.md)
-- [Python quick start](docs/quickstart-python.md) and
-  [Python API reference](docs/python-api.md)
-- [Conventions and results](docs/mathematics.md)
-- [Benchmark](docs/benchmark.md)
+- [C quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-c.md) and [C API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/c-api.md)
+- [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
+  [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md)
+- [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
+- [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md)
 
 ## License and Attribution
 
-All code is released under the [MIT License](LICENSE) and is presented with no warranty or guarantees. You may use it in any way for any purpose and are not restricted by the original author of the code. To cite the software, use the metadata in [CITATION.cff](CITATION.cff). The changelog is in [CHANGELOG.md](CHANGELOG.md).
+All code is released under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) and is presented with no warranty or guarantees. You may use it in any way for any purpose and are not restricted by the original author of the code. To cite the software, use the metadata in [CITATION.cff](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CITATION.cff). The changelog is in [CHANGELOG.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CHANGELOG.md).
 
 The quasilinear algorithm is due to Harrison Lemley (me!), [*Quasilinear
 multiplication in the real Cayley–Dickson tower*](https://arxiv.org/abs/2609.11588) . The
