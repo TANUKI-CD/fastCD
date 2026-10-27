@@ -1,0 +1,1180 @@
+\documentclass[11pt,reqno]{amsart}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{xcolor}
+\usepackage[
+  colorlinks=true,linkcolor=blue!45!black,citecolor=blue!45!black,
+  urlcolor=blue!45!black,
+  pdftitle={Real arithmetic schedules and operation counts for fastCD},
+  pdfauthor={Harrison Lemley}
+]{hyperref}
+
+\numberwithin{equation}{section}
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{corollary}[proposition]{Corollary}
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\C}{\mathbb C}
+\newcommand{\Rk}{\operatorname{R}}
+\newcommand{\ReC}{\operatorname{Re}_{\mathrm c}}
+\newcommand{\ImC}{\operatorname{Im}_{\mathrm c}}
+\newcommand{\AltC}{\mathsf C}
+\newcommand{\AltR}{\mathsf R}
+
+\title[Real arithmetic schedules for fastCD]{Real arithmetic schedules
+and operation counts for fastCD}
+\author{Harrison Lemley}
+\date{October 2026}
+\thanks{The measured source snapshot is preserved with the benchmark data
+at fastCD revision
+\href{https://git.tanuki-cd.com/algebraity/fastCD/commit/%
+4954189686d70c4419ee669abdf9caefe3818dd4}{\texttt{4954189686}},
+including the archived
+\href{https://git.tanuki-cd.com/algebraity/fastCD/src/commit/%
+4954189686d70c4419ee669abdf9caefe3818dd4/%
+benchmark-results/paper-v2-octonion243-20261023/source.patch}{source patch}.}
+
+\begin{document}
+\maketitle
+
+\section{Notation}
+\label{sec:notation}
+
+The notation and results in this technical note are based on the mathematical framework and results of
+\cite{Lemley2026}.
+
+Let $R=\R$ and $S=\C$, and fix nonzero real doubling parameters
+$\mu_k$ for $k\ge1$. Set $A_0:=\R$ and define
+$A_n:=A_{n-1}\oplus A_{n-1}$ with conjugation and multiplication
+\begin{equation}\label{eq:CD-product}
+\overline{(a,b)}=(\bar a,-b)\,,\qquad
+(a,b)(c,d)=\bigl(ac+\mu_n\bar d\,b,\;da+b\bar c\bigr)\,,
+\end{equation}
+where $\bar r=r$ for $r\in\R$. Write $N=2^n$ and use the recursive
+standard basis $e_0=1,e_1,\ldots,e_{N-1}$. The standard real tower has
+$\mu_k=-1$ for every $k$. Put
+\[
+V_n:=\{x\in A_n:\bar x=-x\}\,,\qquad
+A_n^{\C}:=A_n\otimes_{\R}\C\,,\qquad
+V_n^{\C}:=V_n\otimes_{\R}\C\,.
+\]
+Thus $V_n$ consists of the elements whose $e_0$ coordinate is zero.
+Define the bilinear pairing in these coordinates by
+\begin{equation}\label{eq:weights}
+\langle x,y\rangle_n:=\sum_{j=0}^{N-1}w_{n,j}x_jy_j\,,\qquad
+w_0=(1)\,,\qquad w_n=(w_{n-1},-\mu_n w_{n-1})\,.
+\end{equation}
+Conjugation is extended $\C$-linearly and the pairing $\C$-bilinearly.
+For $X,Y\in V_n$, write
+\[
+X\times_nY:=\frac12(XY-YX)\,,
+\]
+and let $\AltC_n$ denote its $\C$-bilinear extension to $V_n^{\C}$.
+For $x=\alpha+X$ and $y=\beta+Y$, with $\alpha,\beta\in\R$ and
+$X,Y\in V_n$, full multiplication is recovered by
+\begin{equation}\label{eq:scalar--imaginary}
+xy=\bigl(\alpha\beta-\langle X,Y\rangle_n\bigr)
+   +\alpha Y+\beta X+X\times_nY\,.
+\end{equation}
+
+At level $n\ge2$, write $X=(u,\gamma+s)$ and $Y=(v,\delta+t)$, where
+$u,v,s,t\in V_{n-1}^{\C}$ and $\gamma,\delta\in\C$, and put
+\[
+\begin{aligned}
+D&:=\AltC_{n-1}(u,v)+\mu_n\AltC_{n-1}(s,t)\,,\\
+H&:=\AltC_{n-1}(u,t)+\AltC_{n-1}(s,v)\,,\\
+\lambda&:=\langle s,v\rangle_{n-1}-\langle t,u\rangle_{n-1}\,.
+\end{aligned}
+\]
+Expanding \eqref{eq:CD-product} gives
+\begin{equation}\label{eq:doubled-alt}
+\AltC_n(X,Y)=\bigl(D+\mu_n(\delta s-\gamma t),\;
+                    \lambda+\delta u-\gamma v-H\bigr)\,.
+\end{equation}
+The notation $B_n^{\C}(X,Y)$ below uses the triples
+$(u,\gamma,s)$ and $(v,\delta,t)$ from this splitting. For real
+coefficients, define the local bilinear map by
+\begin{equation}\label{eq:local-map}
+\begin{aligned}
+B_n\bigl((u,\gamma,s),(v,\delta,t)\bigr)
+:=\bigl(&\mu_n(\delta s-\gamma t),\;
+\langle s,v\rangle_{n-1}-\langle t,u\rangle_{n-1},\\
+&\delta u-\gamma v\bigr)\,.
+\end{aligned}
+\end{equation}
+Write $B_n^{\C}$ for its $\C$-bilinear extension and put
+$(F,\lambda,G)=B_n^{\C}(X,Y)$. For $n\ge3$, choose
+$\rho_n\in\C$ with $\rho_n^2=\mu_n$ and compute
+\[
+Z_\pm:=\AltC_{n-1}(u\pm\rho_n s,v\pm\rho_n t)\,.
+\]
+The transformed inputs belong to $V_{n-1}^{\C}$ because that space is
+closed under complex linear combinations. Expanding by bilinearity gives
+\[
+\begin{aligned}
+Z_\pm
+&=\AltC_{n-1}(u,v)
+ \pm\rho_n\AltC_{n-1}(u,t)
+ \pm\rho_n\AltC_{n-1}(s,v)
+ +\rho_n^2\AltC_{n-1}(s,t)\\
+&=D\pm\rho_n H\,.
+\end{aligned}
+\]
+Since $\mu_n\ne0$, also $\rho_n\ne0$, and hence
+\[
+D=\frac{Z_++Z_-}{2}\,,\qquad
+H=\frac{Z_+-Z_-}{2\rho_n}\,.
+\]
+Substitution into \eqref{eq:doubled-alt} gives the recursive coefficient
+kernel
+\begin{equation}\label{eq:two-call-formula}
+\AltC_n(X,Y)=\Bigl(\frac{Z_++Z_-}{2}+F,\;
+                   \lambda+G-\frac{Z_+-Z_-}{2\rho_n}\Bigr)\,.
+\end{equation}
+Its level-one base case is
+$\AltC_1\equiv0$, and its level-two base case is the direct formula
+$(F,\lambda+G)$, with the scalar $\lambda$ inserted in the unit coordinate
+of the second component. The standard-tower schedule uses the octonion formula
+below
+as its level-three base case. For real inputs,
+write $\AltR_n(X,Y)=X\times_nY$ and use the real-input reductions of
+Section~\ref{subsec:real-specialization}, followed by
+\eqref{eq:scalar--imaginary} for full multiplication.
+
+Write $T_{A_n}$ for the real multiplication tensor. Its real tensor rank
+$\Rk_{\R}(T_{A_n})$ is the least $r$ for which
+\[
+xy=\sum_{j=1}^r\alpha_j(x)\beta_j(y)v_j
+\]
+with real linear forms $\alpha_j,\beta_j$ and fixed $v_j\in A_n$.
+In this bilinear model, fixed linear coordinate changes have no cost.
+
+
+\section{Real coefficient specialization}
+\label{subsec:real-specialization}
+
+Write $\iota$
+for the central coefficient satisfying $\iota^2=-1$. The Cayley--Dickson
+involution is
+extended $\C$-linearly and therefore fixes $\iota$, whereas coefficientwise
+complex conjugation sends $\iota$ to $-\iota$. Let $\ReC$ and $\ImC$ denote
+the real and imaginary coefficient projections. Complex addition uses $2$
+real additions, multiplication by $\iota$ requires only a coordinate exchange
+and a sign change, and complex multiplication can be expressed using $3$ real
+products:
+\begin{equation}\label{eq:three-real-complex}
+\begin{gathered}
+(a+\iota b)(c+\iota d)=(p-q)+\iota(r-p-q)\,,\\
+p=ac\,,\qquad q=bd\,,\qquad r=(a+b)(c+d)\,.
+\end{gathered}
+\end{equation}
+
+Write $X=a_0+\iota a_1$ and $Y=b_0+\iota b_1$, where
+$a_0,a_1,b_0,b_1\in V_n$. Applying this multiplication formula to the
+local map $B=B_n$ in \eqref{eq:local-map} gives
+\begin{equation}\label{eq:complex-fusion}
+\begin{gathered}
+\Delta=B(a_0,b_0)\,,\qquad \Omega=B(a_1,b_1)\,,\\
+W=B(a_0+a_1,b_0+b_1)\,,\\
+B^{\C}(a_0+\iota a_1,b_0+\iota b_1)
+=(\Delta-\Omega)+\iota(W-\Delta-\Omega)\,.
+\end{gathered}
+\end{equation}
+Thus the complex kernel evaluates its local map by three real evaluations
+of $B$, followed by reconstruction of the complex output coefficients.
+
+\begin{corollary}[One-call real-input root]\label{cor:real-root}
+Let $n\ge3$ and $\mu_n<0$. Put
+$a_n=\sqrt{-\mu_n}$ and $\rho_n=a_n\iota$. For
+$X=(u,\gamma+s)$ and $Y=(v,\delta+t)$ in $V_n$, define
+\[
+Z:=\AltC_{n-1}(u+\rho_n s,v+\rho_n t)\,,\qquad
+\lambda:=\langle s,v\rangle_{n-1}-\langle t,u\rangle_{n-1}\,.
+\]
+Then
+\begin{equation}\label{eq:real-root}
+X\times_nY
+=\Bigl(\ReC Z+\mu_n(\delta s-\gamma t),\;
+\lambda+\delta u-\gamma v-a_n^{-1}\ImC Z\Bigr)\,.
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+For $X,Y\in V_n$, the vectors $u,v,s,t$ have real coefficients. Hence the
+quantities
+\[
+D=\AltC_{n-1}(u,v)+\mu_n\AltC_{n-1}(s,t)
+\]
+and
+\[
+H=\AltC_{n-1}(u,t)+\AltC_{n-1}(s,v)
+\]
+also have real coefficients. Expanding $Z$ by bilinearity and using
+$\rho_n=a_n\iota$ gives
+\[
+Z=D+a_n\iota H\,.
+\]
+Therefore
+\[
+\ReC Z=D\,,\qquad\ImC Z=a_nH\,.
+\]
+Substituting these identities into \eqref{eq:doubled-alt} gives
+\eqref{eq:real-root}.
+\end{proof}
+
+This one-call reduction applies at the real-input root when $\mu_n<0$,
+while general complex recursive calls still use the two-call formula.
+For $\mu_n>0$, choosing $\rho_n=\sqrt{\mu_n}\in\R$ gives real transformed
+inputs, so two real-input calls at the preceding level suffice. The real-input
+schedule uses these reductions for $n\ge3$.
+
+For Propositions~\ref{prop:octonion-leaf}--\ref{prop:exact-counts}, take
+$\mu_k=-1$ for every $k$, with $\rho_k=\iota$,
+so the tower is standard.
+Write $M$ for input-dependent real multiplications, $A$ for real additions
+and subtractions, and $E$ for multiplications by fixed scalars other than
+$0,\pm1$. Each costs $1$ operation, so the total is $T=M+A+E$.
+Known-zero terms are omitted and sums are initialized from their first term.
+Preprocessing of both variable operands is included in the total cost, while
+coordinate extraction, copying, permutations, and sign changes are
+not counted, and scalar and imaginary parts are obtained directly from
+the standard-basis coordinates.
+
+\section{An octonion base case}
+\label{subsec:octonion-leaf}
+
+When $n=3$, the complex kernel uses the following formula for the
+alternating product $\AltC_3$ on the complexified imaginary octonions,
+whose elements have $7$ complex coordinates. With the one-call real-input
+root, this base case first occurs in full multiplication in $A_4$, of real
+dimension $16$.
+
+Write an input to $\AltC_3$ in the standard coordinates as
+\[
+X=(x_1,x_2,x_3,h,y_1,y_2,y_3)\in V_3^{\C}\,.
+\]
+For $u,v\in\C^3$, let
+\[
+u\times v:=(u_2v_3-u_3v_2,\;u_3v_1-u_1v_3,\;u_1v_2-u_2v_1)
+\]
+be the ordinary three-dimensional cross product, extended bilinearly to
+complex coordinates. Define the following linear forms in $X$:
+\[
+\begin{gathered}
+p=-\iota h\,,\qquad z=x_1+p\,,\\
+b=x_2+\iota y_2\,,\qquad r=x_2-\iota y_2\,,\qquad
+c=x_3+\iota y_3\,,\qquad s=x_3-\iota y_3\,.
+\end{gathered}
+\]
+Let $L_j\colon\C^7\to\C^3$, $1\le j\le4$, be the linear maps
+\begin{equation}\label{eq:octonion-linear-maps}
+\begin{aligned}
+L_1X&=(x_1,y_1,p)\,,
+& L_2X&=(b+s,r-c,p)\,,\\
+L_3X&=(z+\iota y_1,b,c)\,,
+& L_4X&=(z-\iota y_1,r,s)\,.
+\end{aligned}
+\end{equation}
+Their transposes below are ordinary matrix transposes, without complex
+conjugation.
+
+\begin{proposition}[Octonion leaf]\label{prop:octonion-leaf}
+For $X,Y\in V_3^{\C}$,
+\begin{equation}\label{eq:octonion-leaf}
+\AltC_3(X,Y)
+=-\iota L_1^{\mathsf T}(L_1X\times L_1Y)
+ +\frac12\sum_{j=2}^4L_j^{\mathsf T}(L_jX\times L_jY)\,.
+\end{equation}
+Under the arithmetic convention above,
+this formula has an evaluation using $72$ input-dependent real
+multiplications, $156$ real additions and subtractions, and $15$ real
+halvings, for a total of $243$ operations.
+\end{proposition}
+
+\begin{proof}
+To verify the identity, express the alternating trilinear form associated
+with $\AltC_3$ as a sum of determinants. For complex linear forms
+$f,g,\ell$ on $\C^7$, write $[f\,g\,\ell](X,Y,Z)$ for the determinant
+whose columns are $(f(X),g(X),\ell(X))$, $(f(Y),g(Y),\ell(Y))$, and
+$(f(Z),g(Z),\ell(Z))$. The bracket is multilinear and alternating in
+$f,g,\ell$ and in $X,Y,Z$, and its arguments will be suppressed below.
+In particular, expansion in the first two forms gives
+\[
+\begin{aligned}
+[f+\iota g\,\ f-\iota g\,\ \ell]
+&=-\iota[f\,g\,\ell]+\iota[g\,f\,\ell]\\
+&=-2\iota[f\,g\,\ell]\,.
+\end{aligned}
+\]
+Let
+\[
+\Phi(X,Y,Z):=\langle\AltC_3(X,Y),Z\rangle_3\,.
+\]
+Since the parameters are standard, the pairing in this expression is
+the complex-bilinear dot product. In the standard coordinates of
+$V_2^{\C}$, the alternating product is the ordinary cross product and
+the pairing is $u\cdot v:=\sum_{j=1}^3u_jv_j$. Write
+$X=(x,h,y)$, $Y=(x',h',y')$, and $Z=(x'',h'',y'')$, where
+$x=(x_1,x_2,x_3)$ and $y=(y_1,y_2,y_3)$, with primes indicating the
+corresponding coordinates of $Y$ and $Z$. Formula~\eqref{eq:doubled-alt}
+gives
+\[
+\begin{aligned}
+\AltC_3(X,Y)=\Bigl(&x\times x'-y\times y'+hy'-h'y,\;\\
+&y\cdot x'-y'\cdot x,\;
+h'x-hx'-x\times y'-y\times x'\Bigr)\,.
+\end{aligned}
+\]
+Pairing with $Z$ therefore yields
+\[
+\begin{aligned}
+\Phi={}&(x\times x'-y\times y'+hy'-h'y)\cdot x''\\
+&+(y\cdot x'-y'\cdot x)h''\\
+&+(h'x-hx'-x\times y'-y\times x')\cdot y''\,.
+\end{aligned}
+\]
+For each index $j$, the terms involving $h,h',h''$ are
+\[
+\begin{aligned}
+&(hy_j'-h'y_j)x_j''
+ +(y_jx_j'-y_j'x_j)h''
+ +(h'x_j-hx_j')y_j''\\
+&\qquad=[x_j\,h\,y_j](X,Y,Z)\,.
+\end{aligned}
+\]
+The remaining dot and cross products expand into the four determinants
+in the first line below. Consequently,
+\begin{equation}\label{eq:octonion-three-form}
+\begin{aligned}
+\Phi={}&[x_1\,x_2\,x_3]-[x_1\,y_2\,y_3]
+       +[x_2\,y_1\,y_3]-[x_3\,y_1\,y_2]\\
+&+[x_1\,h\,y_1]+[x_2\,h\,y_2]+[x_3\,h\,y_3]\,.
+\end{aligned}
+\end{equation}
+Here the coordinate symbols in brackets denote the coordinate linear
+forms, rather than their values at a particular input.
+
+Put $a=x_1+\iota y_1$ and $q=x_1-\iota y_1$. Expanding
+$[b+s\,\ r-c\,\ p]$ gives
+\[
+[b\,r\,p]-[b\,c\,p]+[s\,r\,p]-[s\,c\,p]\,.
+\]
+The term $-[b\,c\,p]$ cancels $[p\,b\,c]$ from
+$[a+p\,\ b\,\ c]$, since a cyclic permutation of three forms preserves
+the bracket. Likewise, $[s\,r\,p]=-[p\,r\,s]$ cancels the corresponding
+term from $[p+q\,\ r\,\ s]$. The term $-[s\,c\,p]$ is
+$[c\,s\,p]$, so the remaining terms give
+\[
+\begin{aligned}
+&[a\,q\,p]+[b+s\,\ r-c\,\ p]
+ +[a+p\,\ b\,\ c]+[p+q\,\ r\,\ s]\\
+&\qquad=[a\,q\,p]+[b\,r\,p]+[c\,s\,p]
+       +[a\,b\,c]+[q\,r\,s]\,.
+\end{aligned}
+\]
+For each of the first three brackets on the right, the identity above
+and $p=-\iota h$ give
+\[
+\begin{aligned}
+[x_j+\iota y_j\,\ x_j-\iota y_j\,\ p]
+&=-2\iota[x_j\,y_j\,-\iota h]\\
+&=-2[x_j\,y_j\,h]
+ =2[x_j\,h\,y_j]\,.
+\end{aligned}
+\]
+In $[a\,b\,c]+[q\,r\,s]$, terms containing an odd number of $y$
+coordinates have opposite coefficients and cancel. Terms containing no
+$y$ coordinates have coefficient $2$, and terms containing two have
+coefficient $2\iota^2=-2$. Reordering the forms in the latter terms gives
+\[
+\begin{aligned}
+[a\,b\,c]+[q\,r\,s]
+=2\bigl(&[x_1\,x_2\,x_3]-[x_1\,y_2\,y_3]\\
+       &+[x_2\,y_1\,y_3]-[x_3\,y_1\,y_2]\bigr)\,.
+\end{aligned}
+\]
+Comparison with \eqref{eq:octonion-three-form} now gives
+\[
+2\Phi=[a\,q\,p]+[b+s\,\ r-c\,\ p]
+       +[a+p\,\ b\,\ c]+[p+q\,\ r\,\ s]\,.
+\]
+After division by $2$, the first bracket is
+$-\iota[x_1\,y_1\,p]$. For any linear map $L$ with rows $f,g,\ell$,
+ordinary matrix transposition gives
+\[
+\begin{aligned}
+\langle L^{\mathsf T}(LX\times LY),Z\rangle_3
+&=(LX\times LY)\cdot LZ\\
+&=[f\,g\,\ell](X,Y,Z)\,.
+\end{aligned}
+\]
+The four brackets are therefore the pairings with $Z$ of the four terms
+on the right of \eqref{eq:octonion-leaf}. Their sum equals
+$\langle\AltC_3(X,Y),Z\rangle_3$ for every $Z$. Pairing the difference
+with each standard basis vector shows that all its coordinates vanish,
+which proves \eqref{eq:octonion-leaf}.
+
+For the arithmetic count, evaluate the input linear maps, the four
+complex cross products, and the output reconstruction in order.
+
+\emph{Input linear maps.} For each operand, forming $z$ costs $1$ complex
+addition; forming $b,r,c,s$ costs $4$; forming $b+s,r-c$ costs $2$; and
+forming $z\pm\iota y_1$ costs $2$ more. Thus the input maps require $9$
+complex additions, or $18$ real additions, per operand. Multiplication
+by $\iota$ only exchanges coordinates and changes a sign, so both input
+maps together cost $36$ real additions.
+
+\emph{Cross products.} Write
+\[
+(\Xi_j,\Psi_j,\Gamma_j):=L_jX\times L_jY\qquad(1\le j\le4)\,.
+\]
+Each complex cross product can be evaluated by three real cross products.
+For $u=u_0+\iota u_1$ and $v=v_0+\iota v_1$, form
+\[
+\Delta=u_0\times v_0\,,\qquad \Omega=u_1\times v_1\,,\qquad
+W=(u_0+u_1)\times(v_0+v_1)\,.
+\]
+Then $u\times v=(\Delta-\Omega)+\iota(W-\Delta-\Omega)$. The four
+complex cross products therefore require twelve real cross products,
+each using $6$ multiplications and $3$ subtractions, for a total of $72$
+multiplications and $36$ additions. The sums $u_0+u_1$ and $v_0+v_1$
+would cost $6$ additions per complex cross product, or $24$ in total.
+The third coordinate of both $L_1$ and $L_2$ is $p$, so the sum of the
+real and imaginary parts of $p$ is computed once and reused in each
+operand. This saves $2$ additions, reducing the input-sum count to $22$.
+
+For the $j$th complex cross product, denote its three real cross products
+by $\Delta_j,\Omega_j,W_j$. The coordinates $\Gamma_1,\Gamma_2$ will be
+combined directly when computing $\widehat h$, so only the other ten
+complex output coordinates are reconstructed separately. Each uses $1$
+subtraction for its real part and $2$ for its imaginary part, costing
+$30$ additions in total. This stage therefore uses $72$ multiplications
+and $36+22+30=88$ additions.
+
+\emph{Output reconstruction.} Form the six complex intermediate
+quantities
+\[
+\begin{gathered}
+\Theta=\Xi_3+\Xi_4\,,\qquad U=\Xi_3-\Xi_4\,,\\
+d_1=\Xi_2+\Psi_3\,,\qquad d_2=\Psi_2+\Psi_4\,,\\
+e_1=\Gamma_3-\Psi_2\,,\qquad e_2=\Xi_2+\Gamma_4\,.
+\end{gathered}
+\]
+Write the output in the same order as $X$ as
+$(\widehat x_1,\widehat x_2,\widehat x_3,\widehat h,
+\widehat y_1,\widehat y_2,\widehat y_3)$. The sparse transpose
+reconstruction gives
+\begin{equation}\label{eq:octonion-reconstruction}
+\begin{aligned}
+\widehat x_1&=\frac{\Theta}{2}-\iota \Xi_1\,,
+&\widehat y_1&=\iota\left(\frac{U}{2}-\Psi_1\right)\,,\\
+\widehat x_2&=\frac{d_1+d_2}{2}\,,
+&\widehat y_2&=\frac{\iota(d_1-d_2)}{2}\,,\\
+\widehat x_3&=\frac{e_1+e_2}{2}\,,
+&\widehat y_3&=\frac{\iota(e_1-e_2)}{2}\,,\\
+\widehat h&=-\frac{\iota(\Gamma_2+\Theta)}{2}-\Gamma_1\,.
+\end{aligned}
+\end{equation}
+To obtain the last coordinate without reconstructing $\Gamma_1,\Gamma_2$,
+let $p_j,\eta_j,\omega_j$ be the third coordinates of
+$\Delta_j,\Omega_j,W_j$ for $j=1,2$. Then
+\[
+\Gamma_j=(p_j-\eta_j)+\iota(\omega_j-p_j-\eta_j)\,.
+\]
+Retain $\theta_R:=\ReC(\Theta/2)$ and
+$\theta_I:=\ImC(\Theta/2)$ from the computation of $\widehat x_1$.
+Taking real and imaginary parts of the formula for $\widehat h$ gives
+\[
+\begin{aligned}
+\ReC\widehat h
+&=\frac{\omega_2-p_2-\eta_2}{2}+\theta_I-p_1+\eta_1\,,\\
+\ImC\widehat h
+&=-\frac{p_2-\eta_2}{2}-\theta_R-\omega_1+p_1+\eta_1\,.
+\end{aligned}
+\]
+Define
+\[
+e:=p_1+\frac{\eta_2}{2}\,,\qquad f:=\eta_1-\frac{p_2}{2}\,.
+\]
+Collecting the terms involving $p_1,\eta_1,p_2,\eta_2$ then yields
+\[
+\ReC\widehat h=f-e+\frac{\omega_2}{2}+\theta_I\,,\qquad
+\ImC\widehat h=e+f-\omega_1-\theta_R\,.
+\]
+These formulas use the retained product coordinates directly and agree
+with \eqref{eq:octonion-reconstruction}.
+
+The six intermediate quantities require $6$ complex additions, and the
+six output coordinates other than $\widehat h$ require another $6$,
+giving $24$ real additions. Computing $e,f$ costs $2$ real additions,
+and each coefficient of $\widehat h$ costs $3$, giving $8$ more. Halving
+$\Theta$ and $U$ costs $4$ real halvings, and the four outputs
+$\widehat x_2,\widehat y_2,\widehat x_3,\widehat y_3$ cost another $8$.
+The last coordinate uses $3$ additional halvings for
+$\eta_2/2,p_2/2,\omega_2/2$; the retained coefficients of $\Theta/2$
+require none. Thus the three stages have costs
+\[
+\begin{array}{lrrr}
+ & M&A&E\\
+\text{Input linear maps}&0&36&0\\
+\text{Four complex cross products}&72&88&0\\
+\text{Output reconstruction}&0&32&15\\ \hline
+\text{Total}&72&156&15
+\end{array}
+\]
+and the total number of real operations is $243$.
+\end{proof}
+
+\section{Arithmetic counts}
+\label{subsec:operation-counts}
+
+To obtain the arithmetic counts for the recursion, first consider the
+evaluation of $B_k^{\C}$ in real arithmetic by
+\eqref{eq:complex-fusion}. The linear input programs form the factors
+of the elementary products, and the linear output program reconstructs
+the result from their values. Here a linear program consists of binary
+additions or subtractions and fixed-scalar multiplications, with copying
+and reuse allowed.
+
+\begin{proposition}[Local addition count]\label{prop:local-additions}
+Let $k\ge2$ and $m=2^{k-1}-1$. Consider the evaluation of $B_k^{\C}$ by
+\eqref{eq:complex-fusion}, using the six coordinate products 
+in \eqref{eq:local-map} for each real evaluation of $B_k$.
+For the given input coordinates and
+prescribed product formulas, with the product values treated as
+independent inputs to the output program, the two linear input programs
+and the linear output program require at least $22m+2$ real additions
+in total, even when fixed real scalar multiplications are free.
+The specified evaluation attains this bound and uses $18m$
+input-dependent real products.
+\end{proposition}
+
+\begin{proof}
+Put $q=2m+1$, the number of coordinates in each input and output of
+$B_k$. For each $1\le i\le m$, the prescribed elementary products in
+one real evaluation are
+\[
+\delta s_i\,,\qquad\gamma t_i\,,\qquad
+\delta u_i\,,\qquad\gamma v_i\,,\qquad
+s_iv_i\,,\qquad t_iu_i\,.
+\]
+The parameters and pairing weights in the standard tower are signs,
+so they do not require additional arithmetic operations. To apply
+\eqref{eq:complex-fusion}, write the complex inputs as
+\[
+\begin{aligned}
+(u,\gamma,s)&=(u_0,\gamma_0,s_0)
+              +\iota(u_1,\gamma_1,s_1)\,,\\
+(v,\delta,t)&=(v_0,\delta_0,t_0)
+              +\iota(v_1,\delta_1,t_1)\,,
+\end{aligned}
+\]
+where all quantities on the right have real coordinates. The evaluations
+$\Delta$ and $\Omega$ use the real and imaginary parts directly. The
+evaluation $W$ instead requires the following coordinate sums as its
+input factors:
+\[
+\begin{array}{lll}
+u_{0,i}+u_{1,i}\,,&s_{0,i}+s_{1,i}\,,&\gamma_0+\gamma_1\,,\\
+v_{0,i}+v_{1,i}\,,&t_{0,i}+t_{1,i}\,,&\delta_0+\delta_1\,.
+\end{array}
+\]
+Here $i$ ranges from $1$ to $m$ in the vector sums, while each scalar
+sum is formed once. Every listed sum occurs in at least one prescribed
+product because $m\ge1$. There are therefore $q$ required sums for
+each operand, and computing them directly uses $2q$ additions.
+Each real evaluation
+uses $6m$ multiplications, $2m$ subtractions for its vector outputs, and
+$2m-1$ additions and subtractions for its scalar output. Reconstructing
+each complex output from the three real evaluations uses $3$ additions,
+so the specified evaluation has multiplication count $18m$ and addition
+count
+\[
+2q+3(4m-1)+3q=22m+2\,.
+\]
+
+For the lower bound, the prescribed products require each input program
+to produce all of its $q$ listed sums, up to nonzero fixed scaling. For
+each operand, its real and imaginary input coordinates are independent
+variables. The required sums involve different pairs of these variables,
+so they are distinct up to nonzero scalar multiplication, and none is a
+scalar multiple of an input coordinate. Each required sum must therefore
+first appear at an addition or subtraction step. Such a step creates at
+most one new linear form up to scaling, while multiplication by a fixed
+scalar creates none. Thus each input program needs at least $q$ additions.
+The two input programs together require at least $2q$ additions,
+independently of the output program.
+
+For a real matrix $J$, let $a(J)$ denote the minimum number of additions
+and subtractions needed to evaluate its linear map when fixed scalar
+multiplications are free. Let $W_B$ be the $2q\times18m$ matrix mapping
+the independent elementary product values to the real and imaginary
+output coordinates. The products contributing to each vector coordinate
+of a real evaluation of $B_k$ are its two scalar--coordinate products.
+The scalar coordinate instead receives the $2m$ products in the pairing
+difference. No product contributes to another coordinate of that real
+evaluation.
+
+For the $j$th output coordinate, let $r_j$ be the number of these
+products and let $\varepsilon_j$ be the row vector of their signs.
+Thus $r_j=2$ for each of the $2m$ vector coordinates and $r_j=2m$ for
+the scalar coordinate, with every entry of $\varepsilon_j$ equal to
+$1$ or $-1$. In particular, $\sum_j r_j=6m$. Ordering the product
+columns by the evaluations $\Delta$, $\Omega$, and $W$, the block of
+$W_B$ for this real-imaginary output pair is
+\[
+W_{B,j}=
+\begin{pmatrix}
+\varepsilon_j&-\varepsilon_j&0\\
+-\varepsilon_j&-\varepsilon_j&\varepsilon_j
+\end{pmatrix}\,.
+\]
+The zero block has $r_j$ entries. This follows directly from the
+reconstruction $(\Delta-\Omega)+\iota(W-\Delta-\Omega)$, applied
+coordinate by coordinate. After reordering rows and columns, $W_B$
+consists of these independent blocks. Every column is nonzero, and both
+rows of every block are nonzero, so $W_B$ has no zero rows or columns.
+
+Let $\sigma_j,\chi_j$ be the two inputs to the transposed block. Its
+outputs are, up to their signs and repetitions,
+\[
+\sigma_j-\chi_j\,,\qquad \sigma_j+\chi_j\,,\qquad\chi_j\,.
+\]
+Across the $q$ pairs, the $2q$ sums and differences are distinct up to
+nonzero scaling and are not scalar multiples of input coordinates.
+The same new-form argument used for the input programs therefore gives
+$a(W_B^{\mathsf T})\ge2q$. Computing these sums and differences directly
+uses $2q$ additions, after which all other outputs are copies or sign
+changes. Hence
+\[
+a(W_B^{\mathsf T})=2q\,.
+\]
+
+The transposition principle of
+\href{https://doi.org/10.1016/0196-6774(88)90026-0}{Kaminski, Kirkpatrick,
+and Bshouty (1988)} states that, for a matrix $J$ without zero rows or
+columns, with $d_{\mathrm{out}}$ rows and $d_{\mathrm{in}}$ columns, a
+linear program can be transposed with an addition-count change of
+$d_{\mathrm{out}}-d_{\mathrm{in}}$. Applied to optimal programs in both
+directions, this gives
+\[
+\begin{aligned}
+a(J^{\mathsf T})&\le a(J)+d_{\mathrm{out}}-d_{\mathrm{in}}\,,\\
+a(J)&\le a(J^{\mathsf T})+d_{\mathrm{in}}-d_{\mathrm{out}}\,,
+\end{aligned}
+\]
+and therefore $a(J^{\mathsf T})=a(J)+d_{\mathrm{out}}-d_{\mathrm{in}}$.
+Substituting $d_{\mathrm{out}}=2q$ and $d_{\mathrm{in}}=18m$ yields
+\[
+a(W_B)=a(W_B^{\mathsf T})+18m-2q=18m\,.
+\]
+Together with the $2q$ additions required by the input programs, this
+gives the lower bound $18m+2q=22m+2$. The evaluation counted at the
+beginning attains it, completing the proof.
+\end{proof}
+
+\begin{proposition}[Exact arithmetic counts]\label{prop:exact-counts}
+The recursive schedule of Section~\ref{sec:notation}, with the octonion base
+case of
+Proposition~\ref{prop:octonion-leaf} and the one-call real-input root of
+Corollary~\ref{cor:real-root}, multiplies two elements of the standard
+real algebra $A_n$, $n\ge4$, $N=2^n$, using
+\begin{equation}\label{eq:ql-arithmetic-counts}
+\begin{aligned}
+M_{\mathrm{QL}}&=\frac{(36n-69)N}{8}+10\,,
+&A_{\mathrm{QL}}&=\frac{(76n-196)N}{8}+26\,,\\
+E_{\mathrm{QL}}&=\frac{(16n-53)N}{16}+4\,,
+&T_{\mathrm{QL}}&=\frac{(240n-583)N}{16}+40\,.
+\end{aligned}
+\end{equation}
+For $n=1,2,3$, the respective counts $(M,A,E)$ are $(4,2,0)$,
+$(16,12,0)$, and $(58,62,0)$.
+\end{proposition}
+
+\begin{proof}
+Let $M_k,P_k,H_k$ denote the numbers of input-dependent real products,
+real additions and subtractions, and real halvings, respectively, in one
+evaluation of the complex kernel $\AltC_k$, including its recursive
+calls. Proposition~\ref{prop:octonion-leaf} gives the base counts
+\[
+(M_3,P_3,H_3)=(72,156,15)\,.
+\]
+
+\emph{Complex nodes.} Fix $k\ge4$ and put $m=2^{k-1}-1$, so that
+$u,v,s,t$ have $m$ complex coordinates each. By
+Proposition~\ref{prop:local-additions}, the local map uses $18m$ real
+multiplications and $22m+2$ additions. Each coordinate of
+$u\pm\iota s$ requires $2$ real additions for each sign, and the same
+holds for $v\pm\iota t$, giving $8m$ additions for the transformed
+inputs. Each recursive output has $m$ complex coordinates, so forming
+$Z_++Z_-$ and $Z_+-Z_-$ uses $4m$ real additions. Combining them with
+the two vector outputs of the local map costs another $4m$ additions.
+The scalar output $\lambda$ is inserted in the otherwise zero unit
+coordinate of the second component and requires no addition.
+
+Halving the sum and difference of the recursive outputs costs $4m$ real
+halvings. Multiplication by $\iota$ only exchanges coordinates and
+changes signs, so it has no additional arithmetic cost. The work outside
+the recursive calls is therefore
+\[
+\begin{array}{lrrr}
+ & M&A&E\\
+\text{Local map}&18m&22m+2&0\\
+\text{Transformed inputs}&0&8m&0\\
+\text{Recursive sums and differences}&0&4m&0\\
+\text{Local vector recombination}&0&4m&0\\
+\text{Halving}&0&0&4m\\ \hline
+\text{Total}&18m&38m+2&4m
+\end{array}
+\]
+Including both recursive calls gives
+\[
+\begin{aligned}
+M_k&=2M_{k-1}+18(2^{k-1}-1)\,,\\
+P_k&=2P_{k-1}+38(2^{k-1}-1)+2\,,\\
+H_k&=2H_{k-1}+4(2^{k-1}-1)\,.
+\end{aligned}
+\]
+
+At level $j$ of a kernel evaluation beginning at level $k$, there are
+$2^{k-j}$ nodes, and the recursion ends with $2^{k-3}$ octonion leaves.
+Unrolling the recurrences therefore gives
+\[
+\begin{aligned}
+M_k&=72\cdot2^{k-3}
+ +18\sum_{j=4}^k2^{k-j}(2^{j-1}-1)\,,\\
+P_k&=156\cdot2^{k-3}
+ +38\sum_{j=4}^k2^{k-j}(2^{j-1}-1)
+ +2\sum_{j=4}^k2^{k-j}\,,\\
+H_k&=15\cdot2^{k-3}
+ +4\sum_{j=4}^k2^{k-j}(2^{j-1}-1)\,.
+\end{aligned}
+\]
+For $k\ge3$, with empty sums interpreted as zero,
+\[
+\begin{aligned}
+\sum_{j=4}^k2^{k-j}&=2^{k-3}-1\,,\\
+\sum_{j=4}^k2^{k-j}(2^{j-1}-1)
+&=(k-3)2^{k-1}-2^{k-3}+1\,.
+\end{aligned}
+\]
+Substitution and collection of terms now yield
+\[
+\begin{aligned}
+M_k&=(36k-81)2^{k-2}+18\,,\\
+P_k&=(76k-168)2^{k-2}+36\,,\\
+H_k&=(16k-37)2^{k-3}+4\,.
+\end{aligned}
+\]
+
+\emph{Real root.} For $n\ge4$, $\AltR_n$ forms $u+\iota s$ and
+$v+\iota t$ by interleaving real coordinates, at no arithmetic cost, and
+makes one call to $\AltC_{n-1}$. With $m=2^{n-1}-1$, the real local
+map uses $6m$ multiplications and $4m-1$ additions. Combining its two
+vector outputs with the real and imaginary parts of the recursive
+output costs another $2m$ additions. The work at the root therefore
+adds $6m$ multiplications and $6m-1=3N-7$ additions, with no halvings.
+
+\emph{Reconstruction.} In \eqref{eq:scalar--imaginary}, the scalar
+product $\alpha\beta$ requires $1$ multiplication, the pairing requires
+$N-1$, and each scalar--vector product requires $N-1$. Their total is
+\[
+1+(N-1)+2(N-1)=3N-2
+\]
+input-dependent real multiplications. Summing the terms of the pairing
+costs $N-2$ additions, and subtracting it from $\alpha\beta$ costs $1$
+more. Forming $\alpha Y+\beta X$ costs $N-1$ additions, and adding
+$X\times_nY$ costs another $N-1$, giving
+\[
+(N-2)+1+(N-1)+(N-1)=3N-3
+\]
+additions. The standard pairing weights are all $1$, so reconstruction
+requires no additional fixed-scalar multiplications.
+
+All charged fixed-scalar operations are consequently halvings in the
+complex kernel. Summing the kernel call, real root, and reconstruction
+costs gives
+\[
+\begin{aligned}
+M_{\mathrm{QL}}
+&=M_{n-1}+6(2^{n-1}-1)+3N-2
+ =M_{n-1}+6N-8\,,\\
+A_{\mathrm{QL}}
+&=P_{n-1}+(3N-7)+(3N-3)
+ =P_{n-1}+6N-10\,,\\
+E_{\mathrm{QL}}&=H_{n-1}\,.
+\end{aligned}
+\]
+Substituting $k=n-1$ into the kernel formulas gives the first three
+counts in \eqref{eq:ql-arithmetic-counts}. Adding them gives
+\[
+T_{\mathrm{QL}}=M_{\mathrm{QL}}+A_{\mathrm{QL}}+E_{\mathrm{QL}}
+=\frac{(240n-583)N}{16}+40\,.
+\]
+
+\emph{Small dimensions.} At $n=1$, the alternating product vanishes,
+and the full product is
+\[
+(\alpha+x_1e_1)(\beta+y_1e_1)
+=(\alpha\beta-x_1y_1)+(\alpha y_1+\beta x_1)e_1\,.
+\]
+Evaluating the four displayed scalar products uses $4$ multiplications,
+and the two output coordinates use $2$ additions, giving $(4,2,0)$.
+At $n=2$, the real alternating product is the ordinary three-dimensional
+cross product, with $6$ multiplications and $3$ subtractions. Full
+reconstruction adds $10$ multiplications and $9$ additions, so the
+counts are $(16,12,0)$.
+
+At $n=3$, the complex call is $\AltC_2$, whose local map has $m=1$ and
+$q=3$. Its three real evaluations use $18$ multiplications and $9$
+additions. The input sums use $6$ additions, and the complex output
+reconstruction uses $9$, giving kernel counts $(18,24,0)$. The real
+root has $m=3$ and adds $18$ multiplications and $17$ additions, while
+full reconstruction adds $22$ multiplications and $21$ additions. Thus
+the full counts are
+\[
+(18+18+22,\;24+17+21,\;0)=(58,62,0)\,.
+\]
+\end{proof}
+
+\begin{corollary}[Real bilinear bound]\label{cor:real-rank}
+For any fixed nonzero real doubling parameters, use the real-input
+schedule of Section~\ref{subsec:real-specialization}, with the complex
+octonion base case of Proposition~\ref{prop:octonion-leaf} transported by
+fixed linear coordinate changes. Let $C_n$ denote its number of
+input-dependent real products. Then
+\begin{equation}\label{eq:Cn}
+C_n\le(36n-93)2^{n-3}+12\qquad(n\ge4)\,.
+\end{equation}
+Consequently,
+\begin{equation}\label{eq:rank-bound}
+\Rk_{\R}(T_{A_n})\le(36n-69)2^{n-3}+10\qquad(n\ge4)\,.
+\end{equation}
+For $n=1,2,3$, this schedule gives the nonoptimal upper bounds $4$,
+$16$, and $58$, respectively.
+\end{corollary}
+
+\begin{proof}
+First transport the complex octonion formula to the given parameters.
+For $1\le k\le3$, choose $\tau_k\in\C^\times$ with
+$\tau_k^2=-\mu_k$, define $D_0$ to be the identity on $\C$, and put
+\[
+D_k(a,b):=(D_{k-1}a,\tau_kD_{k-1}b)\,.
+\]
+Inductively, $D_k$ is an isomorphism from the complexification of the
+parameterized level-$k$ algebra to the complexification of the standard
+one. To check this, suppose that $D_{k-1}$ is such an isomorphism and
+commutes with the involution, and write $\widetilde z=D_{k-1}z$ for
+$z=a,b,c,d$. The involution is $\C$-linear, so it fixes $\tau_k$.
+Multiplication of the images in the standard algebra therefore gives
+\[
+\begin{aligned}
+&(\widetilde a,\tau_k\widetilde b)
+ (\widetilde c,\tau_k\widetilde d)\\
+&\quad=
+ \bigl(\widetilde a\widetilde c
+       -\tau_k^2\overline{\widetilde d}\,\widetilde b,\;
+       \tau_k(\widetilde d\widetilde a
+                   +\widetilde b\overline{\widetilde c})\bigr)\\
+&\quad=D_k\bigl(ac+\mu_k\bar d b,\;da+b\bar c\bigr)\,,
+\end{aligned}
+\]
+where the last line uses $\tau_k^2=-\mu_k$ and the induction
+hypothesis. This is the image of the parameterized product in
+\eqref{eq:CD-product}. Moreover,
+\[
+\overline{D_k(a,b)}
+=(D_{k-1}\bar a,-\tau_kD_{k-1}b)
+=D_k(\bar a,-b)\,.
+\]
+Since $\tau_k\ne0$ and $D_{k-1}$ is invertible, $D_k$ is invertible
+as well. Starting from $D_0$, this proves the asserted isomorphisms and
+their compatibility with the involution. The maps are diagonal in the
+recursive standard coordinates and preserve the imaginary subspaces.
+
+Write $\AltC_3^{(\mu)}$ and $\AltC_3^{\mathrm{std}}$ for the
+parameterized and standard alternating products. Preservation of
+multiplication and of the involution gives
+\[
+\AltC_3^{(\mu)}(X,Y)
+=D_3^{-1}\AltC_3^{\mathrm{std}}(D_3X,D_3Y)\,.
+\]
+Upon writing each complex coordinate as two real coordinates, $D_3$ and
+$D_3^{-1}$ are fixed real-linear maps. They change the input linear
+forms and the output recombination but introduce no input-dependent
+products. Proposition~\ref{prop:octonion-leaf} therefore supplies a
+complex alternating-product evaluation with $72$ input-dependent real
+products for any nonzero real parameters. In that evaluation, the input
+maps $L_j$ and the sums used to evaluate the complex cross products act
+separately on the two operands. Each input-dependent real multiplication
+consequently multiplies a real-linear form in the first operand by a
+real-linear form in the second, and the output reconstruction is
+real-linear in these products. Composing the input maps with $D_3$ and
+the output map with
+$D_3^{-1}$ preserves this property. The fixed scalings in the
+coordinate changes can affect the total arithmetic count, so the exact
+total in Proposition~\ref{prop:exact-counts} remains a statement about
+the standard tower.
+
+For the complex kernel, the level-two formula uses $M_2=18$ products and
+the transported level-three formula uses $M_3=72$. At higher levels, the
+parameters and pairing weights contribute only fixed linear operations,
+while the local map uses $18(2^{k-1}-1)$ input-dependent products.
+Consequently, the same product recurrence as in
+Proposition~\ref{prop:exact-counts} applies, giving
+\[
+M_k=(36k-81)2^{k-2}+18\qquad(k\ge3)\,.
+\]
+
+The same bilinear property holds throughout the complex recursion. More
+precisely, in real coordinates, each input-dependent multiplication is
+the product of a fixed real-linear form in the first kernel input and a
+fixed real-linear form in the second, and every output coordinate is a
+fixed real-linear combination of the resulting products. At level $2$,
+this follows from the elementary products of $B_2$ and the fusion formula
+\eqref{eq:complex-fusion}. The transported octonion evaluation establishes
+the assertion at level $3$. For $k\ge4$, assume it at level $k-1$.
+Multiplication by the fixed coefficient $\rho_k$ and formation of the
+sums and differences in the recursive inputs are real-linear operations
+on each operand separately. Substituting these transformed inputs into
+the linear forms from the induction hypothesis therefore gives
+real-linear forms in the original kernel inputs. The local map has the
+same property: each real evaluation of $B_k$ uses elementary products
+with one factor from each operand, and the fusion formula forms its
+inputs separately and recombines its outputs linearly. Finally,
+\eqref{eq:two-call-formula} uses only fixed real-linear combinations of
+the local and recursive outputs. This proves the assertion by induction.
+
+For real inputs, the local map at level $n$ uses
+$6(2^{n-1}-1)$ products. If $\mu_n<0$, one complex call at the preceding
+level suffices by Corollary~\ref{cor:real-root}. If $\mu_n>0$, the
+transformed inputs are real and two real-input calls suffice instead.
+The real base formulas give $C_1=0$ and $C_2=6$. At level $3$, the
+local contribution is $6\cdot3=18$ products, so the negative-parameter
+case gives $C_3\le M_2+18=36$, while the positive-parameter case gives
+$C_3\le2C_2+18=30$. Hence $C_3\le36$ for either sign.
+
+The real-input schedule also has the bilinear property just proved. Its
+level-one and level-two formulas have this property directly. At a
+higher level with $\mu_n<0$, it follows from the property of the complex
+kernel, since the transformed inputs are real-linear in the separate
+operands and both $\ReC$ and $\ImC$ are real-linear maps. When
+$\mu_n>0$, the transformed inputs are real, so induction applies to the
+two real-input calls. In both cases, the real local map pairs factors
+from the separate operands, and the remaining output operations are
+real-linear.
+
+Put $U_n=(36n-93)2^{n-3}+12$ for $n\ge4$. At level $4$, the local
+contribution is $6\cdot7=42$ products. The negative-parameter case gives
+$C_4\le M_3+42=114$, and the positive-parameter case gives
+$C_4\le2C_3+42\le114$. Since $U_4=114$, the bound holds at level $4$.
+
+Now let $n\ge5$ and suppose that $C_{n-1}\le U_{n-1}$. If $\mu_n<0$,
+substitution of the complex-kernel formula yields
+\[
+\begin{aligned}
+C_n&\le M_{n-1}+6(2^{n-1}-1)\\
+&=(36n-117)2^{n-3}+18+24\cdot2^{n-3}-6\\
+&=(36n-93)2^{n-3}+12=U_n\,.
+\end{aligned}
+\]
+If $\mu_n>0$, the two real-input calls and the induction hypothesis give
+\[
+\begin{aligned}
+C_n&\le2U_{n-1}+6(2^{n-1}-1)\\
+&=(36n-105)2^{n-3}+18\\
+&=U_n-\bigl(12\cdot2^{n-3}-6\bigr)\le U_n\,,
+\end{aligned}
+\]
+since $12\cdot2^{n-3}-6\ge0$ for $n\ge5$. This proves
+\eqref{eq:Cn} for every choice of signs of the parameters.
+
+Full reconstruction in \eqref{eq:scalar--imaginary} adds $3N-2$
+input-dependent products. Each of these also multiplies a real-linear
+form in $x$ by a real-linear form in $y$: they are the scalar product
+$\alpha\beta$, the weighted coordinate products in the pairing, and the
+coordinate products in $\alpha Y$ and $\beta X$. Since extracting the
+scalar and imaginary coordinates is real-linear, the products in the
+alternating-product schedule likewise have this form in the full inputs
+$x$ and $y$. Collecting the fixed output coefficients of all counted
+products therefore gives a decomposition
+\[
+xy=\sum_{j=1}^r\alpha_j(x)\beta_j(y)v_j\,,\qquad
+r\le C_n+3N-2\,,
+\]
+where $\alpha_j,\beta_j$ are real-linear forms and each $v_j\in A_n$
+is fixed. By the definition of real tensor rank, this proves
+$\Rk_{\R}(T_{A_n})\le C_n+3N-2$. For $n\ge4$,
+\[
+\begin{aligned}
+C_n+3N-2
+&\le(36n-93)2^{n-3}+12+24\cdot2^{n-3}-2\\
+&=(36n-69)2^{n-3}+10\,,
+\end{aligned}
+\]
+which gives \eqref{eq:rank-bound}. At $n=1,2,3$, the corresponding
+counts are $C_1+4=4$, $C_2+10=16$, and $C_3+22\le58$, respectively.
+\end{proof}
+
+For direct multiplication, each Cayley--Dickson step evaluates four
+products of dimension $N/2$ and combines their coordinates using $N$
+additions and subtractions. If $M_{\mathrm{direct}}(n)$ and
+$A_{\mathrm{direct}}(n)$ denote its operation counts at level $n$, then
+\[
+\begin{aligned}
+M_{\mathrm{direct}}(n)&=4M_{\mathrm{direct}}(n-1)\,,\\
+A_{\mathrm{direct}}(n)&=4A_{\mathrm{direct}}(n-1)+2^n\,,
+\end{aligned}
+\]
+with $M_{\mathrm{direct}}(0)=1$ and $A_{\mathrm{direct}}(0)=0$.
+Consequently,
+\[
+M_{\mathrm{direct}}=4^n=N^2\,,\qquad
+A_{\mathrm{direct}}
+=\sum_{j=1}^n4^{n-j}2^j=N^2-N\,.
+\]
+The only fixed coefficients in the standard product are signs, so
+$E_{\mathrm{direct}}=0$ and
+\[
+T_{\mathrm{direct}}=2N^2-N\,.
+\]
+
+For $N\ge2$, the uniform Cariow--Cariowa (CC) method uses a Hadamard
+factorization
+with a sparse correction of the basis-product signs. The counts in
+\href{https://doi.org/10.15199/48.2015.02.09}{Cariow and Cariowa
+(2015, p.~38)} can be recovered as follows, with the power-of-two
+scalings included under the present convention.
+
+In the standard basis, induction in \eqref{eq:CD-product} gives
+\[
+e_i e_j=\sigma_n(i,j)e_{i\oplus j}\,,\qquad
+\sigma_n(i,j)\in\{1,-1\}\,,
+\]
+where $\oplus$ is bitwise exclusive-or on the binary indices. The basis
+unit gives $\sigma_n(0,j)=\sigma_n(j,0)=1$, and the imaginary basis
+elements satisfy
+\[
+\sigma_n(i,i)=-1\quad(i>0)\,,\qquad
+\sigma_n(i,j)=-\sigma_n(j,i)\quad(i,j>0,\ i\ne j)\,.
+\]
+Indeed, these last identities follow from
+$e_i e_j+e_j e_i=-2\langle e_i,e_j\rangle_n$ and the standard pairing.
+Put $\epsilon_0=-1$ and $\epsilon_k=1$ for $k>0$, and define
+\[
+\mathcal I_k:=
+\{i:\epsilon_k\sigma_n(i,i\oplus k)=-1\}\,.
+\]
+The unsigned convolution coordinates
+$c_k:=\sum_i x_i y_{i\oplus k}$ then recover the product coordinates by
+\[
+(xy)_k=\epsilon_k\left(c_k-
+ 2\sum_{i\in\mathcal I_k}x_i y_{i\oplus k}\right)\,.
+\]
+Thus the correction replaces exactly the terms whose signs differ from
+the unsigned convolution, followed by the free sign change $\epsilon_k$.
+
+For $k=0$, the correction set is $\mathcal I_0=\{0\}$. For $k>0$, the
+indices form $N/2$ disjoint pairs $\{i,i\oplus k\}$. The pair
+$\{0,k\}$ has positive basis-product signs and contributes no
+correction. In every other pair, both indices are nonzero and their
+basis products have opposite signs. Exactly one index in that pair
+therefore belongs to $\mathcal I_k$, giving
+\[
+|\mathcal I_0|=1\,,\qquad
+|\mathcal I_k|=N/2-1\quad(k>0)\,.
+\]
+The total number of correction products is consequently
+\[
+\sum_{k=0}^{N-1}|\mathcal I_k|
+=1+(N-1)(N/2-1)=\frac{N(N-3)+4}{2}\,.
+\]
+
+To evaluate the convolution, let $\mathcal H_N$ be the Walsh--Hadamard matrix
+with entries $(\mathcal H_N)_{a,b}=(-1)^{a\cdot b}$, where $a\cdot b$ is the
+binary digit dot product modulo $2$. It is symmetric and satisfies
+$\mathcal H_N^2=NI_N$, where $I_N$ is the $N\times N$ identity matrix.
+Consequently,
+\[
+c=\frac1N\mathcal H_N
+ \bigl((\mathcal H_Nx)\odot(\mathcal H_Ny)\bigr)\,,
+\]
+where $\odot$ denotes coordinatewise multiplication. In fact, expansion
+of the right-hand side gives coefficient
+$N^{-1}\sum_a(-1)^{a\cdot(i\oplus j\oplus k)}$ on $x_i y_j$ in
+coordinate $k$, which is $1$ when $i\oplus j=k$ and $0$ otherwise.
+Each transform has $n$ stages of $N/2$ butterflies, each using $2$
+additions or subtractions, and therefore costs $nN$ additions. The three
+transforms use $3nN$ additions, the coordinatewise products use $N$
+multiplications, and normalization uses $N$ fixed-scalar multiplications.
+
+For a nonempty correction set of size $r$, summing its products costs
+$r-1$ additions and subtracting the doubled sum costs $1$ more. An
+empty set requires neither operation. Hence the corrections require
+$\sum_k|\mathcal I_k|$ additions as well as that many multiplications.
+It follows that
+\[
+M_{\mathrm{CC}}=\frac{N(N-1)}2+2\,,\qquad
+A_{\mathrm{CC}}=3nN+\frac{N(N-3)+4}{2}\,.
+\]
+The normalizations and correction doublings are omitted in the published
+count because they are power-of-two scalings. When $N\ge4$, every
+correction set is nonempty, so the schedule charges $N$ normalizations
+and $N$ doublings, giving $E_{\mathrm{CC}}=2N$. At $N=2$, only
+$\mathcal I_0=\{0\}$ is nonempty. The outputs are then
+\[
+(xy)_0=-\bigl(c_0-2x_0y_0\bigr)\,,\qquad (xy)_1=c_1\,,
+\]
+so normalization and the only nonzero correction coordinate give
+$E_{\mathrm{CC}}=3$. In particular, the full counts at $N=2$ are
+$(3,7,3)$.
+
+For completeness, the comparison thresholds can be checked directly
+from these formulas. For $n\ge4$ and $N=2^n$, the normalized differences
+are
+\[
+\begin{aligned}
+\frac{M_{\mathrm{direct}}-M_{\mathrm{QL}}}{N}
+ &=N-\frac{36n-69}{8}-\frac{10}{N}\,,\\
+\frac{M_{\mathrm{CC}}-M_{\mathrm{QL}}}{N}
+ &=\frac N2-\frac{36n-65}{8}-\frac8N\,,\\
+\frac{T_{\mathrm{direct}}-T_{\mathrm{QL}}}{N}
+ &=2N-\frac{240n-567}{16}-\frac{40}{N}\,,\\
+\frac{T_{\mathrm{CC}}-T_{\mathrm{QL}}}{N}
+ &=N-\frac{192n-583}{16}-\frac{36}{N}\,,\\
+\frac{M_{\mathrm{CC}}+A_{\mathrm{CC}}-T_{\mathrm{QL}}}{N}
+ &=N-\frac{192n-551}{16}-\frac{36}{N}\,.
+\end{aligned}
+\]
+All these expressions increase with $n$ for $n\ge4$. Their increments
+from $n$ to $n+1$ are bounded below, respectively, by
+$N-9/2$, $N/2-9/2$, $2N-15$, and $N-12$ for each of the last two;
+these are positive for $N\ge16$. At $n=4$, the five differences are
+\[
+6\,,\quad -\frac{19}{8}\,,\quad \frac{79}{16}\,,\quad
+\frac{35}{16}\,,\quad \frac3{16}\,.
+\]
+The second becomes $11/8>0$ at $n=5$. Together with the small-dimensional
+counts, this shows that the quasilinear schedule uses fewer
+input-dependent multiplications than direct multiplication from $N=8$
+onward and than CC from $N=32$ onward. Its total equals direct
+multiplication at $N=2,4,8$ and is smaller from $N=16$ onward, while it
+is smaller than CC for every $N\ge2$. At $N=16$, the quasilinear total
+is $417$, compared with $496$ for direct multiplication and $452$ for
+CC. The last normalized difference also proves the advantage over CC
+for $N\ge16$ when fixed-scalar costs are omitted, including
+$M_{\mathrm{CC}}+A_{\mathrm{CC}}=420>417$ at $N=16$.
+
+
+\begin{thebibliography}{Lem26}
+\bibitem[Lem26]{Lemley2026}
+Harrison Lemley.
+\emph{Quasilinear multiplication in the Cayley--Dickson tower}.
+\href{https://arxiv.org/abs/2609.11588}{arXiv:2609.11588}, 2026.
+\end{thebibliography}
+
+\end{document}
+
