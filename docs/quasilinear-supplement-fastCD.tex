@@ -43,7 +43,8 @@ benchmark-results/paper-v2-octonion243-20261023/source.patch}{source patch}.}
 \section{Notation}
 \label{sec:notation}
 
-The notation and results in this technical note are based on the mathematical framework and results of
+The notation and results in this technical note are based on the mathematical
+framework and results of
 \cite{Lemley2026}.
 
 Let $R=\R$ and $S=\C$, and fix nonzero real doubling parameters
@@ -96,12 +97,12 @@ Expanding \eqref{eq:CD-product} gives
 \end{equation}
 The notation $B_n^{\C}(X,Y)$ below uses the triples
 $(u,\gamma,s)$ and $(v,\delta,t)$ from this splitting. For real
-coefficients, define the local bilinear map by
-\begin{equation}\label{eq:local-map}
+coefficients, define the nonrecursive bilinear map by
+\begin{equation}\label{eq:nonrecursive-map}
 \begin{aligned}
 B_n\bigl((u,\gamma,s),(v,\delta,t)\bigr)
 :=\bigl(&\mu_n(\delta s-\gamma t),\;
-\langle s,v\rangle_{n-1}-\langle t,u\rangle_{n-1},\\
+\langle s,v\rangle_{n-1}-\langle t,u\rangle_{n-1}\,,\\
 &\delta u-\gamma v\bigr)\,.
 \end{aligned}
 \end{equation}
@@ -174,7 +175,7 @@ p=ac\,,\qquad q=bd\,,\qquad r=(a+b)(c+d)\,.
 
 Write $X=a_0+\iota a_1$ and $Y=b_0+\iota b_1$, where
 $a_0,a_1,b_0,b_1\in V_n$. Applying this multiplication formula to the
-local map $B=B_n$ in \eqref{eq:local-map} gives
+nonrecursive map $B=B_n$ in \eqref{eq:nonrecursive-map} gives
 \begin{equation}\label{eq:complex-fusion}
 \begin{gathered}
 \Delta=B(a_0,b_0)\,,\qquad \Omega=B(a_1,b_1)\,,\\
@@ -183,7 +184,7 @@ B^{\C}(a_0+\iota a_1,b_0+\iota b_1)
 =(\Delta-\Omega)+\iota(W-\Delta-\Omega)\,.
 \end{gathered}
 \end{equation}
-Thus the complex kernel evaluates its local map by three real evaluations
+Thus the complex kernel evaluates its nonrecursive map by three real evaluations
 of $B$, followed by reconstruction of the complex output coefficients.
 
 \begin{corollary}[One-call real-input root]\label{cor:real-root}
@@ -539,10 +540,11 @@ the result from their values. Here a linear program consists of binary
 additions or subtractions and fixed-scalar multiplications, with copying
 and reuse allowed.
 
-\begin{proposition}[Local addition count]\label{prop:local-additions}
+\begin{proposition}[Addition count for the nonrecursive
+map]\label{prop:nonrecursive-additions}
 Let $k\ge2$ and $m=2^{k-1}-1$. Consider the evaluation of $B_k^{\C}$ by
-\eqref{eq:complex-fusion}, using the six coordinate products 
-in \eqref{eq:local-map} for each real evaluation of $B_k$.
+\eqref{eq:complex-fusion}, using the six coordinate products
+in \eqref{eq:nonrecursive-map} for each real evaluation of $B_k$.
 For the given input coordinates and
 prescribed product formulas, with the product values treated as
 independent inputs to the output program, the two linear input programs
@@ -705,13 +707,14 @@ calls. Proposition~\ref{prop:octonion-leaf} gives the base counts
 
 \emph{Complex nodes.} Fix $k\ge4$ and put $m=2^{k-1}-1$, so that
 $u,v,s,t$ have $m$ complex coordinates each. By
-Proposition~\ref{prop:local-additions}, the local map uses $18m$ real
+Proposition~\ref{prop:nonrecursive-additions}, the nonrecursive map uses $18m$
+real
 multiplications and $22m+2$ additions. Each coordinate of
 $u\pm\iota s$ requires $2$ real additions for each sign, and the same
 holds for $v\pm\iota t$, giving $8m$ additions for the transformed
 inputs. Each recursive output has $m$ complex coordinates, so forming
 $Z_++Z_-$ and $Z_+-Z_-$ uses $4m$ real additions. Combining them with
-the two vector outputs of the local map costs another $4m$ additions.
+the two vector outputs of the nonrecursive map costs another $4m$ additions.
 The scalar output $\lambda$ is inserted in the otherwise zero unit
 coordinate of the second component and requires no addition.
 
@@ -722,10 +725,10 @@ the recursive calls is therefore
 \[
 \begin{array}{lrrr}
  & M&A&E\\
-\text{Local map}&18m&22m+2&0\\
+\text{Nonrecursive map}&18m&22m+2&0\\
 \text{Transformed inputs}&0&8m&0\\
 \text{Recursive sums and differences}&0&4m&0\\
-\text{Local vector recombination}&0&4m&0\\
+\text{Vector recombination}&0&4m&0\\
 \text{Halving}&0&0&4m\\ \hline
 \text{Total}&18m&38m+2&4m
 \end{array}
@@ -772,8 +775,8 @@ H_k&=(16k-37)2^{k-3}+4\,.
 
 \emph{Real root.} For $n\ge4$, $\AltR_n$ forms $u+\iota s$ and
 $v+\iota t$ by interleaving real coordinates, at no arithmetic cost, and
-makes one call to $\AltC_{n-1}$. With $m=2^{n-1}-1$, the real local
-map uses $6m$ multiplications and $4m-1$ additions. Combining its two
+makes one call to $\AltC_{n-1}$. With $m=2^{n-1}-1$, the real nonrecursive map
+uses $6m$ multiplications and $4m-1$ additions. Combining its two
 vector outputs with the real and imaginary parts of the recursive
 output costs another $2m$ additions. The work at the root therefore
 adds $6m$ multiplications and $6m-1=3N-7$ additions, with no halvings.
@@ -828,7 +831,7 @@ cross product, with $6$ multiplications and $3$ subtractions. Full
 reconstruction adds $10$ multiplications and $9$ additions, so the
 counts are $(16,12,0)$.
 
-At $n=3$, the complex call is $\AltC_2$, whose local map has $m=1$ and
+At $n=3$, the complex call is $\AltC_2$, whose nonrecursive map has $m=1$ and
 $q=3$. Its three real evaluations use $18$ multiplications and $9$
 additions. The input sums use $6$ additions, and the complex output
 reconstruction uses $9$, giving kernel counts $(18,24,0)$. The real
@@ -922,7 +925,7 @@ the standard tower.
 For the complex kernel, the level-two formula uses $M_2=18$ products and
 the transported level-three formula uses $M_3=72$. At higher levels, the
 parameters and pairing weights contribute only fixed linear operations,
-while the local map uses $18(2^{k-1}-1)$ input-dependent products.
+while the nonrecursive map uses $18(2^{k-1}-1)$ input-dependent products.
 Consequently, the same product recurrence as in
 Proposition~\ref{prop:exact-counts} applies, giving
 \[
@@ -941,19 +944,20 @@ Multiplication by the fixed coefficient $\rho_k$ and formation of the
 sums and differences in the recursive inputs are real-linear operations
 on each operand separately. Substituting these transformed inputs into
 the linear forms from the induction hypothesis therefore gives
-real-linear forms in the original kernel inputs. The local map has the
+real-linear forms in the original kernel inputs. The nonrecursive map has the
 same property: each real evaluation of $B_k$ uses elementary products
 with one factor from each operand, and the fusion formula forms its
 inputs separately and recombines its outputs linearly. Finally,
 \eqref{eq:two-call-formula} uses only fixed real-linear combinations of
-the local and recursive outputs. This proves the assertion by induction.
+the outputs of the nonrecursive map and the recursive calls. This proves the
+assertion by induction.
 
-For real inputs, the local map at level $n$ uses
+For real inputs, the nonrecursive map at level $n$ uses
 $6(2^{n-1}-1)$ products. If $\mu_n<0$, one complex call at the preceding
 level suffices by Corollary~\ref{cor:real-root}. If $\mu_n>0$, the
 transformed inputs are real and two real-input calls suffice instead.
 The real base formulas give $C_1=0$ and $C_2=6$. At level $3$, the
-local contribution is $6\cdot3=18$ products, so the negative-parameter
+nonrecursive map uses $6\cdot3=18$ products, so the negative-parameter
 case gives $C_3\le M_2+18=36$, while the positive-parameter case gives
 $C_3\le2C_2+18=30$. Hence $C_3\le36$ for either sign.
 
@@ -963,12 +967,12 @@ higher level with $\mu_n<0$, it follows from the property of the complex
 kernel, since the transformed inputs are real-linear in the separate
 operands and both $\ReC$ and $\ImC$ are real-linear maps. When
 $\mu_n>0$, the transformed inputs are real, so induction applies to the
-two real-input calls. In both cases, the real local map pairs factors
+two real-input calls. In both cases, the real nonrecursive map pairs factors
 from the separate operands, and the remaining output operations are
 real-linear.
 
-Put $U_n=(36n-93)2^{n-3}+12$ for $n\ge4$. At level $4$, the local
-contribution is $6\cdot7=42$ products. The negative-parameter case gives
+Put $U_n=(36n-93)2^{n-3}+12$ for $n\ge4$. At level $4$, the nonrecursive map
+uses $6\cdot7=42$ products. The negative-parameter case gives
 $C_4\le M_3+42=114$, and the positive-parameter case gives
 $C_4\le2C_3+42\le114$. Since $U_4=114$, the bound holds at level $4$.
 
