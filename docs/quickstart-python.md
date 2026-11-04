@@ -113,3 +113,31 @@ An `Element` exposes a read-only buffer, so you can use `memoryview(a)`.
 `ElementArray` also supports `__array__`, DLPack export and import from
 host-accessible producers, pickling, and `copy`. See the
 [Python API reference](python-api.md) for more information on these interfaces.
+
+## Explicit coefficient fields
+
+Everything above used real coefficients. For complex coefficients or an
+odd-characteristic finite field, select the parent explicitly:
+
+```python
+C = fcd.Algebra(dimension=4, char=0, deg=2)
+x = C([1 + 2j, 3j, 4, 0])
+q = x.quadratic_norm()        # complex, sum(x_i**2)
+
+F = fcd.FiniteField(char=13, deg=5)
+A = fcd.Algebra(dimension=4, field=F)
+a = A.scalar(F([1, 2, 0, 0, 0])) + A.basis(1)
+b = A.basis(2)
+c = A.multiply(a, b, algorithm="quasilinear")
+assert a * a.conjugate() == A.scalar(a.quadratic_norm())
+```
+
+Equivalently, `Algebra(dimension=4, char=13, deg=5)` uses the default
+irreducible polynomial for F_(13^5). The CD dimension and the extension
+degree are independent: an element of this algebra is stored as a `(4, 5)`
+array of `uint32` residues, and only leading batch axes broadcast.
+`quadratic_norm()` returns a field element; `norm()`, `abs()` and
+`normalized()` are defined only over R. Named methods such as `inner` and
+`commutator` require complete elements, so write `a.inner(A.scalar(2))`
+rather than `a.inner(2)`. See the [API reference](python-api.md#finitefield)
+for polynomial coordinates, copy rules and field-scalar arrays.

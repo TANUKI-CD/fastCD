@@ -5,26 +5,43 @@ elements in fastCD and the mathematical results behind the implementation.
 The [paper (v2)](https://arxiv.org/abs/2609.11588v2) derives the quasilinear
 recursion over a general coefficient ring and gives the arithmetic schedule
 implemented here, including the fused local map, its addition-count lower
-bound, and the 243-operation complex octonion leaf. This page describes that
-schedule as implemented for the standard real tower, using the notation of
-the paper.
+bound, and the complex octonion base case. This page describes that
+schedule for the standard tower over R, C, and odd-characteristic finite
+fields. The operation counts below are for real coefficients; the
+finite-field kernels use different coefficient arithmetic and are not
+counted here.
 
 ## Algebra and coordinates
 
-fastCD uses the standard real Cayley-Dickson tower, defined by
+fastCD uses the standard Cayley-Dickson tower with every doubling parameter
+equal to `-1`. For the selected coefficient field F it is defined by
 
 ```text
-A_0 = R,     A_n = A_(n-1) x A_(n-1)   (ordered pairs)
+A_0(F) = F,     A_n = A_(n-1) x A_(n-1)   (ordered pairs)
 conjugate((a, b)) = (conjugate(a), -b)
 (a, b)(c, d) = (ac - conjugate(d) b,  d a + b conjugate(c)).
 ```
 
-An element of `A_n` is stored as a contiguous array of `N = 2^n` `double`
-coefficients in the recursive standard basis `e_0, ..., e_(N-1)`, where
+An element of `A_n(F)` has `N = 2^n` coefficients over F
+in the recursive standard basis `e_0, ..., e_(N-1)`, where
 `e_0 = 1`. When `N = 2M`, the first `M` coordinates hold `a` and the last
 `M` hold `b`. The real part is therefore `Re(x) = x[0]`, and conjugation
 gives `conjugate(x) = (x[0], -x[1], ..., -x[N-1])`. The imaginary part is
-obtained by setting coordinate zero to zero.
+obtained by setting coordinate zero to zero. The involution fixes F
+pointwise, including when F is C. It does not conjugate complex coefficients
+or apply a finite-field Frobenius automorphism.
+
+Python selects F using `char` and `deg`: `(0,1)` means R (`float64`),
+`(0,2)` means C (`complex128`), and `(p,d)` means F_(p^d)
+for odd prime p. Finite extension coefficients are polynomial residues
+`a0 + a1*t + ... + a_(d-1)*t^(d-1)` modulo the actual monic irreducible
+polynomial recorded by `FiniteField.modulus`. One CD record has shape
+`(N,d)` over extensions and `(N,)` over prime fields/R/C. This polynomial
+coordinate axis does not change the CD level or dimension.
+
+The familiar algebra names in the following table refer to F = R; after
+scalar extension the same multiplication identities hold, but division and
+positive-definiteness statements can change.
 
 | Dimension | Algebra | Laws that still hold |
 | ---: | --- | --- |
@@ -86,17 +103,58 @@ A(x, y, z)     = (xy) z - x (yz)
 x^(-1)         = conjugate(x) / <x, x>,   x x^(-1) = x^(-1) x = 1.
 ```
 
-Here `<x, y> = sum_i x[i] y[i]` is the Euclidean inner product, and
-`Q(x) = <x, x>` is the squared norm. The reciprocal identity assumes
-`x != 0`. The parentheses in these formulas matter. From dimension 16
+Here `<x, y> = sum_i x[i] y[i]` is the canonical F-bilinear pairing,
+and `Q(x) = <x,x>` is the quadratic norm. It is Euclidean over R and is
+bilinear without scalar conjugation over C. The reciprocal formula assumes
+`Q(x) != 0`, which is stronger than `x != 0` over C and finite fields. The parentheses in these formulas matter. From dimension 16
 onward, the algebra is neither associative nor
 alternative, so `x^(-1)(xy)` need not equal `y`, and multiplication by
 `ab - ba` need not give either operator commutator.
 
+## Canonical quadratic norm over every field
+
+For this fixed standard involution, the unique scalar in `x conjugate(x)`
+is the quadratic form
+
+```text
+Q(x) = sum_(i=0)^(N-1) x_i^2 in F,
+x conjugate(x) = conjugate(x) x = Q(x) 1,
+Q(1) = 1,
+x^2 - (2 x_0) x + Q(x) 1 = 0.
+```
+
+These identities follow inductively from the doubling formula and hold at
+every level. They determine Q uniquely for the chosen involution. The
+normalization `Q(1)=1` alone would not specify a quadratic form without
+these identities. Its polarization is
+`(Q(x+y)-Q(x)-Q(y))/2 = sum_i x_i y_i`; the assumption that characteristic
+is not 2 permits this division. This pairing is nondegenerate over every
+field implemented here. The composition identity `Q(xy)=Q(x)Q(y)` holds
+through octonions; it is not asserted for the higher CD algebras.
+
+`quadratic_norm()` exposes this form for all parents. `norm_squared()`
+returns the same form; over R it uses scaled accumulation.
+A finite result is a coefficient-field `Element`, or a field `ElementArray`
+for a batch. Complex results are complex scalars/ndarrays, with no absolute
+values in the sum. On a coefficient-field scalar c, the form is `c*c`.
+
+Over C or finite fields, a nonzero vector can be isotropic (`Q(x)=0`). For
+example `(1,i)` over C and `(1,2)` over F_5 both have Q zero. The canonical
+reciprocal, scalar division, and negative powers check denominators and
+reject zero with `ZeroDivisionError`, including these nonzero examples.
+No cancellation law for arbitrary higher CD products follows from the
+reciprocal identity.
+
+`norm()`, `abs(x)`, and `normalized()` are the real Euclidean norm
+`sqrt(Q(x))` and the unit vector `x/sqrt(Q(x))`, and are defined only for
+real parents. A finite field has no ordering or positive square root, and
+no complex Hermitian norm is provided.
+
 ## Multiplication algorithms
 
-All three algorithms compute the same product, but use different numbers of
-arithmetic operations and can round differently. Write `M` for input-dependent
+Over R all three algorithms are available; over C and finite fields,
+direct and quasilinear. They compute the same product, but use different
+numbers of arithmetic operations and can round differently. Write `M` for input-dependent
 real multiplications, `A` for additions and subtractions, and `E` for
 multiplication by fixed scalars other than `0, +1, -1`. The total is
 `T = M + A + E`, including preprocessing of both operands. Known-zero terms
@@ -126,11 +184,9 @@ when fixed-scalar costs are omitted, since `M + A = 420 > 417` for
 Cariow–Cariowa at dimension 16. Direct and Cariow–Cariowa remain quadratic;
 quasilinear uses `Theta(N log N)` arithmetic. These are schedule counts, not
 compiler-instruction counts or timing predictions. They use the default leaf
-cutoffs and the uniform Cariow–Cariowa schedule (`FASTCD_CC_DOUBLING=0`).
-`python3 tools/check_quasilinear_counts.py` checks them through dimension 1024
-by instrumenting the actual scalar template and generated kernels, reporting
-`E` under the JSON key `S`; this optional development check requires a C++
-compiler, while the library itself is C11.
+cutoffs and the uniform Cariow–Cariowa schedule (`FASTCD_CC_DOUBLING=0`),
+and `tools/check_quasilinear_counts.py` verifies them against the generated
+kernels through dimension 1024.
 
 The resulting quasilinear schedule counts are:
 
@@ -290,11 +346,9 @@ sparse reconstruction uses 32 additions and 15 halvings:
 | Output reconstruction | 0 | 32 | 15 |
 | Total | 72 | 156 | 15 |
 
-The complex leaf therefore uses **243 operations**, one fewer than the
-previous `(72, 158, 14)` schedule: two additions are saved at the cost of
-one extra halving. It first enters a full real product at dimension 16.
-The smaller complex dimension-4 base still uses the fused local map with
-counts `(18, 24, 0)`.
+The complex octonion leaf therefore uses **243 operations**. It first
+enters a full real product at dimension 16. The complex dimension-4 base
+case uses the fused local map with counts `(18, 24, 0)`.
 
 With `(M_3, P_3, H_3) = (72, 156, 15)`, the complex-kernel recurrences give,
 for `K = 2^k` and `k >= 3`,
@@ -308,16 +362,15 @@ H_k = (16k - 37) K/8 + 4.
 The real-input root and full scalar-imaginary reconstruction add `6N - 8`
 products and `6N - 10` additions to one complex kernel of dimension `N/2`,
 with no halvings, so `M = M_(n-1) + 6N - 8`, `A = P_(n-1) + 6N - 10`, and
-`E = H_(n-1)`, yielding the full-product counts above. There are `N/16`
-complex octonion leaves in a full real product for `N >= 16`, so the new
-leaf saves `N/16` total operations compared with the previous schedule.
+`E = H_(n-1)`, yielding the full-product counts above. A full real product at `N >= 16`
+contains `N/16` complex octonion leaves.
 
 Cariow–Cariowa is available through dimension 1024. Through dimension 64 it
 uses generated straight-line kernels; above that its irregular sign corrections
 use table-driven gathered loads. Fewer arithmetic operations do not necessarily
 make that access pattern faster (see [benchmark.md](benchmark.md)).
 
-Workspace requirements are `O(N)` doubles, at most the order of one operand, and
+For the real implementation, workspace requirements are `O(N)` doubles, at most the order of one operand, and
 independent of the batch size: a batch reuses one workspace for all of its
 products, and the paired batch kernels use fixed internal storage instead.
 With the default leaf cutoffs, the direct recursion and the scalar
@@ -360,16 +413,63 @@ quasilinear elsewhere. For batches, they select direct at `N = 8`,
 Cariow–Cariowa at `N = 16`, and quasilinear elsewhere. Both therefore use
 quasilinear from `N = 32` upward. You can inspect the choices with
 `fastcd_default_algorithm` and `fastcd_default_batch_algorithm`. To check
-them on your CPU, the benchmark described in the README times all three
+them on your CPU, the [benchmark](benchmark.md) times all three
 algorithms in both modes on the same input corpus.
+
+## Finite-field implementation
+
+The finite-field kernels were written for fastCD. They multiply records of
+N coefficients in F_(p^d) using the same standard basis and doubling
+convention as the real kernels, with exact arithmetic on canonical `uint32`
+residues in the polynomial basis.
+
+The quasilinear kernel follows the alternating recursion above. For odd p
+every power of two is a unit, so the halvings are exact. The auxiliary unit
+`iota` with `iota^2 = -1` is handled formally in `F[iota]/(iota^2 + 1)`,
+whether or not `-1` is a square in F, so no square root of `-1` in F is
+needed. The kernel is specialized once per extension degree. On x86,
+SSE4.1, AVX2 and AVX-512 kernels are compiled separately and selected at
+run time by CPU features, characteristic, degree and dimension; a portable
+kernel covers every other target. The C library allocates no heap memory
+and keeps no global state.
+
+The direct algorithm evaluates the defining four-product recursion with
+quaternion-sized leaves, specialized by degree. Quasilinear uses
+`O(N log N)` coefficient operations and `O(N)` caller scratch for each
+supported degree; direct uses `O(N^2)`. Polynomial multiplication,
+reduction and representation conversions affect actual costs, so the real
+operation counts above are not instruction counts for these kernels and do
+not predict the same speedup for every characteristic or degree.
+
+## Complex coefficients
+
+Complex CD multiplication stores interleaved real/imaginary binary64 parts.
+The quasilinear implementation runs the same complex alternating kernel and
+complex octonion leaf as the real path, then reconstructs the scalar and
+imaginary CD coordinates over C. Over R, conjugate symmetry at the root
+means one child suffices; over C both children are evaluated.
+
+The direct implementation evaluates the defining CD recursion with complex
+scalar arithmetic. The benchmark can also time a three-real-product
+variant: with `x=a+i*b` and `y=c+i*d`, compute `ac`, `bd`, and
+`(a+b)(c+d)` in the real CD algebra and return
+`(ac-bd)+i*((a+b)(c+d)-ac-bd)`, with packing and reconstruction included
+in its measured time.
+
+Complex product scratch is currently `10N+64` doubles; composite operations
+add two complex records (`4N` doubles). Finite scratch depends on the
+selected kernel and degree. Both reuse one workspace across a batch. Query
+the lengths rather than hardcoding them. Contexts are caller-owned and
+immutable after setup, and separate workspaces permit concurrent calls.
 
 ## Floating-point statements
 
-Coefficients are IEEE binary64 `double` values. Multiplication evaluates a
+Real coefficients and the real/imaginary parts of complex coefficients are
+IEEE binary64 `double` values. Multiplication evaluates a
 sequence of floating-point operations, so the complete product need not be
-correctly rounded, and the three algorithms can give different rounded
-results. The benchmark compares every coordinate with an independent
-float64 implementation of the defining recursion, using
+correctly rounded, and different algorithms can give different rounded
+results. The real-coefficient benchmark compares every coordinate with an
+independent float64 implementation of the defining recursion, using
 
 ```text
 |computed - oracle| <= 128 * DBL_EPSILON * N * ||x||_2 * ||y||_2
@@ -381,7 +481,17 @@ product or establish a universal error bound.
 
 Intermediate quantities such as transformed sums, dot products, and
 half-sums can overflow or lose precision even when the final result would
-not, so operands should be scaled away from the exponent limits. Norms,
-normalization, reciprocals, and squares use scaled evaluation to avoid
-needless intermediate overflow. See the [C API reference](c-api.md) for how
+not, so operands should be scaled away from the exponent limits. Over R,
+norms, normalization, reciprocals, and squares use scaled evaluation to
+avoid needless intermediate overflow. See the [C API reference](c-api.md) for how
 each function handles NaN, infinities, and signed zeros.
+
+
+Finite-field arithmetic is exact. The
+[field benchmark](benchmark.md#complex-and-finite-fields) checks every
+finite product against an independent schoolbook polynomial implementation
+and every complex product against a long-double evaluation of the defining
+recursion with a norm-scaled tolerance. An optional protocol compares the
+finite-field arithmetic with FLINT (Fast Library for Number Theory), an
+independent exact-arithmetic C library; see the
+[benchmark guide](benchmark.md#comparing-finite-field-arithmetic-with-flint).

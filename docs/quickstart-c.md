@@ -137,3 +137,37 @@ overflow, a zero norm, or an unsupported algorithm. Use the enum values to
 handle these cases in your code and `fastcd_status_string` to obtain a fixed
 English message for a log. NaN, infinity, and numerical overflow can appear
 in a result without producing an error status.
+
+## Odd-characteristic finite fields
+
+Finite-field products use `<fastcd/finite.h>`. A `FastCDField` describes
+F_(p^d), a `FastCDPlanFF` fixes the CD dimension over that field, and the
+caller supplies the scratch:
+
+```c
+#include <stdlib.h>
+#include <fastcd/finite.h>
+
+int finite_example(void) {
+    FastCDField field;
+    FastCDPlanFF plan;
+    if (fastcd_field_init(&field, 13, 5, NULL) != FASTCD_FF_SUCCESS)
+        return 1; /* deterministic irreducible polynomial */
+    if (fastcd_ff_plan_init(&plan, &field, 2) != FASTCD_FF_SUCCESS)
+        return 1; /* dimension 4, with five words per coefficient */
+    uint32_t x[20] = {1}, y[20] = {0}, out[20], q[5];
+    y[5] = 1; /* e_1 */
+    uint32_t* work = malloc(plan.workspace_words * sizeof(*work));
+    if (!work) return 1;
+    FastCDFFStatus status = fastcd_mul_ff(out, x, y, &plan,
+                                        work, plan.workspace_words);
+    free(work);
+    if (status != FASTCD_FF_SUCCESS) return 1;
+    return fastcd_quadratic_norm_ff(q, out, &plan) != FASTCD_FF_SUCCESS;
+}
+```
+
+`<fastcd/complex.h>` adds `FastCDComplexF64`, complex workspace queries,
+products, batches and structural operations. Complex scratch lengths count
+doubles, whereas finite lengths count `uint32_t` words. See the
+[additional API](c-api.md#arithmetic-across-coefficient-fields).

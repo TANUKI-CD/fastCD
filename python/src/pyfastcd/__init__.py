@@ -1,7 +1,8 @@
-"""Fast, matrix-free arithmetic over the real Cayley--Dickson tower.
+"""Fast, matrix-free Cayley--Dickson arithmetic over R, C and finite fields.
 
 ``pyfastcd`` provides immutable scalar elements and NumPy-backed element
-arrays with native ``float64`` coefficients.  Arithmetic is delegated to the
+arrays. Coefficients are real ``float64`` by default; ``char`` and ``deg``
+select complex or finite-field coefficients.  Arithmetic is delegated to the
 compiled fastCD kernels; the Python API does not construct multiplication or
 operator matrices.
 
@@ -24,6 +25,8 @@ Element
     Immutable scalar element backed directly by native coefficient storage.
 ElementArray
     NumPy-backed batch with leading-axis broadcasting.
+FiniteField
+    Immutable finite coefficient field in a recorded polynomial basis.
 BasisProduct
     Signed standard-basis multiplication result.
 cd_element
@@ -32,13 +35,15 @@ cd_element
 Notes
 -----
 The package intentionally exposes mathematical values rather than native
-status codes or workspace buffers.  All coefficients are real ``float64``;
-complex coefficient arrays and arbitrary NumPy object arrays are unsupported.
+status codes or workspace buffers. CD conjugation fixes coefficients;
+``quadratic_norm()`` returns their canonical field-valued quadratic form.
+Real parents reject complex coefficients.
 """
 
 from ._algebra import Algebra, BasisProduct, cd_element
 from ._array import ElementArray
 from ._core import Element, _version
+from ._field import FiniteField
 
 __version__ = _version()
 
@@ -49,4 +54,5 @@ __all__ = [
     "Element",
     "ElementArray",
     "cd_element",
+    "FiniteField",
 ]

@@ -1,4 +1,4 @@
-"""Parents and constructors for standard real Cayley--Dickson algebras.
+"""Parents and constructors for standard Cayley--Dickson algebras.
 
 The public entry points in this module are re-exported from :mod:`pyfastcd`;
 applications normally use ``import pyfastcd as fcd``.
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
+from types import GenericAlias
 from typing import TYPE_CHECKING, Any, cast, final
 
 import numpy as np
@@ -60,20 +61,29 @@ class BasisProduct:
 
 @final
 class Algebra:
-    """A standard real Cayley--Dickson algebra with ``float64`` coefficients.
+    """A standard Cayley--Dickson algebra over an explicitly selected field.
 
     Parameters
     ----------
     dimension : int, optional
-        Positive power-of-two real dimension.  Boolean values are rejected.
+        Positive power-of-two dimension over the coefficient field.
+        Boolean values are rejected.
     level : int, optional
         Nonnegative doubling level ``n``, giving dimension ``2**n``.
         Boolean values are rejected.
 
+    char : int, optional
+        Zero (default) for characteristic zero, or an odd prime at most 2**31-1.
+    deg : int, optional
+        Coefficient extension degree; 1 for R, 2 for C when char is zero.
+        Finite degrees lie in 1..12 and are independent of the CD level.
+    field : FiniteField, optional
+        Reuse a finite coefficient field with default char/deg selectors.
+
     Raises
     ------
     TypeError
-        If neither or both keywords are supplied, or if the selected value
+        If neither or both dimension keywords are supplied, or if the selected value
         is not integer-like.
     ValueError
         If ``dimension`` is not a positive power of two or ``level`` is
@@ -85,10 +95,11 @@ class Algebra:
     Notes
     -----
     Exactly one of ``dimension`` and ``level`` must be supplied.  Algebra
-    objects are immutable, cannot be subclassed, and are cached by dimension,
-    so repeated construction returns the same parent object.  All public
-    arithmetic uses the standard real tower and native ``float64``
-    coefficients.
+    objects are immutable, cannot be subclassed, and are cached by dimension
+    and coefficient presentation. Default calls use the original real tower
+    and native ``float64`` implementation. Explicit complex parents use
+    ``complex128``; finite parents use canonical ``uint32`` polynomial words.
+    See ``coefficient_shape`` for complete record axes.
 
     Examples
     --------
@@ -98,14 +109,37 @@ class Algebra:
     Element([1.0, 2.0, 3.0, 4.0], algebra=Algebra(dimension=4, level=2, dtype=float64))
     """
 
-    __slots__ = ("_dimension", "_level", "_initialized")
+    __slots__ = (
+        "_dimension",
+        "_level",
+        "_initialized",
+        "_char",
+        "_deg",
+        "_field",
+        "_ctx",
+    )
     _dimension: int
     _level: int
     _initialized: bool
-    _cache: dict[int, Algebra] = {}
+    _cache: dict[Any, Algebra] = {}
+    _char: int
+    _deg: int
+    _field: Any
+    _ctx: Any
+
+    def __class_getitem__(cls, parameters: Any) -> Any:
+        """Support optional domain-specific static type annotations."""
+
+        return GenericAlias(cls, parameters)
 
     def __new__(
-        cls, *, dimension: Any | None = None, level: Any | None = None
+        cls,
+        *,
+        dimension: Any | None = None,
+        level: Any | None = None,
+        char: Any = 0,
+        deg: Any = 1,
+        field: Any = None,
     ) -> Algebra:
         """Create or retrieve the cached parent selected by one keyword.
 
@@ -119,17 +153,59 @@ class Algebra:
         normalized_dimension, normalized_level = _dimension_and_level(
             dimension=dimension, level=level
         )
-        cached = cls._cache.get(normalized_dimension)
+        from ._field import FiniteField, _integer
+
+        p, d = _integer(char, "char"), _integer(deg, "deg")
+        if field is not None:
+            if not isinstance(field, FiniteField):
+                raise TypeError("field must be a FiniteField")
+            if p != 0 or d != 1:
+                raise TypeError("field cannot be combined with char or deg")
+            p, d = field.char, field.deg
+        elif p:
+            field = FiniteField(char=p, deg=d)
+        elif d not in (1, 2):
+            raise ValueError("char=0 supports only deg=1 (R) or deg=2 (C)")
+        # Keep the original integer cache key for real parents. New domains
+        # include the actual finite presentation, not merely its field order.
+        key = (
+            normalized_dimension
+            if p == 0 and d == 1
+            else (normalized_dimension, p, d, field)
+        )
+        cached = cls._cache.get(key)
         if cached is not None:
             return cached
         self = super().__new__(cls)
         object.__setattr__(self, "_dimension", normalized_dimension)
         object.__setattr__(self, "_level", normalized_level)
         object.__setattr__(self, "_initialized", True)
-        return cls._cache.setdefault(normalized_dimension, self)
+        object.__setattr__(self, "_char", p)
+        object.__setattr__(self, "_deg", d)
+        object.__setattr__(self, "_field", field)
+        # Only explicitly selected domains construct the separate native
+        # context; the default real path retains its original implementation.
+        if p or d != 1:
+            from . import _domains_core
+
+            ctx = _domains_core.context(
+                field._native if field is not None else None,
+                normalized_dimension,
+                False,
+            )
+        else:
+            ctx = None
+        object.__setattr__(self, "_ctx", ctx)
+        return cls._cache.setdefault(key, self)
 
     def __init__(
-        self, *, dimension: Any | None = None, level: Any | None = None
+        self,
+        *,
+        dimension: Any | None = None,
+        level: Any | None = None,
+        char: Any = 0,
+        deg: Any = 1,
+        field: Any = None,
     ) -> None:
         """Complete construction without changing cached parent state.
 
@@ -139,7 +215,7 @@ class Algebra:
 
         # Validation and initialization are performed in __new__.  The no-op
         # __init__ is invoked again when a cached parent is returned.
-        del dimension, level
+        del dimension, level, char, deg, field
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Reject creation of Algebra subclasses."""
@@ -172,7 +248,7 @@ class Algebra:
 
     @property
     def dimension(self) -> int:
-        """int: Number of real coefficients in each element."""
+        """int: Number of coefficients over the selected field."""
 
         return self._dimension
 
@@ -183,9 +259,41 @@ class Algebra:
         return self._level
 
     @property
-    def dtype(self) -> np.dtype[np.float64]:
-        """numpy.dtype: Coefficient dtype, always native ``float64``."""
+    def char(self) -> int:
+        """Coefficient characteristic; zero denotes R or C."""
 
+        return self._char
+
+    @property
+    def deg(self) -> int:
+        """Coefficient extension degree, independent of the CD level."""
+
+        return self._deg
+
+    @property
+    def field(self) -> Any:
+        """Finite coefficient field, or None for R and C."""
+
+        return self._field
+
+    @property
+    def coefficient_shape(self) -> tuple[int, ...]:
+        """Trailing storage axes of one complete algebra element."""
+
+        return (
+            (self.dimension, self.deg)
+            if self.char and self.deg > 1
+            else (self.dimension,)
+        )
+
+    @property
+    def dtype(self) -> np.dtype[np.float64]:
+        """numpy.dtype: Native coefficient storage dtype for the selected field."""
+
+        if self.char:
+            return cast("np.dtype[np.float64]", np.dtype(np.uint32))
+        if self.deg == 2:
+            return cast("np.dtype[np.float64]", np.dtype(np.complex128))
         return np.dtype(np.float64)
 
     @property
@@ -193,13 +301,16 @@ class Algebra:
         """str: Algorithm that ``"auto"`` selects for a single product.
 
         One of ``"direct"``, ``"cariow_cariowa"``, or ``"quasilinear"``; the
-        selection depends only on the dimension.  Products of two
+        real selection depends only on dimension; complex/finite parents
+        always select quasilinear.  Products of two
         :class:`Element` objects, and batches containing exactly one record,
         use this algorithm, so passing the name explicitly to
         :meth:`multiply` reproduces ``x * y`` exactly for elements.  Batches
         of two or more records use :attr:`default_batch_algorithm`.
         """
 
+        if self._ctx is not None:
+            return "quasilinear"
         return _core._default_algorithm(self.dimension)
 
     @property
@@ -207,37 +318,45 @@ class Algebra:
         """str: Algorithm that ``"auto"`` selects for batches of two or more.
 
         One of ``"direct"``, ``"cariow_cariowa"``, or ``"quasilinear"``.
-        Batches evaluate two independent products per SIMD instruction where
-        the build supports it, which can change the fastest algorithm below
-        dimension 32; both selections come from the library benchmark.
+        Real batches can evaluate two products per SIMD instruction, and
+        their defaults come from the real benchmark. Complex/finite parents
+        currently select quasilinear for every batch size.
         Passing this name explicitly to :meth:`multiply` reproduces ``X * Y``
         exactly for arrays with at least two records.
         """
 
+        if self._ctx is not None:
+            return "quasilinear"
         return _core._default_batch_algorithm(self.dimension)
 
     def __repr__(self) -> str:
         """Return a constructor-oriented description of this parent."""
 
-        return (
-            f"Algebra(dimension={self.dimension}, level={self.level}, "
-            "dtype=float64)"
-        )
+        if self.char:
+            return f"Algebra(dimension={self.dimension}, field={self.field!r})"
+        if self.deg == 2:
+            return f"Algebra(dimension={self.dimension}, char=0, deg=2)"
+        return f"Algebra(dimension={self.dimension}, level={self.level}, dtype=float64)"
 
     def __reduce__(self) -> tuple[Any, tuple[Any, ...]]:
         """Return reconstruction data that resolves through the parent cache."""
 
+        if self._ctx is not None:
+            return (
+                _algebra_from_domain,
+                (self.dimension, self.char, self.deg, self.field),
+            )
         return (_algebra_from_dimension, (self.dimension,))
 
-    def __call__(self, value: Any = 0.0) -> Element:
+    def __call__(self, value: Any = 0) -> Element:
         """Construct one owned element of this algebra.
 
         Parameters
         ----------
-        value : real scalar, Element, or array-like, optional
-            A scalar is embedded in coordinate zero.  A coefficient input
-            must be one-dimensional and contain exactly ``dimension`` real
-            values.  A same-dimension :class:`Element` is also accepted.
+        value : coefficient scalar, Element, or array-like, optional
+            A scalar embeds in coordinate zero. A complete coefficient record
+            must have exactly ``coefficient_shape``. Wrapped elements must have
+            the same parent; matching finite coefficient scalars also embed.
 
         Returns
         -------
@@ -247,19 +366,28 @@ class Algebra:
         Raises
         ------
         ValueError
-            If a coefficient input has the wrong shape or length, or an
-            element has a different dimension.
+            If the record shape or parent is incompatible.
         TypeError
-            If the input contains complex, object, or nonnumeric values.
+            If the selected field does not support the coefficients. Real
+            parents reject complex/object inputs; finite parents require
+            integers or matching field scalars.
         OverflowError
-            If a coefficient cannot be represented as a Python float.
+            If a real/complex floating-point conversion exceeds binary64 range.
 
         Notes
         -----
-        Construction always copies coefficient data.  Later mutation of a
-        NumPy input cannot change the returned element.  A scalar ``r`` is
-        interpreted as ``r * e_0``, not repeated across all coordinates.
+        Construction always copies. Finite integer coordinates reduce modulo
+        ``char`` before narrowing, including large Python integers. For a finite
+        extension, a record has shape ``(dimension, deg)``; a sequence of matching
+        field scalars also supplies its complete coefficients.
         """
+
+        if self._ctx is not None:
+            from ._domains import element
+
+            return cast(Element, element(self, value))
+        if isinstance(value, Element) and value.algebra._ctx is not None:
+            raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
 
         if isinstance(value, memoryview):
             try:
@@ -270,9 +398,7 @@ class Algebra:
             raise TypeError(COMPLEX_SCALAR_MESSAGE)
         if isinstance(value, np.ndarray):
             if value.dtype.kind not in "biuf":
-                raise TypeError(
-                    "coefficient arrays must contain real numeric values"
-                )
+                raise TypeError("coefficient arrays must contain real numeric values")
         return _core._element(self, self.dimension, value)
 
     def scalar(self, value: _RealScalar) -> Element:
@@ -280,10 +406,11 @@ class Algebra:
 
         Parameters
         ----------
-        value : scalar
-            Noncomplex scalar accepted by :class:`float`, placed at coordinate
-            zero.  A zero-dimensional ndarray must have a real numeric dtype;
-            object, string, and structured ndarrays are rejected.
+        value : coefficient scalar
+            Real numeric scalar for R, complex numeric scalar for C, or integer
+            or matching FiniteField scalar for a finite parent. Use ``F([...])``
+            for a non-prime-subfield extension value; raw coordinate vectors
+            and complete CD records are not scalar inputs.
 
         Returns
         -------
@@ -293,10 +420,17 @@ class Algebra:
         Raises
         ------
         TypeError
-            If ``value`` is complex or nonscalar.
+            If the selected field does not support the scalar or it is nonscalar.
         ValueError, OverflowError
-            If :class:`float` cannot convert or represent ``value``.
+            If numeric conversion fails or a floating-point value is too large.
         """
+
+        if self._ctx is not None:
+            from ._domains import scalar
+
+            if not scalar(value, self):
+                raise TypeError("scalar must belong to the coefficient field")
+            return self(value)
 
         if isinstance(
             value, (complex, np.complexfloating, str, bytes, bytearray, memoryview)
@@ -316,6 +450,9 @@ class Algebra:
             A newly allocated element whose coefficients are all zero.
         """
 
+        if self._ctx is not None:
+            return self(0)
+
         return _core._scalar(self, self.dimension, 0.0)
 
     def one(self) -> Element:
@@ -326,6 +463,9 @@ class Algebra:
         Element
             A newly allocated copy of ``e_0``.
         """
+
+        if self._ctx is not None:
+            return self(1)
 
         return _core._scalar(self, self.dimension, 1.0)
 
@@ -350,6 +490,12 @@ class Algebra:
         IndexError
             If ``index`` is outside the standard basis.
         """
+
+        if self._ctx is not None:
+            i = _basis_index(index, self.dimension)
+            coefficients = np.zeros(self.coefficient_shape, dtype=self.dtype)
+            coefficients.flat[i * (self.deg if self.char else 1)] = 1
+            return self(coefficients)
 
         normalized = _basis_index(index, self.dimension)
         return _core._basis(self, self.dimension, normalized)
@@ -395,74 +541,80 @@ class Algebra:
         Parameters
         ----------
         values : Element, ElementArray, or array-like
-            Real coefficients with shape ``(..., dimension)``.
+            Complete records with shape ``batch_shape + coefficient_shape``.
+            Wrapped records must have this parent. Finite inputs may contain
+            matching field scalars or integer polynomial coordinates.
 
         Returns
         -------
         ElementArray
-            A mutable wrapper around newly allocated, writable, aligned,
-            C-contiguous native ``float64`` storage.
+            Newly allocated writable, aligned, C-contiguous storage in ``dtype``:
+            float64 over R, complex128 over C, or uint32 over finite fields.
 
         Raises
         ------
         ValueError
-            If the final axis has the wrong length or an existing fastCD
-            object belongs to another algebra.
+            If a record shape or wrapped parent is incompatible.
         TypeError
-            If values are complex, object-valued, or nonnumeric.
+            If the selected field does not support the coefficients.
 
         Notes
         -----
-        Coefficients are always copied, even when ``values`` already has a
-        compatible layout.  The final axis stores one algebra element; all
-        preceding axes are batch axes.
+        Coefficients are always copied. Only leading batch axes broadcast;
+        finite extension records retain their trailing ``(dimension, deg)``
+        axes. Integer residues reduce before narrowing.
         """
+
+        if self._ctx is not None:
+            from ._domains import array
+
+            return cast("ElementArray", array(self, values, copy=True))
 
         from ._array import _array_from_values
 
         return _array_from_values(self, values, copy=True)
 
     def asarray(self, values: Any, *, copy: bool | None = None) -> ElementArray:
-        """Interpret an array with final axis ``dimension`` as elements.
+        """Interpret complete coefficient records as algebra elements.
 
         Parameters
         ----------
         values : Element, ElementArray, array-like, or DLPack producer
-            Real coefficients with shape ``(..., dimension)``.  DLPack input
+            Storage with shape ``batch_shape + coefficient_shape``. DLPack input
             must use a supported host-accessible device.
         copy : bool or None, optional
-            ``True`` always copies. ``None`` copies only when dtype, alignment,
-            or final-axis layout requires it. ``False`` raises if zero-copy
-            wrapping is impossible.
+            ``True`` always copies. ``None`` shares compatible storage or copies
+            as required. ``False`` requires zero-copy sharing or raises.
 
         Returns
         -------
         ElementArray
-            A wrapper whose storage may be shared with ``values``.  Source
-            leading-axis strides are preserved on the zero-copy path.  Direct
-            NumPy and buffer sources also preserve writeability; legacy
-            DLPack imports can expose a read-only view of writable storage.
+            A wrapper preserving leading strides and source writeability when
+            storage is shared. Legacy DLPack imports may expose read-only views.
 
         Raises
         ------
         TypeError
-            If ``copy`` is not ``True``, ``False``, or ``None``, or values
-            have an unsupported dtype.
+            If the copy flag or coefficients are unsupported.
         ValueError
-            If the final axis is wrong, a fastCD parent differs, a DLPack
-            input is not on a supported host-accessible device, or
-            ``copy=False`` cannot be honored.
+            If shapes, parents or devices are incompatible, or ``copy=False``
+            cannot satisfy native dtype, alignment, layout and canonical residues.
 
         Notes
         -----
-        Zero-copy storage must be aligned native ``float64`` with a unit
-        positive stride on the final axis.  For the one-dimensional real
-        algebra only, a zero final-axis stride is also valid because that
-        axis contains a single coefficient.  C-contiguous arrays with an
-        empty leading batch axis are also valid when NumPy reports zero
-        strides, because no coefficient is visited.  A view created from an
-        immutable :class:`Element` remains read-only.
+        The real path requires native float64 and a final stride of eight bytes;
+        dimension one also permits zero stride, and empty C-contiguous real
+        arrays need no final-stride check. Complex/finite parents require native
+        contiguous record axes, ignoring singleton axes and empty arrays.
+        Finite zero-copy storage must already be canonical. Shared mutable
+        residues are checked again before arithmetic; synchronize concurrent
+        writers throughout each call. Views of immutable Elements stay read-only.
         """
+
+        if self._ctx is not None:
+            from ._domains import array
+
+            return cast("ElementArray", array(self, values, copy=copy))
 
         from ._array import _array_from_values
 
@@ -480,19 +632,21 @@ class Algebra:
 
         Parameters
         ----------
-        x, y : real scalar, Element, ElementArray, or array-like
-            Factors.  A real scalar scales every coordinate.  Nonscalar
-            coefficient arrays must have final axis ``dimension``.
+        x, y : coefficient scalar, Element, ElementArray, or array-like
+            Factors. A coefficient scalar scales every coordinate. Nonscalar
+            arrays must end in the parent's complete ``coefficient_shape``.
         out : ElementArray or numpy.ndarray, optional
             Exact-shape output storage.  It must be writable, aligned,
-            C-contiguous native ``float64`` and must not overlap an input.
+            C-contiguous with this parent's native ``dtype`` and must not
+            overlap an input.
         algorithm : str, optional
             Multiplication algorithm name: ``"auto"`` (the default),
             ``"direct"``, ``"cariow_cariowa"``, or ``"quasilinear"``.
             ``"auto"`` selects :attr:`default_algorithm` for a single
             product and :attr:`default_batch_algorithm` for batches of two
             or more records.  The name is validated before any arithmetic,
-            including for real-scalar operands and empty batches.
+            including for scalar operands and empty batches. Complex and
+            finite parents support only auto, direct, and quasilinear.
 
         Returns
         -------
@@ -515,20 +669,28 @@ class Algebra:
 
         Notes
         -----
-        Leading batch axes follow NumPy broadcasting.  The final coefficient
-        axis is fixed and is never broadcast.  ``"direct"`` evaluates the
+        Leading batch axes follow NumPy broadcasting. Complete trailing
+        coefficient axes are fixed and never broadcast. ``"direct"`` evaluates the
         defining doubling recursion with quadratic arithmetic,
         ``"cariow_cariowa"`` uses fixed straight-line kernels through
         dimension 64 and table-driven kernels from 128 through 1024, where it
-        is available but not recommended, and ``"quasilinear"`` uses
+        is available but not recommended for real parents, and ``"quasilinear"`` uses
         ``O(N log N)`` arithmetic at every dimension.  The algorithms can
         round differently.  Ordinary
         operators, ``numpy.multiply``, and powers always use ``"auto"``.
-        Real scalar operands are scaled coordinatewise without invoking a
+        Coefficient scalar operands are scaled coordinatewise without invoking a
         multiplication kernel, so the algorithm does not change their result.
         """
 
-        from ._array import ElementArray, _is_real_scalar, _multiply
+        if self._ctx is not None:
+            from ._domains import multiply
+
+            return cast(
+                "Element | ElementArray",
+                multiply(self, x, y, out=out, algorithm=algorithm),
+            )
+
+        from ._array import _is_real_scalar, _multiply
 
         code = _core._algorithm(algorithm, self.dimension)
         if isinstance(x, Element) and isinstance(y, Element) and out is None:
@@ -537,26 +699,22 @@ class Algebra:
             return _core._multiply_element(code, x, y)
         if isinstance(x, Element) and _is_real_scalar(y) and out is None:
             self._require_element(x)
-            return cast(Element, x * y)
+            return cast("Element | ElementArray", x * y)
         if _is_real_scalar(x) and isinstance(y, Element) and out is None:
             self._require_element(y)
-            return cast(Element, x * y)
+            return cast("Element | ElementArray", x * y)
         if _is_real_scalar(x) and _is_real_scalar(y):
             product = self.scalar(float(x) * float(y))
             if out is None:
                 return product
             return cast(
-                ElementArray,
-                _multiply(
-                    self, product, 1.0, out=out, allow_array_like=True
-                ),
+                "Element | ElementArray",
+                _multiply(self, product, 1.0, out=out, allow_array_like=True),
             )
 
         return cast(
-            ElementArray,
-            _multiply(
-                self, x, y, out=out, allow_array_like=True, algorithm=code
-            ),
+            "Element | ElementArray",
+            _multiply(self, x, y, out=out, allow_array_like=True, algorithm=code),
         )
 
     def left_basis_multiply(
@@ -569,7 +727,8 @@ class Algebra:
         index : int
             Basis index in ``range(dimension)``.
         x : Element, ElementArray, or array-like
-            Element coefficients with final axis ``dimension``.
+            Complete records with trailing ``coefficient_shape``. Scalars are
+            not embedded implicitly; use ``self.scalar(r)`` for a scalar record.
         out : ElementArray or numpy.ndarray, optional
             Nonoverlapping output satisfying the contract of
             :meth:`multiply`.
@@ -595,6 +754,21 @@ class Algebra:
         a signed permutation of coordinates.
         """
 
+        if self._ctx is not None:
+            from ._domains import apply
+
+            return cast(
+                "Element | ElementArray",
+                apply(
+                    self,
+                    "basis_left",
+                    x,
+                    out=out,
+                    index=_basis_index(index, self.dimension),
+                    coerce=True,
+                ),
+            )
+
         normalized = _basis_index(index, self.dimension)
         if isinstance(x, Element) and out is None:
             self._require_element(x)
@@ -611,7 +785,8 @@ class Algebra:
         Parameters
         ----------
         x : Element, ElementArray, or array-like
-            Element coefficients with final axis ``dimension``.
+            Complete records with trailing ``coefficient_shape``. Scalars are
+            not embedded implicitly; use ``self.scalar(r)`` for a scalar record.
         index : int
             Basis index in ``range(dimension)``.
         out : ElementArray or numpy.ndarray, optional
@@ -639,6 +814,21 @@ class Algebra:
         because the algebra is generally noncommutative.
         """
 
+        if self._ctx is not None:
+            from ._domains import apply
+
+            return cast(
+                "Element | ElementArray",
+                apply(
+                    self,
+                    "basis_right",
+                    x,
+                    out=out,
+                    index=_basis_index(index, self.dimension),
+                    coerce=True,
+                ),
+            )
+
         normalized = _basis_index(index, self.dimension)
         if isinstance(x, Element) and out is None:
             self._require_element(x)
@@ -656,7 +846,8 @@ class Algebra:
         ----------
         a, b, x : Element, ElementArray, or array-like
             Inputs to ``[L_a, L_b](x) = a*(b*x) - b*(a*x)``.  Array inputs
-            must have final axis ``dimension``.
+            must end in ``coefficient_shape``. Scalar inputs are not embedded;
+            construct a scalar record explicitly when intended.
         out : ElementArray or numpy.ndarray, optional
             Nonoverlapping output satisfying the contract of
             :meth:`multiply`.
@@ -681,6 +872,14 @@ class Algebra:
         no dense left-multiplication operator is materialized.
         """
 
+        if self._ctx is not None:
+            from ._domains import apply
+
+            return cast(
+                "Element | ElementArray",
+                apply(self, "left_operator_commutator", a, b, x, out=out, coerce=True),
+            )
+
         if all(isinstance(value, Element) for value in (a, b, x)) and out is None:
             for value in (a, b, x):
                 self._require_element(value)
@@ -698,7 +897,8 @@ class Algebra:
         ----------
         a, b, x : Element, ElementArray, or array-like
             Inputs to ``[R_a, R_b](x) = (x*b)*a - (x*a)*b``.  Array inputs
-            must have final axis ``dimension``.
+            must end in ``coefficient_shape``. Scalar inputs are not embedded;
+            construct a scalar record explicitly when intended.
         out : ElementArray or numpy.ndarray, optional
             Nonoverlapping output satisfying the contract of
             :meth:`multiply`.
@@ -723,6 +923,14 @@ class Algebra:
         dense right-multiplication operator is materialized.
         """
 
+        if self._ctx is not None:
+            from ._domains import apply
+
+            return cast(
+                "Element | ElementArray",
+                apply(self, "right_operator_commutator", a, b, x, out=out, coerce=True),
+            )
+
         if all(isinstance(value, Element) for value in (a, b, x)) and out is None:
             for value in (a, b, x):
                 self._require_element(value)
@@ -744,14 +952,22 @@ def _algebra_from_dimension(dimension: int) -> Algebra:
     return Algebra(dimension=dimension)
 
 
-def cd_element(coefficients: Any) -> Element:
+def cd_element(
+    coefficients: Any, *, char: Any = 0, deg: Any = 1, field: Any = None
+) -> Element:
     """Construct a Cayley--Dickson element and infer its dimension.
 
     Parameters
     ----------
-    coefficients : Element or one-dimensional array-like
-        A nonempty power-of-two number of real coefficients.  An existing
-        Element is copied.
+    coefficients : Element or array-like
+        One complete record with a nonempty power-of-two number of CD
+        coefficients. Default real and explicit complex/prime-field inputs
+        have shape ``(N,)``; finite extensions have shape ``(N, deg)``.
+        An existing Element is copied, retaining its parent when no new
+        coefficient selectors are supplied.
+    char, deg, field : optional
+        Coefficient selectors with the same contract as :class:`Algebra`.
+        Omitting them preserves the original real constructor calls.
 
     Returns
     -------
@@ -761,10 +977,11 @@ def cd_element(coefficients: Any) -> Element:
     Raises
     ------
     ValueError
-        If the input is not one-dimensional or its length is not a positive
-        power of two.
+        If the input is not one complete coefficient record or its CD
+        dimension is not a positive power of two.
     TypeError
-        If coefficients are complex, object-valued, or nonnumeric.
+        If coefficients are unsupported by the selected field. Default real
+        calls reject complex/object inputs; finite calls require integers.
 
     Notes
     -----
@@ -773,6 +990,30 @@ def cd_element(coefficients: Any) -> Element:
     explicit and avoids inference.  Coefficients are always copied.
     """
 
+    if char != 0 or deg != 1 or field is not None:
+        probe = Algebra(dimension=1, char=char, deg=deg, field=field)
+        if isinstance(coefficients, Element):
+            if (
+                coefficients.algebra.char != probe.char
+                or coefficients.algebra.deg != probe.deg
+                or coefficients.algebra.field is not probe.field
+            ):
+                raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
+            return cast(Element, coefficients.copy())
+        from ._domains import _finite_values
+
+        values = np.asarray(
+            _finite_values(probe, coefficients) if probe.char else coefficients
+        )
+        axes = 2 if probe.char and probe.deg > 1 else 1
+        if values.ndim != axes:
+            raise ValueError("expected one complete coefficient record")
+        return Algebra(dimension=values.shape[0], char=char, deg=deg, field=field)(
+            coefficients
+        )
+    if isinstance(coefficients, Element) and coefficients.algebra._ctx is not None:
+        return cast(Element, coefficients.copy())
+
     if isinstance(coefficients, Element):
         return Algebra(dimension=coefficients.dimension)(coefficients)
     values = np.asarray(coefficients)
@@ -780,3 +1021,13 @@ def cd_element(coefficients: Any) -> Element:
         raise ValueError("coefficients must be one-dimensional")
     algebra = Algebra(dimension=values.shape[0])
     return algebra(values)
+
+
+def _algebra_from_domain(dimension: int, char: int, deg: int, field: Any) -> Algebra:
+    """Restore a new-domain pickle using its actual finite field presentation."""
+
+    return (
+        Algebra(dimension=dimension, field=field)
+        if field is not None
+        else Algebra(dimension=dimension, char=char, deg=deg)
+    )

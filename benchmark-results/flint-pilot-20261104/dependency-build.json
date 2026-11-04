@@ -1,0 +1,18 @@
+{
+  "library": "FLINT (Fast Library for Number Theory)",
+  "release": "3.6.0",
+  "release_page": "https://flintlib.org/downloads.html",
+  "release_tar_sha256": "134d39731a6dd926254625d646d85bf5990c68a3f2326cd54d2a6983e3e11dd8",
+  "configure_options": [
+    "--disable-debug",
+    "CFLAGS=-O3"
+  ],
+  "compiler": "cc (GCC) 16.2.1 20260810",
+  "assembly": "upstream default enabled; AVX2/AVX512 options disabled",
+  "link_mode": "shared",
+  "threads": 1,
+  "gmp_version_at_build": "6.3.0",
+  "mpfr_version_at_build": "4.2.2",
+  "measured_library_sha256": "aba62325bad27f74822654ab85206c60a28293ce223c2a156a204acd277a12d0",
+  "provenance": "The dependency build record was checked against the installed library hash. Runtime library hashes are also recorded in results.json."
+}

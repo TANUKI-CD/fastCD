@@ -1,9 +1,10 @@
-"""NumPy-backed batches of standard real Cayley--Dickson elements."""
+"""NumPy-backed batches of standard Cayley--Dickson elements."""
 
 from __future__ import annotations
 
 import operator
 from collections.abc import Iterator
+from types import GenericAlias
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -19,6 +20,7 @@ from numpy.lib import NumpyVersion
 
 from . import _core
 from ._core import Element
+from ._domains import array_dispatch as _domain_array_dispatch
 from ._typing import _RealScalar
 from ._validation import (
     DIFFERENT_ALGEBRA_MESSAGE,
@@ -124,9 +126,7 @@ def _layout_is_compatible(array: np.ndarray[Any, Any], dimension: int) -> bool:
         )
         and all(
             extent <= 1 or stride % alignment == 0
-            for extent, stride in zip(
-                array.shape[:-1], array.strides[:-1], strict=True
-            )
+            for extent, stride in zip(array.shape[:-1], array.strides[:-1], strict=True)
         )
     )
 
@@ -182,9 +182,8 @@ def _coerce_coefficients(
         )
 
     compatible = _layout_is_compatible(source, algebra.dimension)
-    zero_copy_source = (
-        isinstance(values, (np.ndarray, Element))
-        or hasattr(values, "__dlpack__")
+    zero_copy_source = isinstance(values, (np.ndarray, Element)) or hasattr(
+        values, "__dlpack__"
     )
     if not zero_copy_source:
         try:
@@ -231,19 +230,23 @@ class ElementArray:
 
     Notes
     -----
-    Storage has shape ``batch_shape + (dimension,)`` and native ``float64``
-    dtype.  The wrapper is generally mutable: writeability and ownership are
+    Storage has shape ``batch_shape + algebra.coefficient_shape`` and the
+    parent's native coefficient dtype. Default real calls use ``float64``.
+    The wrapper is generally mutable: writeability and ownership are
     inherited from the backing ndarray.  Algebraic batch work executes in
     compiled, matrix-free kernels, with one Python wrapper per whole array
     rather than one object per record.
 
-    Operators accept :class:`Element`, :class:`ElementArray`, and real scalar
-    operands.  Real scalars include Python integers and floats,
+    Operators accept :class:`Element`, :class:`ElementArray`, and coefficient
+    scalars. For the default real parent, these include Python integers and floats,
     :class:`decimal.Decimal`, :class:`fractions.Fraction`, real NumPy scalars,
-    and real numeric zero-dimensional ndarrays.  Nonscalar raw coefficient
+    and real numeric zero-dimensional ndarrays. Complex parents also accept
+    complex scalars; finite parents accept integers and matching field scalars.
+    Finite arithmetic reduces integer operands but equality compares exactly.
+    Nonscalar raw coefficient
     arrays must first be wrapped or passed to :meth:`Algebra.multiply`.
-    Leading batch axes broadcast by NumPy rules, while the final coefficient
-    axis never broadcasts.  Powers use ``**``; ordinary Python reserves ``^``
+    Leading batch axes broadcast by NumPy rules, while complete coefficient
+    axes never broadcast. Powers use ``**``; ordinary Python reserves ``^``
     for bitwise XOR.
     """
 
@@ -252,6 +255,10 @@ class ElementArray:
     _coefficients: np.ndarray[Any, np.dtype[np.float64]]
     __array_priority__ = 1000.0
     __hash__ = None  # type: ignore[assignment]
+
+    def __class_getitem__(cls, parameters: Any) -> Any:
+        """Support optional domain-specific static type annotations."""
+        return GenericAlias(cls, parameters)
 
     if TYPE_CHECKING:
 
@@ -299,7 +306,7 @@ class ElementArray:
 
     @property
     def dtype(self) -> np.dtype[np.float64]:
-        """numpy.dtype: Backing coefficient dtype, always native ``float64``."""
+        """numpy.dtype: Parent's native coefficient dtype, ``float64`` by default."""
 
         return self._coefficients.dtype
 
@@ -307,8 +314,9 @@ class ElementArray:
     def shape(self) -> tuple[int, ...]:
         """tuple[int, ...]: Complete coefficient-storage shape.
 
-        This equals ``batch_shape + (dimension,)``.  For example, 100
-        quaternions have shape ``(100, 4)``.
+        This equals ``batch_shape + algebra.coefficient_shape``. For example,
+        100 real quaternions have shape ``(100, 4)``; over F_(p^d), d>1,
+        their storage has shape ``(100, 4, d)``.
         """
 
         return tuple(self._coefficients.shape)
@@ -316,6 +324,9 @@ class ElementArray:
     @property
     def batch_shape(self) -> tuple[int, ...]:
         """tuple[int, ...]: Leading shape that indexes complete elements."""
+
+        if self._algebra._ctx is not None:
+            return cast("tuple[int, ...]", _domain_array_dispatch("batch_shape", self))
 
         return tuple(self._coefficients.shape[:-1])
 
@@ -334,7 +345,18 @@ class ElementArray:
 
     @property
     def real(self) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """numpy.ndarray: View of coordinate zero over ``batch_shape``."""
+        """View of coordinate zero over ``batch_shape``.
+
+        Real/complex parents return an ndarray. Finite parents return an
+        ElementArray over the matching coefficient field, retaining its
+        polynomial axes. A field-scalar array is already its own real part.
+        """
+
+        if self._algebra._ctx is not None:
+            return cast(
+                "np.ndarray[Any, np.dtype[np.float64]]",
+                _domain_array_dispatch("real", self),
+            )
 
         return self._coefficients[..., 0:1].squeeze(axis=-1)
 
@@ -493,9 +515,7 @@ class ElementArray:
             and current_device[0] in _DLPACK_CPU_CONVERTIBLE_DEVICE_TYPES
             and device != (1, 0)
         ):
-            raise BufferError(
-                "legacy NumPy cannot copy while preserving host device"
-            )
+            raise BufferError("legacy NumPy cannot copy while preserving host device")
         if manual_copy_required:
             coefficients = coefficients.copy()
 
@@ -594,8 +614,8 @@ class ElementArray:
         Parameters
         ----------
         key : object
-            A NumPy-compatible index for the leading batch axes.  The final
-            coefficient axis is appended automatically.
+            A NumPy-compatible index for batch axes. Complete trailing
+            coefficient axes, including extension polynomial axes, are appended.
 
         Returns
         -------
@@ -604,6 +624,12 @@ class ElementArray:
             A result retaining batch axes returns an ElementArray; ordinary
             basic slicing shares storage and advanced indexing follows NumPy.
         """
+
+        if self._algebra._ctx is not None:
+            return cast(
+                "Element | ElementArray",
+                _domain_array_dispatch("__getitem__", self, key),
+            )
 
         full_key = key if isinstance(key, tuple) else (key,)
         result = self._coefficients[full_key + (slice(None),)]
@@ -653,8 +679,8 @@ class ElementArray:
         ----------
         key : object
             A NumPy-compatible index for the leading batch axes.
-        value : real scalar, Element, ElementArray, or array-like
-            Values broadcast by NumPy into the selected records.  A real
+        value : coefficient scalar, Element, ElementArray, or array-like
+            Values broadcast by NumPy into the selected records.  A coefficient
             scalar is embedded in coordinate zero, with other coordinates
             zero.
 
@@ -671,6 +697,10 @@ class ElementArray:
         Assignment mutates the backing ndarray and any storage shared through
         :meth:`Algebra.asarray`.
         """
+
+        if self._algebra._ctx is not None:
+            _domain_array_dispatch("__setitem__", self, key, value)
+            return
 
         full_key = key if isinstance(key, tuple) else (key,)
         destination_key = full_key + (slice(None),)
@@ -707,19 +737,24 @@ class ElementArray:
     def __neg__(self) -> ElementArray:
         """Return coordinatewise negation in newly allocated storage."""
 
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("__neg__", self))
+
         return ElementArray._from_coefficients(
             self.algebra, np.negative(self._coefficients)
         )
 
-    def __add__(
-        self, other: Element | ElementArray | _RealScalar
-    ) -> ElementArray:
-        """Add elements or an embedded real scalar.
+    def __add__(self, other: Element | ElementArray | _RealScalar) -> ElementArray:
+        """Add elements or an embedded coefficient scalar.
 
-        Element and ElementArray operands broadcast over leading axes.  A real
+        Element and ElementArray operands broadcast over leading axes.  A coefficient
         scalar changes coordinate zero only; nonscalar raw ndarrays are
-        unsupported.  A numeric zero-dimensional ndarray is a real scalar.
+        unsupported.  A zero-dimensional ndarray must have a scalar dtype
+        accepted by the parent.
         """
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("__add__", self, other))
 
         return cast(
             ElementArray,
@@ -727,22 +762,27 @@ class ElementArray:
         )
 
     def __radd__(self, other: Element | _RealScalar) -> ElementArray:
-        """Add this array to an element or embedded real scalar."""
+        """Add this array to an element or embedded coefficient scalar."""
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("__radd__", self, other))
 
         return cast(
             ElementArray,
             _coordinate_add(self, other, subtract=False, reflected=True),
         )
 
-    def __sub__(
-        self, other: Element | ElementArray | _RealScalar
-    ) -> ElementArray:
-        """Subtract elements or an embedded real scalar.
+    def __sub__(self, other: Element | ElementArray | _RealScalar) -> ElementArray:
+        """Subtract elements or an embedded coefficient scalar.
 
-        Element and ElementArray operands broadcast over leading axes.  A real
+        Element and ElementArray operands broadcast over leading axes.  A coefficient
         scalar changes coordinate zero only; nonscalar raw ndarrays are
-        unsupported.  A numeric zero-dimensional ndarray is a real scalar.
+        unsupported.  A zero-dimensional ndarray must have a scalar dtype
+        accepted by the parent.
         """
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("__sub__", self, other))
 
         return cast(
             ElementArray,
@@ -750,21 +790,25 @@ class ElementArray:
         )
 
     def __rsub__(self, other: Element | _RealScalar) -> ElementArray:
-        """Subtract this array from an element or embedded real scalar."""
+        """Subtract this array from an element or embedded coefficient scalar."""
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("__rsub__", self, other))
 
         return cast(
             ElementArray,
             _coordinate_add(self, other, subtract=True, reflected=True),
         )
 
-    def __mul__(
-        self, other: Element | ElementArray | _RealScalar
-    ) -> ElementArray:
+    def __mul__(self, other: Element | ElementArray | _RealScalar) -> ElementArray:
         """Return the pairwise Cayley--Dickson product or real scaling.
 
         Leading axes broadcast.  Raw coefficient arrays are not accepted by
         operators; wrap them first or use :meth:`Algebra.multiply`.
         """
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("__mul__", self, other))
 
         return cast(
             ElementArray,
@@ -772,11 +816,14 @@ class ElementArray:
         )
 
     def __rmul__(self, other: Element | _RealScalar) -> ElementArray:
-        """Left-multiply pairwise or scale by a real scalar.
+        """Left-multiply pairwise or scale by a coefficient scalar.
 
         Operand order is preserved because multiplication is generally
         noncommutative.
         """
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("__rmul__", self, other))
 
         return cast(
             ElementArray,
@@ -784,11 +831,11 @@ class ElementArray:
         )
 
     def __truediv__(self, other: _RealScalar) -> ElementArray:
-        """Divide every coefficient by a nonzero real scalar.
+        """Divide every coefficient by a nonzero coefficient scalar.
 
         Parameters
         ----------
-        other : real scalar
+        other : coefficient scalar
             Coordinate divisor.
 
         Returns
@@ -799,15 +846,21 @@ class ElementArray:
         Raises
         ------
         TypeError
-            If ``other`` is not a real scalar.
+            If ``other`` is not a coefficient scalar.
         ZeroDivisionError
-            If ``other`` is positive or negative zero.
+            If the coefficient divisor is zero.
 
         Notes
         -----
-        Element-valued division is not defined; use :meth:`reciprocal`
-        explicitly when its canonical algebraic meaning is intended.
+        Division by a complete CD record is not defined. A matching finite
+        field scalar or field-scalar array may be a coefficient divisor. Use
+        :meth:`reciprocal` explicitly for a CD reciprocal when intended.
         """
+
+        if self._algebra._ctx is not None:
+            return cast(
+                "ElementArray", _domain_array_dispatch("__truediv__", self, other)
+            )
 
         if not _is_real_scalar(other):
             return NotImplemented
@@ -818,9 +871,7 @@ class ElementArray:
             self.algebra, self._coefficients / scalar
         )
 
-    def __pow__(
-        self, exponent: SupportsIndex, modulus: None = None
-    ) -> ElementArray:
+    def __pow__(self, exponent: SupportsIndex, modulus: None = None) -> ElementArray:
         """Raise each record to the same integer power.
 
         Parameters
@@ -842,7 +893,8 @@ class ElementArray:
         TypeError
             If ``exponent`` is not integer-like or ``modulus`` is supplied.
         ZeroDivisionError
-            If a negative power encounters an exactly zero record.
+            If a negative power encounters zero quadratic norm, including
+            nonzero isotropic records over complex or finite coefficients.
 
         Notes
         -----
@@ -850,6 +902,12 @@ class ElementArray:
         ``exponent == 2`` selects the specialized linear-time square kernel.
         Use ``x ** k``: Python's ``x ^ k`` is bitwise XOR and is unsupported.
         """
+
+        if self._algebra._ctx is not None:
+            return cast(
+                "ElementArray",
+                _domain_array_dispatch("__pow__", self, exponent, modulus),
+            )
 
         if modulus is not None:
             raise TypeError(MODULAR_POWER_MESSAGE)
@@ -879,7 +937,7 @@ class ElementArray:
         return result
 
     def __abs__(self) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """Return one Euclidean norm per batch record."""
+        """Return real Euclidean norms; complex/finite parents raise TypeError."""
 
         return self.norm()
 
@@ -896,9 +954,12 @@ class ElementArray:
     def __eq__(self, other: Any) -> Any:
         """Return exact whole-element equality over broadcast batch axes.
 
-        The result is a Boolean ndarray of the broadcast batch shape.  A real
+        The result is a Boolean ndarray of the broadcast batch shape.  A coefficient
         scalar compares as an element with zero imaginary coordinates.
         """
+
+        if self._algebra._ctx is not None:
+            return _domain_array_dispatch("__eq__", self, other)
 
         return _coordinate_equal(self, other, invert=False)
 
@@ -915,6 +976,9 @@ class ElementArray:
     def __ne__(self, other: Any) -> Any:
         """Return exact whole-element inequality over broadcast batch axes."""
 
+        if self._algebra._ctx is not None:
+            return _domain_array_dispatch("__ne__", self, other)
+
         return _coordinate_equal(self, other, invert=True)
 
     def conjugate(self) -> ElementArray:
@@ -925,7 +989,15 @@ class ElementArray:
         ElementArray
             Newly allocated records with coordinate zero preserved and every
             imaginary coordinate negated.
+
+        Notes
+        -----
+        The CD involution fixes coefficient scalars, including complex values.
+        It does not apply coefficient complex conjugation or finite-field Frobenius.
         """
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("conjugate", self))
 
         return _unary(self.algebra, self, _core._UNARY_CONJUGATE)
 
@@ -939,6 +1011,9 @@ class ElementArray:
             all remaining coordinates preserved.
         """
 
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("imag_part", self))
+
         return _unary(self.algebra, self, _core._UNARY_IMAG_PART)
 
     def normalized(self) -> ElementArray:
@@ -951,6 +1026,8 @@ class ElementArray:
 
         Raises
         ------
+        TypeError
+            If coefficients are complex or finite; normalization requires R.
         ZeroDivisionError
             If any visited record has all coefficients exactly zero.  No
             near-zero tolerance is applied.
@@ -960,6 +1037,9 @@ class ElementArray:
         Scaled norm accumulation reduces avoidable finite overflow and
         underflow.  NaN and infinity follow the native IEEE-754 path.
         """
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("normalized", self))
 
         return _unary(self.algebra, self, _core._UNARY_NORMALIZE)
 
@@ -974,13 +1054,17 @@ class ElementArray:
         Raises
         ------
         ZeroDivisionError
-            If any visited record is exactly zero.
+            If any record has zero quadratic norm, including nonzero isotropic
+            complex/finite records. No near-zero tolerance is applied.
 
         Notes
         -----
         In higher nonassociative algebras this canonical two-sided reciprocal
         is not a solver for a general left- or right-multiplication equation.
         """
+
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("reciprocal", self))
 
         return _unary(self.algebra, self, _core._UNARY_RECIPROCAL)
 
@@ -999,10 +1083,13 @@ class ElementArray:
         round differently from general pairwise multiplication.
         """
 
+        if self._algebra._ctx is not None:
+            return cast("ElementArray", _domain_array_dispatch("square", self))
+
         return _unary(self.algebra, self, _core._UNARY_SQUARE)
 
     def inner(self, other: Any) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """Return pairwise Euclidean coefficient inner products.
+        """Return pairwise coefficient-bilinear products ``sum_i x_i*y_i``.
 
         Parameters
         ----------
@@ -1011,8 +1098,9 @@ class ElementArray:
 
         Returns
         -------
-        numpy.ndarray
-            Native ``float64`` values over the broadcast batch shape.
+        numpy.ndarray or ElementArray
+            Real/complex ndarrays over the broadcast batch shape, or a
+            finite-field ElementArray over the matching coefficient parent.
 
         Raises
         ------
@@ -1023,27 +1111,48 @@ class ElementArray:
 
         Notes
         -----
-        Accumulation uses ordinary sequential double arithmetic, without
-        compensation.  Wrap raw coefficient arrays with ``algebra.asarray``.
+        The real path uses sequential double arithmetic, without compensation.
+        Complex coefficients are not conjugated; finite accumulation is exact
+        in the coefficient field. Wrap raw inputs with ``algebra.asarray``.
         """
+
+        if self._algebra._ctx is not None:
+            return cast(
+                "np.ndarray[Any, np.dtype[np.float64]]",
+                _domain_array_dispatch("inner", self, other),
+            )
 
         return _scalar_binary(self.algebra, self, other, _core._SCALAR_INNER)
 
     def norm_squared(self) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """Return squared Euclidean norms over the batch shape.
+        """Return the canonical quadratic form over the batch shape.
 
         Returns
         -------
-        numpy.ndarray
-            One native ``float64`` value per batch record.
+        numpy.ndarray or ElementArray
+            One ``sum_i x_i**2`` in the coefficient field per record:
+            float64 over R, complex128 over C, or a finite-field ElementArray.
 
         Notes
         -----
-        The native routine uses scaled accumulation to reduce avoidable
-        overflow and underflow.  NaN and infinity follow IEEE-754 behavior.
+        This is the same form as ``quadratic_norm()``. The unchanged real
+        path uses scaled accumulation to reduce avoidable overflow and
+        underflow, with IEEE-754 NaN/infinity behavior. Complex and finite
+        forms can vanish on nonzero records and are not Hermitian norms.
         """
 
+        if self._algebra._ctx is not None:
+            return cast(
+                "np.ndarray[Any, np.dtype[np.float64]]",
+                _domain_array_dispatch("norm_squared", self),
+            )
+
         return _scalar_unary(self.algebra, self, _core._SCALAR_NORM_SQUARED)
+
+    def quadratic_norm(self) -> Any:
+        """Return the canonical CD quadratic form over the coefficient field."""
+
+        return self.norm_squared()
 
     def norm(self) -> np.ndarray[Any, np.dtype[np.float64]]:
         """Return Euclidean norms over the batch shape.
@@ -1053,7 +1162,18 @@ class ElementArray:
         numpy.ndarray
             One native ``float64`` norm per batch record; this is also the
             value returned by ``abs(self)``.
+
+        Raises
+        ------
+        TypeError
+            For complex or finite parents; use ``quadratic_norm()`` there.
         """
+
+        if self._algebra._ctx is not None:
+            return cast(
+                "np.ndarray[Any, np.dtype[np.float64]]",
+                _domain_array_dispatch("norm", self),
+            )
 
         return _scalar_unary(self.algebra, self, _core._SCALAR_NORM)
 
@@ -1085,6 +1205,11 @@ class ElementArray:
         orientation; higher-dimensional vector identities need not hold.
         """
 
+        if self._algebra._ctx is not None:
+            return cast(
+                "ElementArray", _domain_array_dispatch("imag_cross", self, other)
+            )
+
         return _binary(self.algebra, self, other, _core._BINARY_IMAG_CROSS)
 
     def commutator(self, other: Any) -> ElementArray:
@@ -1112,6 +1237,11 @@ class ElementArray:
         The optimized matrix-free alternating-product kernel does not form
         and subtract two independent complete products.
         """
+
+        if self._algebra._ctx is not None:
+            return cast(
+                "ElementArray", _domain_array_dispatch("commutator", self, other)
+            )
 
         return _binary(self.algebra, self, other, _core._BINARY_COMMUTATOR)
 
@@ -1141,6 +1271,11 @@ class ElementArray:
         than forming two complete products.
         """
 
+        if self._algebra._ctx is not None:
+            return cast(
+                "ElementArray", _domain_array_dispatch("anticommutator", self, other)
+            )
+
         return _binary(self.algebra, self, other, _core._BINARY_ANTICOMMUTATOR)
 
     def associator(self, y: Any, z: Any) -> ElementArray:
@@ -1169,6 +1304,11 @@ class ElementArray:
         multiplication is nonassociative.  Wrap raw arrays before calling.
         """
 
+        if self._algebra._ctx is not None:
+            return cast(
+                "ElementArray", _domain_array_dispatch("associator", self, y, z)
+            )
+
         return _associator(self.algebra, self, y, z)
 
     def __array_ufunc__(
@@ -1186,26 +1326,28 @@ class ElementArray:
 
         Unsupported ufuncs, nonscalar raw ndarray operands, methods such as
         ``reduce``, and extra keyword options return ``NotImplemented`` and
-        normally cause NumPy to raise ``TypeError``.  Numeric zero-dimensional
-        ndarrays are treated as real scalars.
+        normally cause NumPy to raise ``TypeError``.  Compatible zero-dimensional
+        ndarrays are coefficient scalars. CD conjugation fixes coefficients;
+        ``absolute`` raises TypeError for complex/finite parents, as does abs().
         """
+
+        if self._algebra._ctx is not None:
+            return _domain_array_dispatch(
+                "__array_ufunc__", self, ufunc, method, *inputs, **kwargs
+            )
 
         from ._operators import _dispatch_array_ufunc
 
         return _dispatch_array_ufunc(self, ufunc, method, inputs, kwargs)
 
 
-def _element_array_from_pickle(
-    algebra: Algebra, coefficients: Any
-) -> ElementArray:
+def _element_array_from_pickle(algebra: Algebra, coefficients: Any) -> ElementArray:
     """Reconstruct an owning element array during unpickling."""
 
     return algebra.array(coefficients)
 
 
-def _strict_operand(
-    algebra: Algebra, value: Any
-) -> np.ndarray[Any, Any] | None:
+def _strict_operand(algebra: Algebra, value: Any) -> np.ndarray[Any, Any] | None:
     """Return coefficients for a same-parent fastCD operand when supported."""
 
     if isinstance(value, ElementArray):
@@ -1363,9 +1505,7 @@ def _multiply(
             )
             np.multiply(right_values, float(left), out=coefficients)
             return result
-        return ElementArray._from_coefficients(
-            algebra, right_values * float(left)
-        )
+        return ElementArray._from_coefficients(algebra, right_values * float(left))
     if _is_real_scalar(right):
         left_values = (
             _general_operand(algebra, left)
@@ -1380,9 +1520,7 @@ def _multiply(
             )
             np.multiply(left_values, float(right), out=coefficients)
             return result
-        return ElementArray._from_coefficients(
-            algebra, left_values * float(right)
-        )
+        return ElementArray._from_coefficients(algebra, left_values * float(right))
     if not allow_array_like and (
         _strict_operand(algebra, left) is None
         or _strict_operand(algebra, right) is None
@@ -1459,9 +1597,7 @@ def _coordinate_equal(array: ElementArray, other: Any, *, invert: bool) -> Any:
     return np.asarray(result)
 
 
-def _scalar_unary(
-    algebra: Algebra, value: Any, operation: int
-) -> np.ndarray[Any, Any]:
+def _scalar_unary(algebra: Algebra, value: Any, operation: int) -> np.ndarray[Any, Any]:
     """Apply a native scalar-valued unary operation over a coefficient batch."""
 
     source = _general_operand(algebra, value)
@@ -1491,9 +1627,7 @@ def _scalar_binary(
     return result
 
 
-def _associator(
-    algebra: Algebra, x: Any, y: Any, z: Any
-) -> ElementArray:
+def _associator(algebra: Algebra, x: Any, y: Any, z: Any) -> ElementArray:
     """Apply the native associator over three broadcast fastCD operands."""
 
     operands = [_strict_operand(algebra, value) for value in (x, y, z)]
@@ -1519,13 +1653,9 @@ def _basis_action(
     """Apply left or right basis multiplication to an array-like batch."""
 
     source = _general_operand(algebra, x)
-    coefficients, result = _element_output(
-        algebra, source.shape, out, (source,)
-    )
+    coefficients, result = _element_output(algebra, source.shape, out, (source,))
     if coefficients.size:
-        _core._apply_basis_into(
-            left, index, coefficients, source, algebra.dimension
-        )
+        _core._apply_basis_into(left, index, coefficients, source, algebra.dimension)
     return result
 
 

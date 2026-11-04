@@ -449,6 +449,7 @@ class PublicSurfaceTests(FastCDTestCase):
                 "Element",
                 "ElementArray",
                 "cd_element",
+                "FiniteField",
             ],
         )
         self.assertRegex(fcd.__version__, r"^\d+\.\d+\.\d+")

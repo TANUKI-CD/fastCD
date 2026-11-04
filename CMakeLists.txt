@@ -15,7 +15,7 @@ endif()
 
 project(fastCD
     VERSION ${FASTCD_VERSION_STRING}
-    DESCRIPTION "Fast real Cayley--Dickson arithmetic"
+    DESCRIPTION "Cayley--Dickson arithmetic over real, complex and finite fields"
     LANGUAGES C)
 
 include(CTest)
@@ -24,9 +24,13 @@ include(GNUInstallDirs)
 
 option(BUILD_SHARED_LIBS "Build fastCD as a shared library" OFF)
 option(FASTCD_BUILD_BENCHMARK "Build the multiplication benchmark runner" ON)
+option(FASTCD_BUILD_FLINT_BENCHMARK "Build the optional FLINT comparison runner" OFF)
 option(FASTCD_BUILD_PYTHON "Build the pyfastcd extension module" OFF)
 option(FASTCD_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(FASTCD_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+if(FASTCD_BUILD_FLINT_BENCHMARK AND NOT FASTCD_BUILD_BENCHMARK)
+    message(FATAL_ERROR "FASTCD_BUILD_FLINT_BENCHMARK requires FASTCD_BUILD_BENCHMARK=ON")
+endif()
 
 # Internal tuning macros (for example FASTCD_DIRECT_LEAF=32) used
 # while measuring kernel thresholds.  Production builds leave this empty.
@@ -73,14 +77,22 @@ add_library(fastcd
     src/fastcd.c
     src/quasilinear.c
     src/cariow_cariowa.c
-    src/direct.c)
+    src/direct.c
+    src/arithmetic.c
+    src/complex.c
+    src/finite/field.c
+    src/finite/finite.c
+    src/finite/plan.c
+    src/finite/operations.c
+    src/finite/finite_backend.c
+    src/finite/finite_prime.c)
 add_library(fastcd::fastcd ALIAS fastcd)
 target_include_directories(fastcd
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE
-        ${PROJECT_SOURCE_DIR}/src)
+        ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/src/finite)
 set_target_properties(fastcd PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
@@ -97,6 +109,44 @@ endif()
 fastcd_configure_target(fastcd)
 if(NOT MSVC)
     target_link_libraries(fastcd PUBLIC m)
+endif()
+
+# Only these translation units contain optional ISA instructions. Portable
+# builds and the existing real kernels retain their original compiler flags.
+option(FASTCD_ENABLE_FINITE_SIMD "Runtime-dispatched finite x86 kernels" ON)
+set(FASTCD_HAVE_FINITE_SIMD OFF)
+if(FASTCD_ENABLE_FINITE_SIMD AND NOT FASTCD_TUNING_DEFINITIONS MATCHES "FASTCD_DISABLE_SIMD=1"
+        AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i[3-6]86)$"
+        AND CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+    target_compile_definitions(fastcd PRIVATE FASTCD_FF_FINITE_SIMD=1)
+    set(FASTCD_HAVE_FINITE_SIMD ON)
+    foreach(lanes 4 8 16)
+        target_sources(fastcd PRIVATE src/finite/generated/finite_mont_${lanes}.c)
+    endforeach()
+    foreach(lanes 8 16 32)
+        target_sources(fastcd PRIVATE src/finite/generated/finite_short_${lanes}.c
+            src/finite/generated/finite_shuffle_${lanes}.c)
+    endforeach()
+    target_sources(fastcd PRIVATE src/finite/generated/finite_maps.c
+        src/finite/generated/finite_medium_bar.c src/finite/generated/finite_medium_mont.c
+        src/finite/generated/finite_byte.c)
+    foreach(bits 16 32 64)
+        target_sources(fastcd PRIVATE src/finite/generated/finite_ternary_${bits}.c)
+        set_source_files_properties(src/finite/generated/finite_ternary_${bits}.c
+            PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512bw")
+    endforeach()
+    set_source_files_properties(src/finite/generated/finite_mont_4.c
+        src/finite/generated/finite_short_8.c src/finite/generated/finite_shuffle_8.c
+        PROPERTIES COMPILE_OPTIONS "-msse4.1")
+    set_source_files_properties(src/finite/generated/finite_mont_8.c
+        src/finite/generated/finite_short_16.c src/finite/generated/finite_shuffle_16.c
+        PROPERTIES COMPILE_OPTIONS "-mavx2")
+    set_source_files_properties(src/finite/generated/finite_mont_16.c
+        PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512dq")
+    set_source_files_properties(src/finite/generated/finite_short_32.c
+        src/finite/generated/finite_shuffle_32.c src/finite/generated/finite_medium_bar.c
+        src/finite/generated/finite_medium_mont.c src/finite/generated/finite_byte.c
+        PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512bw")
 endif()
 
 if(BUILD_TESTING OR FASTCD_BUILD_BENCHMARK)
@@ -124,16 +174,69 @@ if(BUILD_TESTING)
     target_link_libraries(fastcd_leaf_tests PRIVATE fastcd_reference)
     fastcd_configure_target(fastcd_leaf_tests)
     add_test(NAME fastcd.quasilinear_leaf COMMAND fastcd_leaf_tests)
+
+    add_executable(fastcd_domain_tests tests/test_domains.c)
+    if(FASTCD_HAVE_FINITE_SIMD)
+        target_compile_definitions(fastcd_domain_tests PRIVATE FASTCD_TEST_FINITE_SIMD=1)
+    endif()
+    target_link_libraries(fastcd_domain_tests PRIVATE fastcd::fastcd)
+    fastcd_configure_target(fastcd_domain_tests)
+    add_test(NAME fastcd.domains COMMAND fastcd_domain_tests)
+    set_tests_properties(fastcd.domains PROPERTIES TIMEOUT 600)
+
+    add_executable(fastcd_portable_reduce_tests tests/test_field_reduce.c)
+    target_link_libraries(fastcd_portable_reduce_tests PRIVATE fastcd::fastcd)
+    fastcd_configure_target(fastcd_portable_reduce_tests)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(fastcd_portable_reduce_tests PRIVATE -U__SIZEOF_INT128__)
+    endif()
+    add_test(NAME fastcd.portable_reduce COMMAND fastcd_portable_reduce_tests)
+
+    add_executable(fastcd_domain_public_link_test tests/test_domain_public_api.c)
+    target_link_libraries(fastcd_domain_public_link_test PRIVATE fastcd::fastcd)
+    fastcd_configure_target(fastcd_domain_public_link_test)
+    add_test(NAME fastcd.domains_public_link COMMAND fastcd_domain_public_link_test)
 endif()
 
 if(FASTCD_BUILD_BENCHMARK)
     add_executable(fastcd_benchmark benchmarks/benchmark.c)
     target_link_libraries(fastcd_benchmark PRIVATE fastcd::fastcd fastcd_reference)
     fastcd_configure_target(fastcd_benchmark)
+    add_executable(fastcd_domains_benchmark benchmarks/domains.c)
+    target_include_directories(fastcd_domains_benchmark PRIVATE ${PROJECT_SOURCE_DIR}/src/finite)
+    target_link_libraries(fastcd_domains_benchmark PRIVATE fastcd::fastcd)
+    fastcd_configure_target(fastcd_domains_benchmark)
+    # FLINT is confined to this executable. The library, installed CMake
+    # target, Python package and default benchmark have no new dependency.
+    if(FASTCD_BUILD_FLINT_BENCHMARK)
+        find_package(PkgConfig QUIET)
+        if(PkgConfig_FOUND)
+            pkg_check_modules(FLINT QUIET IMPORTED_TARGET flint)
+        endif()
+        find_path(FASTCD_FLINT_INCLUDE_DIR flint/flint.h HINTS ${FLINT_INCLUDE_DIRS})
+        find_library(FASTCD_FLINT_LIBRARY NAMES flint HINTS ${FLINT_LIBRARY_DIRS})
+        if(NOT FASTCD_FLINT_INCLUDE_DIR OR NOT FASTCD_FLINT_LIBRARY)
+            message(FATAL_ERROR
+                "FLINT development files are required for FASTCD_BUILD_FLINT_BENCHMARK. "
+                "Install FLINT and set CMAKE_PREFIX_PATH or PKG_CONFIG_PATH to its prefix.")
+        endif()
+        add_executable(fastcd_flint_benchmark benchmarks/flint.c)
+        target_include_directories(fastcd_flint_benchmark PRIVATE
+            ${PROJECT_SOURCE_DIR}/src/finite)
+        target_include_directories(fastcd_flint_benchmark SYSTEM PRIVATE
+            ${FASTCD_FLINT_INCLUDE_DIR})
+        target_link_libraries(fastcd_flint_benchmark PRIVATE fastcd::fastcd)
+        if(TARGET PkgConfig::FLINT)
+            target_link_libraries(fastcd_flint_benchmark PRIVATE PkgConfig::FLINT)
+        else()
+            target_link_libraries(fastcd_flint_benchmark PRIVATE ${FASTCD_FLINT_LIBRARY})
+        endif()
+        fastcd_configure_target(fastcd_flint_benchmark)
+    endif()
     # Record the source contents and effective library options beside the runner.
     file(GLOB_RECURSE fastcd_benchmark_sources CONFIGURE_DEPENDS
-        src/*.c src/*.h include/*.h tests/reference_cd.* benchmarks/*.c
-        benchmarks/*.py tools/*.py)
+        src/*.c src/*.h include/*.h tests/reference_cd.* benchmarks/*.c benchmarks/*.h
+        benchmarks/*.py tools/*.py tools/*.h)
     list(APPEND fastcd_benchmark_sources "${PROJECT_SOURCE_DIR}/CMakeLists.txt")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
         ${fastcd_benchmark_sources})
@@ -142,6 +245,14 @@ if(FASTCD_BUILD_BENCHMARK)
         file(SHA256 "${source}" source_hash)
         file(RELATIVE_PATH relative_source "${PROJECT_SOURCE_DIR}" "${source}")
         string(APPEND fastcd_source_hashes "${source_hash}  ${relative_source}\n")
+    endforeach()
+    set(fastcd_source_options "")
+    get_target_property(fastcd_library_sources fastcd SOURCES)
+    foreach(source IN LISTS fastcd_library_sources)
+        get_source_file_property(options "${source}" COMPILE_OPTIONS)
+        if(options)
+            string(APPEND fastcd_source_options "${source}=${options}\n")
+        endif()
     endforeach()
     get_target_property(fastcd_build_options fastcd COMPILE_OPTIONS)
     get_target_property(fastcd_build_definitions fastcd COMPILE_DEFINITIONS)
@@ -154,15 +265,51 @@ if(FASTCD_BUILD_BENCHMARK)
         "$<$<CONFIG:MinSizeRel>:${CMAKE_C_FLAGS_MINSIZEREL}>\n"
         "options=$<JOIN:$<TARGET_PROPERTY:fastcd,COMPILE_OPTIONS>, >\n"
         "definitions=$<JOIN:$<TARGET_PROPERTY:fastcd,COMPILE_DEFINITIONS>, >\n"
+        "source_options:\n${fastcd_source_options}"
         "source_sha256:\n${fastcd_source_hashes}")
     string(SHA256 fastcd_build_id
         "${fastcd_build_record};${fastcd_build_options};${fastcd_build_definitions}")
     target_compile_definitions(fastcd_benchmark PRIVATE
         FASTCD_BENCHMARK_BUILD_ID="${fastcd_build_id}-$<CONFIG>")
+    target_compile_definitions(fastcd_domains_benchmark PRIVATE
+        FASTCD_BENCHMARK_BUILD_ID="${fastcd_build_id}-$<CONFIG>")
     file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/fastcd-build-$<CONFIG>.txt"
         CONTENT "build_id=${fastcd_build_id}-$<CONFIG>\n${fastcd_build_record}")
+    if(FASTCD_BUILD_FLINT_BENCHMARK)
+        file(SHA256 "${FASTCD_FLINT_LIBRARY}" fastcd_flint_library_hash)
+        file(SHA256 "${FASTCD_FLINT_INCLUDE_DIR}/flint/flint.h" fastcd_flint_header_hash)
+        file(GLOB fastcd_flint_headers CONFIGURE_DEPENDS "${FASTCD_FLINT_INCLUDE_DIR}/flint/*.h")
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+            "${FASTCD_FLINT_LIBRARY}" ${fastcd_flint_headers})
+        set(fastcd_flint_header_hashes "")
+        foreach(header IN LISTS fastcd_flint_headers)
+            file(SHA256 "${header}" header_hash)
+            get_filename_component(header_name "${header}" NAME)
+            string(APPEND fastcd_flint_header_hashes "${header_hash}  ${header_name}\n")
+        endforeach()
+        string(SHA256 fastcd_flint_headers_hash "${fastcd_flint_header_hashes}")
+        string(CONCAT fastcd_flint_record
+            "flint_library=${FASTCD_FLINT_LIBRARY}\n"
+            "flint_library_sha256=${fastcd_flint_library_hash}\n"
+            "flint_header_sha256=${fastcd_flint_header_hash}\n"
+            "flint_headers_sha256=${fastcd_flint_headers_hash}\n"
+            "flint_include=${FASTCD_FLINT_INCLUDE_DIR}\n"
+            "flint_pkgconfig_version=${FLINT_VERSION}\n"
+            "flint_pkgconfig_flags=${FLINT_CFLAGS_OTHER};${FLINT_LDFLAGS}\n"
+            "${fastcd_build_record}")
+        string(SHA256 fastcd_flint_build_id "${fastcd_flint_record}")
+        target_compile_definitions(fastcd_flint_benchmark PRIVATE
+            FASTCD_BENCHMARK_BUILD_ID="${fastcd_flint_build_id}-$<CONFIG>")
+        file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/fastcd-flint-build-$<CONFIG>.txt"
+            CONTENT "build_id=${fastcd_flint_build_id}-$<CONFIG>\n${fastcd_flint_record}")
+    endif()
     if(BUILD_TESTING)
         add_test(NAME fastcd.benchmark_metadata COMMAND fastcd_benchmark --metadata)
+        add_test(NAME fastcd.domains_benchmark_metadata COMMAND fastcd_domains_benchmark --metadata)
+        if(FASTCD_BUILD_FLINT_BENCHMARK)
+            add_test(NAME fastcd.flint_benchmark_metadata COMMAND fastcd_flint_benchmark --metadata)
+            add_test(NAME fastcd.flint_agreement COMMAND fastcd_flint_benchmark --self-test)
+        endif()
     endif()
 endif()
 
@@ -183,6 +330,13 @@ if(FASTCD_BUILD_PYTHON)
         # CPython calling conventions.
         target_compile_options(pyfastcd_core PRIVATE -Wno-cast-function-type)
     endif()
+    Python_add_library(pyfastcd_domains MODULE WITH_SOABI python/src/pyfastcd/_domains_core.c)
+    set_target_properties(pyfastcd_domains PROPERTIES OUTPUT_NAME "_domains_core" C_VISIBILITY_PRESET hidden)
+    target_link_libraries(pyfastcd_domains PRIVATE fastcd::fastcd)
+    target_include_directories(pyfastcd_domains PRIVATE ${PROJECT_SOURCE_DIR}/src/finite)
+    fastcd_configure_target(pyfastcd_domains)
+    install(TARGETS pyfastcd_domains LIBRARY DESTINATION pyfastcd COMPONENT python
+        RUNTIME DESTINATION pyfastcd COMPONENT python)
     install(TARGETS pyfastcd_core
         LIBRARY DESTINATION pyfastcd COMPONENT python
         RUNTIME DESTINATION pyfastcd COMPONENT python)

@@ -1,118 +1,80 @@
 # Benchmark
 
-The benchmark compares the three multiplication algorithms on the same
-random inputs so that the default algorithms for a CPU can be selected and
-checked in one reproducible run. It measures both batched multiplication,
-with one validated batch call per pass, and single multiplication, with one
-validated call per product. The product of every input pair is checked once
-per algorithm and mode, in the first block, against an independent
-implementation of the defining recursion.
+The default benchmark compares the three real-coefficient multiplication
+algorithms on the same random inputs so that the default algorithm for each
+dimension can be selected and checked in one reproducible run. It measures
+batched multiplication, with one validated batch call per pass, and single
+multiplication, with one validated call per product. The product of every
+input pair is checked once per algorithm and mode in the first block
+against an independent implementation of the defining recursion.
 
-The archived `benchmark-results/paper-results.json` and its Markdown report
-measure revision `14bf305` for the paper's v1, before the current
-quasilinear local-map fusion and complex octonion base case. Preserve those
-results when making a new comparison; the current
-[arithmetic counts](mathematics.md) describe the default quasilinear schedule.
+Two further protocols cover complex and finite-field coefficients and an
+optional comparison with an external arithmetic library; see
+[Selecting a protocol](#selecting-a-protocol).
 
-The [243-operation-leaf T440 rerun](../benchmark-results/paper-v2-octonion243-20261023/results.md)
-measures the revised schedule through dimension 1024 using the v1 paper run's
-protocol and identical input corpus hashes; the paper's v2 reports this run. Its
-[raw observations](../benchmark-results/paper-v2-octonion243-20261023/results.json),
-[environment](../benchmark-results/paper-v2-octonion243-20261023/environment.json),
-[commands](../benchmark-results/paper-v2-octonion243-20261023/commands.json), and
-[validation record](../benchmark-results/paper-v2-octonion243-20261023/validation.json)
-are archived together. The measured source is revision `7da5a5f` plus the
-archived [source patch](../benchmark-results/paper-v2-octonion243-20261023/source.patch),
-with exact source hashes in the build record. The README tables use this run.
-All 600,000 algorithm/mode verification checks passed with zero mismatches and
-finite outputs. The [instrumented arithmetic counts](../benchmark-results/paper-v2-octonion243-20261023/operation-counts.json)
-confirm `(M, A, E) = (72, 156, 15)`, stored under the keys `M`, `A`, and `S`,
-for the complex octonion leaf: 243
-operations, saving one per leaf and `N/16` per full real product at `N >= 16`.
+## Archived results
 
-The [earlier full 2026-10-23 rerun](../benchmark-results/paper-v2-20261023/results.md)
-measures the preceding 244-operation leaf at revision `f9a61b2`. It remains
-archived with its original observations and metadata. The
-[comparison of the two leaf versions](../benchmark-results/paper-v2-octonion243-20261023/comparison-previous-leaf.json)
-uses descriptive ratios of means from separate runs, not paired cross-version
-confidence intervals. Both v2 runs used GCC 16.2.1 and Linux 7.2.11; the
-v1 paper run used different compiler and kernel versions. The host is
-shared, so historical timing differences do not isolate source-code changes.
+The README tables come from the run archived in
+[`benchmark-results/paper-v2-octonion243-20261023/`](../benchmark-results/paper-v2-octonion243-20261023/results.md),
+which the paper's v2 reports. It was measured on 2026-10-23 on one logical
+CPU of an Intel Xeon Gold 6148 through dimension 1024. Its raw observations,
+environment, commands, validation record and the exact measured source
+(revision `7da5a5f` plus the archived `source.patch`) are stored beside the
+report. All 600,000 verification checks passed with zero mismatches. The
+other directories under `benchmark-results/` record earlier builds; each
+report names the source it measured. The host is shared, so timing
+differences between archived runs do not isolate source changes.
 
-The earlier [2026-10-19 T440 comparison](../benchmark-results/t440-20261019/README.md)
-measures the 244-operation-leaf schedule against fastCD 1.0.0 through dimension
-256, with raw observations, build hashes, arithmetic counts and correctness checks.
+The tables give the mean time per product with a 95% confidence interval,
+paired ratios against the quasilinear algorithm, and a paired single/batch
+ratio for each algorithm. The intervals use Student's t distribution with
+degrees of freedom capped at 30. The "fastest mean" column names the lowest
+verified mean, or reports a tie when the 95% interval of the paired
+per-block ratio between the two lowest means contains one.
 
-The results give the mean time with a 95% confidence interval, paired ratios
-against the quasilinear algorithm, and a paired single/batch ratio for each
-algorithm. The intervals use Student's t distribution with degrees of freedom
-capped at 30. The "fastest mean" column names the lowest verified mean, or
-reports a tie when the 95% interval of the paired per-block ratio between the
-two lowest means contains one.
+The automatic choices follow this run: single products use direct at
+dimensions 8 and 16 and quasilinear otherwise; batches use direct at 8,
+Cariow–Cariowa at 16 and quasilinear otherwise. Dimension-4 single products
+are a statistical tie between quasilinear and direct, and quasilinear is
+chosen. The fraction of a confidence interval below one is not a probability
+that one algorithm is faster.
 
-The [AUTO assessment](../benchmark-results/paper-v2-octonion243-20261023/auto-assessment.json)
-supports retaining the existing choices after the revised-leaf run. Singles
-use direct at dimensions 8 and 16 and quasilinear otherwise; SIMD batches
-use direct at 8, Cariow–Cariowa at 16 and quasilinear otherwise. Dimension-4
-singles still have close means: quasilinear 18.12 ns and direct 18.18 ns,
-with a paired quasilinear/direct ratio of 0.997 and a 95%
-interval of 0.979–1.015. That interval contains one, so the table labels them
-a tie. The quasilinear choice remains a tuning decision; the fraction of a
-confidence interval below one is not a probability that one algorithm is faster.
-The new report records the current defaults, while older reports preserve
-the defaults of their measured builds.
+## What is measured
 
-Both modes measure the kernels as the library ships them. With the default
-SIMD configuration on supported GCC/Clang targets, batch mode runs
-two products per SIMD instruction for quasilinear and Cariow–Cariowa at
-dimensions 16 through 512 and for direct at 64 through 512, with scalar
-kernels elsewhere. In the archived Xeon build, the compiler vectorizes the
-dense direct kernels two outputs per instruction in single mode. The
-quasilinear product evaluates the two children of the top complex node in
-the two lanes from dimension 32; the
-Cariow–Cariowa product runs scalar code: adjacent outputs need different
-subsets of its sign-correction terms, and this implementation does not
-vectorize them within one product. Single mode includes per-call validation;
-on the archived Xeon run this cost roughly 15 ns and dominated below dimension 8.
+Both modes time the kernels as the library ships them. With the default SIMD
+configuration on supported GCC/Clang targets, batch mode runs two products
+per SIMD instruction for quasilinear and Cariow–Cariowa at dimensions 16
+through 512 and for direct at 64 through 512, with scalar kernels elsewhere.
+A single quasilinear product evaluates the two children of its top complex
+node in the two lanes from dimension 32. Single direct and Cariow–Cariowa
+products run scalar code that the compiler may vectorize. Single mode
+includes per-call validation, which cost roughly 15 ns on the archived Xeon
+runs and dominated below dimension 8.
 
 Cariow–Cariowa is timed at every dimension the library supports, through
-1024, and its results above 64 should be read with the implementation in
-mind. Through 64 it runs generated straight-line kernels; above 64 it runs a
-table-driven kernel, because the unrolled form would be megabytes of code.
-In the table-driven kernel, its sign corrections select about half of the
-terms of each non-scalar output in an irregular pattern, requiring index
-lookups and gathered loads. This implementation does not vectorize those
-corrections within one product; through dimension 64 the generated kernels
-use fixed indices instead. The compiler can vectorize direct's dense sums
-two outputs per instruction. In the archived 1.0.0 run on the Xeon Gold 6148
-this left Cariow–Cariowa
-1.5 to 1.8 times slower than direct for single products at dimensions 128
-to 1024 despite having 0.6 times the operations, and between parity and
-1.5 times slower for batches, where the paired lanes amortize its index
-work until pairing stops above 512. Those cells therefore measure how the algorithm's
-irregular corrections map onto the hardware, not its operation count; the
-algorithm is not recommended for use above 64, as the
-[mathematics](mathematics.md) document explains. Pass
-`--max-cc-dimension 64` to stop timing it there; the report then states the
-cap in its header and marks the cells "not timed" (as opposed to
-"unavailable" when the library does not support an algorithm at a
-dimension).
+1024. Through 64 it runs generated straight-line kernels; above 64 it runs a
+table-driven kernel whose sign corrections need index lookups and gathered
+loads that are not vectorized within one product. On the archived Xeon runs
+this leaves it 1.5 to 1.8 times slower than direct for single products at
+dimensions 128 to 1024 despite needing 0.6 times the operations, and
+between parity and 1.5 times slower for batches. Those cells measure how the
+irregular corrections map onto the hardware, not the operation count, and
+the algorithm is not recommended above 64. Pass `--max-cc-dimension 64` to
+stop timing it there; the report then marks the cells "not timed", as
+opposed to "unavailable" when the library does not support an algorithm at
+a dimension.
 
 Two build options change what is measured. `FASTCD_DISABLE_SIMD=1` removes
-the explicit SIMD kernels but not the compiler's own vectorization, so it is
-not a scalar-only comparison; add `-fno-tree-vectorize` to `CMAKE_C_FLAGS`
-for that with GCC. On targets with the explicit SIMD kernels,
-`FASTCD_CC_DOUBLING=1` evaluates Cariow–Cariowa products at
-dimensions 16 through 64 as the four half-dimensional products of one
-Cayley–Dickson doubling step, two per lane, in both modes. That is a
-different arithmetic schedule from the paper's fixed-dimension procedure
-(about the same multiplications, roughly twice the Walsh–Hadamard
-additions), so it is off by default and reported separately. On the
-development machine it made single Cariow–Cariowa products 1.3, 1.5, and
-2.0 times faster at dimensions 16, 32, and 64, and batches 36% and 9%
-slower at 16 and 32, because the packing and the extra additions outweigh
-the paired half-dimensional kernels there. Pass either option through
-`-DFASTCD_TUNING_DEFINITIONS=...` at configure time.
+the explicit SIMD kernels but not the compiler's own vectorization; add
+`-fno-tree-vectorize` to `CMAKE_C_FLAGS` for a scalar-only comparison with
+GCC. `FASTCD_CC_DOUBLING=1` evaluates Cariow–Cariowa products at dimensions
+16 through 64 as the four half-dimensional products of one Cayley–Dickson
+doubling step, two per SIMD lane. That is a different arithmetic schedule
+from the paper's fixed-dimension procedure, so it is off by default and
+reported separately; on the development machine it made single products
+1.3 to 2.0 times faster and batches up to 36% slower at those dimensions.
+Pass either option through `-DFASTCD_TUNING_DEFINITIONS=...` at configure
+time.
 
 `benchmarks/run_dedicated.sh` performs a complete run on a dedicated
 machine: a fresh Release build, the C test suite, and the full benchmark
@@ -173,17 +135,15 @@ multiple of 12 places every task in each position equally often. You can
 restrict the run with `--modes batch` or `--modes single`, or extend it with
 `--dimensions`.
 
-The 2026-10-19 T440 comparison instead used dimensions through 256, 48 blocks
-and a 100 ms calibration target on CPU 11. Its [report](../benchmark-results/t440-20261019/README.md#reproduction-and-artifacts)
-gives the exact commands and build settings for that run.
-
 The inputs are generated by NumPy PCG64 with `SeedSequence([seed, N])`.
 Their coordinates are independent uniform samples, which are normalized and
 then scaled to give norms in `[0.5, 2)`. The corpora are kept in
 `benchmark-corpora/` so that they can be reused.
 
 On Linux, the driver and its child processes run on the first allowed CPU,
-unless you select another with `--cpu`. A full run takes about forty minutes on a server core, with most of that time spent on the two quadratic algorithms and the oracle verification at `N = 1024`. Both modes time C calls
+unless you select another with `--cpu`. A full run takes about forty minutes
+on a server core, with most of that time spent on the two quadratic
+algorithms and the oracle verification at `N = 1024`. Both modes time C calls
 with storage already allocated, so Python object overhead is excluded.
 If verification fails, the driver still writes both reports, marks the run
 and each failing algorithm with the status `verification_failure` alongside
@@ -193,3 +153,183 @@ The C and Python interfaces share the choices in `auto_single_by_level` and
 `auto_batch_by_level`, the two tables at the start of the algorithm-selection
 section in `src/fastcd.c`. Review these choices against the results of a new
 run.
+
+## Selecting a protocol
+
+`--protocol` selects one of three experiments.
+[FLINT (Fast Library for Number Theory)](https://flintlib.org/) is an
+independent C library for exact arithmetic; the optional `flint` protocol
+compares fastCD's finite-field arithmetic with FLINT's prime-field and
+polynomial-basis extension-field arithmetic. FLINT does not provide a
+Cayley–Dickson multiplication routine, so fastCD supplies the CD recurrence
+that runs on FLINT coefficients.
+
+| `--protocol` | Measurements | Native runner |
+| --- | --- | --- |
+| `real` (default) | The three algorithms over R, single and batch | `fastcd_benchmark` |
+| `domains` | Direct vs quasilinear over C and odd finite fields | `fastcd_domains_benchmark` |
+| `flint` | Scalar field multiplication and complete CD products, fastCD vs FLINT | `fastcd_flint_benchmark` |
+| `all` | All three protocols, run sequentially with separate reports | All three runners |
+
+For an individual protocol, `--runner` names the corresponding executable.
+For `all`, it names `fastcd_benchmark`; the other executables are found
+beside it, or named with `--domain-runner` and `--flint-runner`.
+`--build-metadata` selects the runner's build record; an `all` run also
+accepts `--domain-build-metadata` and `--flint-build-metadata` for
+multi-configuration builds.
+
+An `all` run checks every runner, build record and required dependency
+before timing starts. With `--output results.json`, it writes separate
+`results.real.json`, `results.domains.json` and `results.flint.json`
+files, each with its own Markdown report, and `results.json` and
+`results.md` index them. Existing output files are never overwritten, and
+results from different protocols are not combined into one statistic.
+
+## Complex and finite fields
+
+A standard build also creates `fastcd_domains_benchmark`, which compares
+direct and quasilinear multiplication over complex and finite-field
+coefficients. Select it through the main driver:
+
+```sh
+python3 benchmarks/benchmark.py --protocol domains \
+    --runner build/fastcd_domains_benchmark \
+    --output benchmark-results/domains-current.json
+```
+
+The default fields are F(3), F(5), F(13), F(3^5), F(5^2), F(13^5),
+F(65521), F(65521^2), F(2147483647) and C, at powers of two from 2 through
+1024. Use `--fields char:deg,...` to choose fields, where `0:2` denotes C,
+the characteristic is an odd prime at most 2147483647 and the extension
+degree is 1 through 12. For example, `--fields 13:5,0:2 --dimensions 8,32,128`
+selects two coefficient fields and three CD dimensions.
+
+The protocol uses 10,000 deterministic pairs per field and dimension, 24
+rotated blocks, two warmup passes and a 20 ms minimum observation. Each
+algorithm and mode calibrates whole-corpus passes independently. `--modes
+batch` or `--modes single` restricts the measurement; the block count must
+be a multiple of the number of algorithm/mode tasks, four by default and
+two with one mode. Native calls are timed, and Python object construction
+is excluded. A smaller `--trials` gives a pilot run; keep that value in
+mind when reading its results. Verifying every quadratic direct product
+over extension fields can make the default campaign lengthy.
+
+Each finite coefficient occupies `deg` canonical `uint32` residues in the
+polynomial basis, and a record has N such coefficients. Setup chooses and
+validates a deterministic monic irreducible defining polynomial, recorded
+in the JSON. Complex records contain N `complex128` coefficients. Corpus
+manifests bind the field, dimension, trial count, seed, dtype and byte
+hash, and a mismatching existing corpus is rejected. These corpora are
+separate from the real benchmark's normalized `float64` inputs.
+
+Every pair is verified before timing: finite products against independent
+schoolbook polynomial arithmetic with signed CD basis accumulation, complex
+products against long-double accumulation with a norm-scaled tolerance.
+Raw timings, exact moduli, corpus hashes, build/source hashes, verification
+counts and paired direct/quasilinear ratios are retained; a ratio above 1
+favors quasilinear. The quasilinear timing includes its degree
+specialization, packed SIMD arithmetic and per-product evaluation maps, so
+the results measure the shipped implementations rather than coefficient
+operation counts alone.
+
+`benchmarks/domains.py` can also be run directly with the same options.
+For complex coefficients, `--fields 0:2 --baseline` additionally times a
+quasilinear implementation that splits each complex product into three
+real products, with packing and reconstruction inside its timer.
+
+## Comparing finite-field arithmetic with FLINT
+
+The FLINT protocol answers two separate questions:
+
+* **Scalar field multiplication:** `fastcd_ff_field_mul` versus FLINT's
+  `nmod_mul` for prime fields or `fq_nmod_mul` for extensions. This
+  measures the coefficient arithmetic alone.
+* **Complete CD multiplication:** fastCD's quasilinear product versus the
+  same Cayley–Dickson recurrence evaluated with FLINT coefficient
+  operations. Both multiply N field coefficients with the same basis
+  convention and the same defining polynomial.
+
+Scalar multiplication is measured once per field; CD multiplication uses
+the selected `--dimensions`. Both default to the nine finite fields listed
+above, with C being outside this protocol. `--workloads scalar` or `--workloads cd`
+selects one workload, and `--fields` accepts any supported
+characteristic/degree, for example `3:12,13:5,2147483647:12`. The default
+grid is a representative experiment, not a survey of all primes or all
+irreducible polynomials.
+
+### Building and running
+
+Install FLINT's development headers and library through your package
+manager or the [FLINT installation instructions](https://flintlib.org/doc/install.html),
+then build the extra executable:
+
+```sh
+cmake -S . -B build-flint -DCMAKE_BUILD_TYPE=Release \
+    -DFASTCD_BUILD_FLINT_BENCHMARK=ON
+cmake --build build-flint --parallel
+ctest --test-dir build-flint --output-on-failure
+python3 benchmarks/benchmark.py --protocol flint \
+    --runner build-flint/fastcd_flint_benchmark \
+    --output benchmark-results/flint-current.json
+```
+
+For a nonstandard installation, add `-DCMAKE_PREFIX_PATH=/path/to/flint`
+or expose its `flint.pc` through `PKG_CONFIG_PATH`. Only the comparison
+executable links FLINT; the library, the installed headers and the Python
+package do not depend on it, and a missing FLINT is reported only when
+`FASTCD_BUILD_FLINT_BENCHMARK=ON`. The driver checks that the compile-time
+and runtime FLINT versions match; the archived comparison uses FLINT 3.6.0.
+CTest exercises every supported extension degree against the independent
+oracle and checks the comparison wrapper's workspace and overlap errors.
+
+Run every protocol from that build with:
+
+```sh
+python3 benchmarks/benchmark.py --protocol all \
+    --runner build-flint/fastcd_benchmark \
+    --output benchmark-results/all-current.json
+```
+
+The corpus and timing options apply to every protocol. `--modes` applies to
+the real and domain experiments; the FLINT comparison makes one call per
+product because its adapters have no batch entry, and the non-real
+protocols always verify every pair. In an `all` run, `--fields` selects the
+domain fields, and its finite subset selects the FLINT fields, so at least
+one finite field is required. Corpora go into separate subdirectories below
+`--corpora`.
+
+### Timing, verification and interpretation
+
+Both implementations receive identical canonical operand coefficients and
+the same defining polynomial. The extension comparison uses FLINT's
+`fq_nmod` polynomial-basis representation, not Zech logarithms. Conversion
+to FLINT objects, context construction, corpus I/O, allocation, warmup and
+verification are outside the timers; work inside FLINT's arithmetic
+routines is included. FLINT is restricted to one thread.
+
+Each observation replays the full fixed corpus with a common calibrated
+pass count, so that even the faster implementation reaches the target, and
+the two implementations alternate their first/second positions across the
+24 paired blocks. Wall-clock timings are primary; thread CPU times are
+retained when available. An independent schoolbook polynomial
+implementation checks every pair before timing and every final timed output
+afterwards; mismatches, missing observations or changed build files prevent
+a successful report. Reports retain raw paired observations, exact
+polynomials, seeds, corpus hashes, source/build/executable hashes and FLINT
+versions, and partial JSON files preserve completed cells after an
+interrupted run. CMake records the linked FLINT binary and header hashes
+but cannot recover how an externally installed FLINT was compiled, so
+record FLINT's own build options alongside published results.
+
+Tables show each implementation's mean ns/product and the paired geometric
+mean of **FLINT time / fastCD time** with a 95% Student-t interval; ratios
+above 1 favor fastCD. Scalar results isolate the coefficient multiply.
+Complete CD results also include degree specialization, SIMD packing,
+per-product evaluation maps, layout differences and buffer validation, so
+they do not isolate the scalar multiply's contribution. Neither comparison
+establishes a universal speedup or covers every representation FLINT
+offers.
+
+The [2026-11-04 pilot](../benchmark-results/flint-pilot-20261104/assessment.md)
+archives 60 cells with 32 pairs per cell and a 0.5 ms calibration target,
+separately from the default 10,000-pair, 20 ms campaign.

@@ -7,6 +7,37 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ## [Unreleased]
 
+### Added
+
+- `FiniteField(char=..., deg=...)`: immutable, cached finite-field
+  coefficient parents with deterministic irreducible polynomial selection,
+  and `FiniteField.from_modulus` for an explicit polynomial. Field scalars
+  and batches use the `Element` and `ElementArray` classes with exact
+  polynomial storage.
+- `char`, `deg`, and `field` arguments on `Algebra` and `cd_element` select
+  complex or odd-characteristic finite-field coefficients. Calls without
+  them keep their real-coefficient behavior.
+- Finite-field quasilinear CD multiplication with fixed-degree arithmetic
+  and runtime-dispatched x86 kernels, an independent direct recursion,
+  structural operations, field scalars, broadcasting, output buffers and
+  buffer/NumPy/DLPack support.
+- Complex CD arithmetic through the complex alternating recursion, alongside
+  a direct implementation of the defining recursion.
+- `quadratic_norm()` on all elements and arrays, returning the canonical
+  coefficient-field quadratic form; `norm_squared()` returns the same form.
+- C headers `<fastcd/arithmetic.h>`, `<fastcd/complex.h>` and
+  `<fastcd/finite.h>` for finite and complex contexts, workspace queries,
+  record operations, products, batches and quadratic norms. The real C ABI
+  is unchanged.
+- Benchmark protocols for complex and finite fields (`--protocol domains`)
+  and for comparison with FLINT (Fast Library for Number Theory)
+  (`--protocol flint`), with full-corpus verification, paired confidence
+  intervals and reproducible corpus and build manifests. Only the FLINT
+  benchmark executable links FLINT.
+- C and Python tests for the new coefficient fields, exact workspace
+  boundary checks, a portable reduction test, v1.1.0 pickle fixtures,
+  `tools/check_v110_compat.py`, and type stubs that infer coefficient types.
+
 ## [1.1.0] - 2026-10-26
 
 ### Changed
@@ -20,12 +51,12 @@ All notable changes to fastCD are recorded in this file. The project follows
   complex octonion alternating-product base case; arithmetic counts and
   validation instructions are documented in `docs/mathematics.md`. Its
   floating-point rounding can differ from version 1.0.0.
-- Joint reconstruction of the complex octonion leaf's `h` coordinate reduces
-  its count to 72 products, 156 additions/subtractions and 15 halvings:
-  243 operations, saving one per leaf. A full dimension-16 real quasilinear
-  product now uses 417 operations, and the arithmetic-count check covers dimensions
-  through 1024. The mathematics documentation gives the constrained
-  addition-count argument for the fixed local-map decomposition.
+- The complex octonion base case of the quasilinear recursion uses 72
+  products, 156 additions/subtractions and 15 halvings, 243 operations in
+  total, so a full dimension-16 real product uses 417 operations. The
+  arithmetic-count check covers dimensions through 1024, and the
+  mathematics documentation gives the addition-count argument for the
+  fixed local-map decomposition.
 - The C and Python stability documentation clarifies that AUTO choices,
   workspace lengths, and arithmetic schedules can change between compatible
   releases; bitwise floating-point reproducibility across versions is not
@@ -33,10 +64,9 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ### Added
 
-- Full T440 benchmark data through dimension 1024 for both the 244-operation
-  and revised 243-operation leaf schedules, preserving the original input
-  corpora and protocol. The revised-leaf run passes all 600,000 verification
-  checks and supports retaining AUTO. Source distributions include the
+- Full T440 benchmark data through dimension 1024 with the paper's input
+  corpora and protocol. The run passes all 600,000 verification checks and
+  supports the current AUTO choices. Source distributions include the
   benchmark archives linked by the documentation.
 - CI checks for quasilinear arithmetic counts and the complete source
   distribution to wheel to installed-package test path, including byte-for-byte

@@ -1,0 +1,12 @@
+{
+  "measured": {
+    "build/domains/libfastcd.a": "f69e5aa5b9ece2b65193d153f73d1a710c28d85921ab0aa606dae343a9514d92",
+    "build/domains/CMakeFiles/fastcd.dir/src/complex.c.o": "c7d350ba41c02a3cbcac4f143b23e84faf43e25c6067041095878a39ba9b5d36"
+  },
+  "final": {
+    "build/domains/libfastcd.a": "f69e5aa5b9ece2b65193d153f73d1a710c28d85921ab0aa606dae343a9514d92",
+    "build/domains/CMakeFiles/fastcd.dir/src/complex.c.o": "c7d350ba41c02a3cbcac4f143b23e84faf43e25c6067041095878a39ba9b5d36"
+  },
+  "identical": true,
+  "change": "After timing, guard the complex leaf defaults with ifndef so existing tuning definitions remain usable. The default compiled kernel archive and complex object are byte-for-byte unchanged."
+}

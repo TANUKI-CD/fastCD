@@ -1,0 +1,31 @@
+{
+  "command": [
+    "/tmp/fastcd-domains-venv/bin/python",
+    "benchmarks/benchmark.py",
+    "--protocol",
+    "flint",
+    "--runner",
+    "build/flint/fastcd_flint_benchmark",
+    "--output",
+    "benchmark-results/flint-pilot-20261104/results.json",
+    "--corpora",
+    "/tmp/fastcd-flint-pilot-corpora",
+    "--fields",
+    "3:1,5:1,13:1,3:5,5:2,13:5,65521:1,65521:2,2147483647:1,3:12,13:12,2147483647:12",
+    "--dimensions",
+    "2,16,64,256",
+    "--trials",
+    "32",
+    "--blocks",
+    "24",
+    "--warmup",
+    "2",
+    "--min-time-ms",
+    "0.5",
+    "--seed",
+    "20261104"
+  ],
+  "selection": "The nine default finite fields plus degree 12 at characteristics 3, 13 and 2147483647, fixed before timing to cover the maximum supported degree. All selected cells are reported.",
+  "build": "Release, GCC 16.2.1, FASTCD_WARNINGS_AS_ERRORS=ON, FASTCD_BUILD_FLINT_BENCHMARK=ON. Exact native flags and source hashes are in results.json; dependency options are in dependency-build.json.",
+  "pilot_timing": "0.5 ms target for the faster backend, 24 paired blocks, matching the scalar survey calibration target. The default benchmark setting remains 20 ms."
+}

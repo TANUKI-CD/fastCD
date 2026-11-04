@@ -72,9 +72,10 @@ typedef struct FastCDBasisProduct { size_t index; int sign; } FastCDBasisProduct
   numerical results. Different algorithms and specialized formulas can
   round differently without returning an error.
 
-AUTO choices, workspace lengths, and arithmetic schedules may change in minor
-or patch releases while preserving the public calling contracts. Obtain
-workspace lengths from the query functions. Floating-point results are not
+Code written against version 1.0.0 compiles and behaves the same way with
+every later 1.x release. AUTO choices, workspace lengths, and arithmetic
+schedules may change in minor or patch releases while preserving the public
+calling contracts. Obtain workspace lengths from the query functions. Floating-point results are not
 guaranteed bitwise identical across versions, even for the same explicitly
 selected algorithm. Relevant numerical changes are recorded in `CHANGELOG.md`.
 
@@ -447,3 +448,217 @@ matching composite workspace size; workspace is required even at `N = 1`.
   b, const double* x, size_t dimension, const FastCDWorkspaceF64* workspace)`
 
   Compute `[R_a, R_b](x) = (xb)a - (xa)b`.
+
+---
+
+## Arithmetic across coefficient fields
+
+Complex and finite-field arithmetic is declared in `<fastcd/arithmetic.h>`,
+`<fastcd/complex.h>` and `<fastcd/finite.h>`. These headers are C11 with C++
+linkage guards, and their functions allocate no heap storage and retain no
+caller pointers.
+
+### Quadratic norm
+
+```c
+FastCDStatus fastcd_quadratic_norm_f64(double* value,
+        const double* x, size_t dimension);
+FastCDStatus fastcd_quadratic_norm_c128(FastCDComplexF64* value,
+        const FastCDComplexF64* x, size_t dimension);
+FastCDFFStatus fastcd_quadratic_norm_ff(uint32_t* value,
+        const uint32_t* x, const FastCDPlanFF* plan);
+```
+
+These return `Q(x)=sum_i x_i^2` in the coefficient field. The real function
+is an alias for `fastcd_norm_squared_f64`, including scaled accumulation
+and all validation. Complex/finite results are one coefficient (two doubles,
+or `field.degree` residues). The CD involution fixes the coefficient field.
+For finite/complex reciprocals, a nonzero isotropic input also returns the
+zero-norm status. See [mathematics](mathematics.md#canonical-quadratic-norm-over-every-field).
+
+### Shared record operations
+
+`FastCDOperation` in `arithmetic.h` selects:
+
+| Operation | Inputs besides `x` | Output | Scratch |
+|---|---|---|---|
+| `FASTCD_OP_MULTIPLY` | `y` | record | product |
+| `FASTCD_OP_ADD`, `FASTCD_OP_SUBTRACT` | `y` | record | none |
+| `FASTCD_OP_NEGATE`, `FASTCD_OP_CONJUGATE`, `FASTCD_OP_IMAG_PART` | none | record | none |
+| `FASTCD_OP_SCALE`, `FASTCD_OP_DIVIDE` | one scalar `y` | record | none |
+| `FASTCD_OP_INNER` | `y` | scalar | none |
+| `FASTCD_OP_QUADRATIC_NORM` | none | scalar | none |
+| `FASTCD_OP_RECIPROCAL`, `FASTCD_OP_SQUARE` | none | record | none |
+| `FASTCD_OP_IMAG_CROSS`, `FASTCD_OP_COMMUTATOR` | `y` | record | product |
+| `FASTCD_OP_ANTICOMMUTATOR` | `y` | record | none |
+| `FASTCD_OP_ASSOCIATOR`, `FASTCD_OP_LEFT_OPERATOR_COMMUTATOR`, `FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR` | `y`, `z` | record | product + two records |
+| `FASTCD_OP_BASIS_LEFT`, `FASTCD_OP_BASIS_RIGHT` | `basis_index` | record | none |
+
+Unused input pointers may be null. `basis_index` is checked only for the
+basis operations. The result formulas are those of the real functions above. `AUTO`,
+`DIRECT` and `QUASILINEAR` are supported over C and finite fields; `AUTO`
+selects quasilinear. Cariow–Cariowa returns the unsupported-algorithm status.
+The selected algorithm governs products used by multiplication, imaginary
+cross products, commutators, and composite operations. Coordinatewise
+operations and reductions use their dedicated formulas without a product.
+
+Exact `out==x` is allowed for add, subtract, negate, scale, divide,
+conjugate, imaginary part, reciprocal and square. Add/subtract also permit
+`out==y`. Other outputs, including scalar results and basis permutations,
+must be disjoint from inputs. Scalar `y` may be a read-only view into `x`
+for scale/divide; the output may not overlap that scalar. All active
+workspace storage must be disjoint from inputs, output and finite plan.
+Other partial overlaps are unsupported. A nonzero status leaves the output
+unchanged. Correct buffer lengths, alignment, initialized plans and
+canonical finite residues are preconditions that the library does not
+check. Keep inputs and contexts unchanged until the call returns, including
+when other threads can reach their storage.
+
+### Complex128
+
+```c
+typedef struct FastCDComplexF64 { double real, imag; } FastCDComplexF64;
+
+FastCDStatus fastcd_workspace_size_c128(size_t dimension,
+        FastCDOperation operation, size_t* length);
+FastCDStatus fastcd_apply_c128(FastCDComplexF64* out,
+        const FastCDComplexF64* x, const FastCDComplexF64* y,
+        const FastCDComplexF64* z, size_t dimension, FastCDOperation operation,
+        size_t basis_index, FastCDAlgorithm algorithm,
+        const FastCDWorkspaceF64* workspace);
+FastCDStatus fastcd_mul_with_algorithm_c128(FastCDComplexF64* out,
+        const FastCDComplexF64* x, const FastCDComplexF64* y, size_t dimension,
+        FastCDAlgorithm algorithm, const FastCDWorkspaceF64* workspace);
+FastCDStatus fastcd_mul_c128(FastCDComplexF64* out,
+        const FastCDComplexF64* x, const FastCDComplexF64* y, size_t dimension,
+        const FastCDWorkspaceF64* workspace);
+FastCDStatus fastcd_mul_batch_c128(FastCDComplexF64* out, size_t out_stride,
+        const FastCDComplexF64* x, size_t x_stride,
+        const FastCDComplexF64* y, size_t y_stride, size_t count,
+        size_t dimension, FastCDAlgorithm algorithm,
+        const FastCDWorkspaceF64* workspace);
+```
+
+Record lengths and strides count `FastCDComplexF64` coefficients; scratch
+lengths count **doubles**. Complex values are passed as this two-double
+struct, never as C99 `double _Complex`. `fastcd_mul_c128` uses `AUTO`. The
+workspace query covers direct and quasilinear products and the selected
+structural operation; a zero-length result allows a null workspace. NaN,
+infinity and overflow are numerical results, and the complex norm,
+reciprocal and square routines do not use the scaled evaluation of their
+real counterparts.
+
+Batch output stride must be at least `dimension`; input strides must be
+zero (broadcast) or at least `dimension`. One record ignores strides; an
+empty batch needs no data/workspace. Size and overlap checks precede writes.
+The output span and active scratch must be disjoint from input spans, and
+corresponding input records must be identical or disjoint.
+
+### Finite fields and plans
+
+`FastCDField` stores `prime`, `degree`, `modulus[13]`, and private precomputed
+reduction data. Treat initialized contexts as immutable. `FastCDPlanFF`
+copies the field, records `level`, `dimension`, `words = dimension*degree`,
+and `workspace_words`, and stores normalization constants. It contains no
+heap pointers or caches. `FASTCD_FF_MAX_DEGREE` is 12.
+
+```c
+FastCDFFStatus fastcd_field_init(FastCDField* field, uint32_t prime,
+        uint32_t degree, const uint32_t* modulus);
+FastCDFFStatus fastcd_ff_field_init(FastCDField* field, uint32_t prime,
+        uint32_t degree, const uint32_t* modulus);
+FastCDFFStatus fastcd_ff_field_init_trusted(FastCDField* field, uint32_t prime,
+        uint32_t degree, const uint32_t* modulus);
+FastCDFFStatus fastcd_ff_plan_init(FastCDPlanFF* plan,
+        const FastCDField* field, size_t level);
+FastCDFFStatus fastcd_ff_cd_workspace_size(const FastCDPlanFF* plan,
+        size_t* words);
+FastCDFFStatus fastcd_apply_workspace_size_ff(const FastCDPlanFF* plan,
+        FastCDOperation operation, size_t* words);
+```
+
+`fastcd_field_init` accepts odd primes `3..INT32_MAX` and degrees `1..12`.
+A null modulus chooses a deterministic monic irreducible polynomial, which
+`field->modulus` records. An explicit polynomial has exactly `degree+1`
+canonical residues, constant term first and leading coefficient one. Setup
+checks that `prime` is prime and the polynomial irreducible, and leaves
+`field` unchanged on failure.
+
+The lower-level `fastcd_ff_field_init` requires an explicit polynomial for
+extensions (null is allowed at degree one) and also accepts characteristic
+2 for scalar arithmetic, which CD plans reject. The trusted variant skips
+the primality and irreducibility checks; use it only for parameters you
+have already validated. Neither the trusted constructor nor the scalar
+operations are exposed to Python.
+
+Level zero is supported and represents one coefficient-field scalar.
+Dimension and workspace sizes are checked for overflow. CD multiplication
+uses N coefficients in the selected field.
+
+### Finite scalar arithmetic
+
+```c
+void fastcd_ff_field_add(uint32_t* out, const uint32_t* x,
+        const uint32_t* y, const FastCDField* field);
+void fastcd_ff_field_sub(uint32_t* out, const uint32_t* x,
+        const uint32_t* y, const FastCDField* field);
+void fastcd_ff_field_mul(uint32_t* out, const uint32_t* x,
+        const uint32_t* y, const FastCDField* field);
+void fastcd_field_neg(uint32_t* out, const uint32_t* x, const FastCDField* field);
+FastCDFFStatus fastcd_field_inv(uint32_t* out, const uint32_t* x,
+        const FastCDField* field);
+uint32_t fastcd_ff_prime_mul(uint32_t x, uint32_t y, const FastCDField* field);
+uint32_t fastcd_ff_field_reduce64(uint64_t x, const FastCDField* field);
+```
+
+A scalar occupies `degree` canonical `uint32_t` words. Add/subtract/multiply/
+negate permit exact input aliases and require no scratch. Their buffers must
+otherwise be disjoint and correctly sized; these small operations do not
+validate buffer ranges or canonical residues. Inverse uses exponentiation
+by `prime**degree-2`, with enough local limbs for the entire supported order;
+zero returns `FASTCD_FF_ZERO_NORM` without changing output.
+`prime_mul` multiplies two base-prime residues, even for an extension context;
+`reduce64` reduces any `uint64_t`. Degree-one multiplication and reduction
+are inline functions in the header; define `FASTCD_FF_FIELD_EXTERN_ONLY`
+before including it to call the exported out-of-line versions instead.
+`fastcd_ff_field_mul_extension` is the out-of-line routine that
+`fastcd_ff_field_mul` calls for degrees above one; call
+`fastcd_ff_field_mul`.
+
+### Finite CD operations
+
+```c
+FastCDFFStatus fastcd_mul_with_algorithm_ff(uint32_t* out, const uint32_t* x,
+        const uint32_t* y, const FastCDPlanFF* plan, FastCDAlgorithm algorithm,
+        uint32_t* workspace, size_t workspace_words);
+FastCDFFStatus fastcd_mul_ff(uint32_t* out, const uint32_t* x, const uint32_t* y,
+        const FastCDPlanFF* plan, uint32_t* workspace, size_t workspace_words);
+FastCDFFStatus fastcd_ff_cd_mul(uint32_t* out, const uint32_t* x, const uint32_t* y,
+        const FastCDPlanFF* plan, uint32_t* workspace, size_t workspace_words);
+FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x,
+        const uint32_t* y, const uint32_t* z, const FastCDPlanFF* plan,
+        FastCDOperation operation, size_t basis_index, FastCDAlgorithm algorithm,
+        uint32_t* workspace, size_t workspace_words);
+FastCDFFStatus fastcd_mul_batch_ff(uint32_t* out, size_t out_stride,
+        const uint32_t* x, size_t x_stride, const uint32_t* y, size_t y_stride,
+        size_t count, const FastCDPlanFF* plan, FastCDAlgorithm algorithm,
+        uint32_t* workspace, size_t workspace_words);
+const char* fastcd_ff_status_string(FastCDFFStatus status);
+```
+
+All lengths and strides count `uint32_t` words. One field coefficient
+occupies `degree` consecutive words, so a record has `plan->words` words.
+`fastcd_mul_ff` uses `AUTO`; `fastcd_ff_cd_mul` always uses quasilinear.
+Only the queried active workspace prefix is used or checked when a larger
+buffer is supplied. The generic apply operation uses the shared table above.
+A batch reuses one workspace and validates before writing. Strides have the
+complex batch rules with `plan->words` replacing `dimension`.
+
+Finite statuses, in declaration order, are `FASTCD_FF_SUCCESS`,
+`FASTCD_FF_INVALID_LEVEL`, `FASTCD_FF_INVALID_FIELD`,
+`FASTCD_FF_CHARACTERISTIC_TWO`, `FASTCD_FF_INSUFFICIENT_WORKSPACE`,
+`FASTCD_FF_OVERLAPPING_BUFFERS`, `FASTCD_FF_SIZE_OVERFLOW`,
+`FASTCD_FF_NULL_POINTER`, `FASTCD_FF_UNSUPPORTED_ALGORITHM`,
+`FASTCD_FF_ZERO_NORM`, `FASTCD_FF_INVALID_BASIS_INDEX`, and
+`FASTCD_FF_INVALID_STRIDE`. `FastCDFFStatus` is a separate enum from
+`FastCDStatus`.

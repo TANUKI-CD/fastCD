@@ -20,6 +20,11 @@ Example (from a configured build directory ``build``):
 
     python3 benchmarks/benchmark.py --runner build/fastcd_benchmark \
         --output benchmark-results/results-current.json --cpu 0
+
+The default protocol remains this real experiment. Explicit ``--protocol``
+choices add complex/finite direct-versus-quasilinear measurements (domains),
+comparisons with FLINT, the Fast Library for Number Theory (flint), or all
+three independent protocols (all). The FLINT runner is an optional build.
 """
 
 from __future__ import annotations
@@ -66,7 +71,18 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--runner", type=Path, required=True,
-                        help="path to the built fastcd_benchmark executable")
+                        help="runner for the selected protocol (all uses fastcd_benchmark)")
+    parser.add_argument("--protocol", choices=("real", "domains", "flint", "all"),
+                        default="real", help="benchmark protocol (default: real, unchanged)")
+    parser.add_argument("--fields", help="char:deg pairs for domains/FLINT; C is 0:2")
+    parser.add_argument("--domain-runner", type=Path,
+                        help="domain executable for all (default: beside --runner)")
+    parser.add_argument("--flint-runner", type=Path,
+                        help="FLINT executable for all (default: beside --runner)")
+    parser.add_argument("--domain-build-metadata", type=Path)
+    parser.add_argument("--flint-build-metadata", type=Path)
+    parser.add_argument("--workloads", default="scalar,cd",
+                        help="FLINT workloads: scalar,cd (default: both)")
     parser.add_argument("--build-metadata", type=Path,
                         help="fastcd-build-CONFIG.txt (default: beside the runner)")
     parser.add_argument("--output", type=Path, required=True,
@@ -514,6 +530,15 @@ def write_markdown(path: Path, document: dict[str, Any]) -> None:
 
 def main() -> int:
     arguments = parse_arguments()
+    if arguments.protocol != "real":
+        try:
+            from . import protocols
+        except ImportError:
+            import protocols
+        try:
+            return protocols.run(arguments)
+        except (ValueError, OSError, RuntimeError) as error:
+            raise SystemExit(str(error)) from None
     dimensions = sorted({int(v) for v in arguments.dimensions.split(",")})
     for dimension in dimensions:
         if dimension <= 0 or dimension & (dimension - 1):

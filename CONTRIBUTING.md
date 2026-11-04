@@ -75,3 +75,51 @@ version metadata rather than a staged extension or an editable install.
 - Error messages shared by the C extension and the Python layer are defined
   in `python/src/pyfastcd/_validation.py` and mirrored in `_core.c`; keep them
   identical.
+
+## Coefficient-field kernels
+
+The real-coefficient sources and their generated kernels are unchanged
+since v1.1.0. Complex arithmetic is in `src/complex.c`; finite-field
+arithmetic is in `src/finite/`. Use `tools/finite/generate_fields.py` and
+`tools/finite/generate_finite_backends.py` to regenerate the committed
+finite kernels; the latter also regenerates the shared maps and value
+schedule from its checked-in templates. Do not edit generated outputs by
+hand.
+
+The complex and finite C sources follow the conventions of the real
+kernels: four-space block indentation, eight-space continuations, pointers
+attached to their types, and a short purpose comment before each function.
+Explain recursive stages, workspace ownership, aliasing exceptions, and
+arithmetic bounds where they occur, as in `src/direct_impl.h` and
+`src/quasilinear_impl.h`. The root `.clang-format` records these
+conventions, and finite generation uses `clang-format==18.1.8` (included
+in the development extras) so generated C stays readable and
+deterministic. No formatter is needed to build the committed sources. Do
+not reformat the real-coefficient sources or the archived benchmark
+snapshots.
+
+Complex and finite-field arithmetic use caller-owned contexts and scratch,
+with no heap allocation or global mutable state in the C library. Every
+finite buffer contains canonical `uint32_t` residues; the Python boundary
+validates this on every call, since callers may have mutated an array.
+
+Run the coefficient-field tests (`tests/test_domains.c` and
+`python/tests/test_domains.py`) in the default build, with
+`-DFASTCD_ENABLE_FINITE_SIMD=OFF`, and with
+`-DFASTCD_TUNING_DEFINITIONS=FASTCD_DISABLE_SIMD=1`. CTest includes
+independent polynomial and basis-sign oracles, exact workspace canaries,
+composite operations, zero-norm checks, and a reduction test that avoids
+128-bit integers. The Python tests include pickle fixtures from v1.1.0.
+`python -m mypy python/tests/typing_domains.py` checks the inferred
+coefficient and result types, and `tools/check_v110_compat.py` compares
+the installed package against a separately installed v1.1.0 to confirm
+backward compatibility.
+
+`benchmarks/benchmark.py` runs the real-coefficient experiment by default.
+`--protocol domains` measures direct and quasilinear over C and finite
+fields, `--protocol flint` compares scalar arithmetic and complete CD
+products against FLINT (Fast Library for Number Theory), an independent
+exact-arithmetic C library, and `--protocol all` runs all three. The
+[benchmark guide](docs/benchmark.md) describes the timing, field matching,
+verification and reporting rules. Change the AUTO tables only on the basis
+of a new measurement, and never edit archived results.
