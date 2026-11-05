@@ -78,9 +78,9 @@ version metadata rather than a staged extension or an editable install.
 
 ## Coefficient-field kernels
 
-The real-coefficient sources and their generated kernels are unchanged
-since v1.1.0. Complex arithmetic is in `src/complex.c`; finite-field
-arithmetic is in `src/finite/`. Use `tools/finite/generate_fields.py` and
+Real-coefficient arithmetic is in the sources directly under `src/` and
+their generated kernels in `src/generated/`. Complex arithmetic is in
+`src/complex.c`; finite-field arithmetic is in `src/finite/`. Use `tools/finite/generate_fields.py` and
 `tools/finite/generate_finite_backends.py` to regenerate the committed
 finite kernels; the latter also regenerates the shared maps and value
 schedule from its checked-in templates. Do not edit generated outputs by

@@ -15,15 +15,20 @@ optional comparison with an external arithmetic library; see
 ## Archived results
 
 The README tables come from the run archived in
+[`benchmark-results/t440-20261104/`](../benchmark-results/t440-20261104/README.md),
+measured on 2026-11-04 from the v1.2.0 source on one logical CPU of an
+Intel Xeon Gold 6148 in a Dell PowerEdge T440. `real.json` and `real.md`
+hold the real-coefficient run with the default protocol below; `domains.*`
+and `flint.*` hold the finite-field and FLINT runs described later in this
+page, measured with 1,000 operand pairs per cell rather than the 10,000-pair
+default. Each file records the commit, source and executable hashes, build
+options, corpus hashes, CPU state and raw observations. All 600,000
+real-coefficient verification checks passed with zero mismatches. The run
+the paper's v2 reports is archived in
 [`benchmark-results/paper-v2-octonion243-20261023/`](../benchmark-results/paper-v2-octonion243-20261023/results.md),
-which the paper's v2 reports. It was measured on 2026-10-23 on one logical
-CPU of an Intel Xeon Gold 6148 through dimension 1024. Its raw observations,
-environment, commands, validation record and the exact measured source
-(revision `7da5a5f` plus the archived `source.patch`) are stored beside the
-report. All 600,000 verification checks passed with zero mismatches. The
-other directories under `benchmark-results/` record earlier builds; each
-report names the source it measured. The host is shared, so timing
-differences between archived runs do not isolate source changes.
+and older directories record earlier builds; each report names the source
+it measured. The host is shared, so timing differences between archived
+runs do not isolate source changes.
 
 The tables give the mean time per product with a 95% confidence interval,
 paired ratios against the quasilinear algorithm, and a paired single/batch
@@ -210,9 +215,18 @@ algorithm and mode calibrates whole-corpus passes independently. `--modes
 batch` or `--modes single` restricts the measurement; the block count must
 be a multiple of the number of algorithm/mode tasks, four by default and
 two with one mode. Native calls are timed, and Python object construction
-is excluded. A smaller `--trials` gives a pilot run; keep that value in
-mind when reading its results. Verifying every quadratic direct product
-over extension fields can make the default campaign lengthy.
+is excluded.
+
+The direct algorithm and the independent verification both perform O(N^2)
+coefficient products per pair, and over an extension field each
+coefficient product costs about `deg`^2 residue products, so the largest
+cells dominate the run time. With the default 10,000 pairs the campaign
+takes more than a day; the archived run used `--trials 1000`. Each cell
+runs in its own subprocess with a one-hour limit by default, which a
+1,000-pair cell at dimension 1024 over an extension field can exceed, so
+raise `--subprocess-timeout` (in seconds) for such runs. A smaller
+`--trials` gives a quick pilot; keep that value in mind when reading its
+results.
 
 Each finite coefficient occupies `deg` canonical `uint32` residues in the
 polynomial basis, and a record has N such coefficients. Setup chooses and
@@ -330,6 +344,12 @@ they do not isolate the scalar multiply's contribution. Neither comparison
 establishes a universal speedup or covers every representation FLINT
 offers.
 
-The [2026-11-04 pilot](../benchmark-results/flint-pilot-20261104/assessment.md)
-archives 60 cells with 32 pairs per cell and a 0.5 ms calibration target,
-separately from the default 10,000-pair, 20 ms campaign.
+The archived comparison in
+[`benchmark-results/t440-20261104/`](../benchmark-results/t440-20261104/README.md)
+(`flint.md`) covers the nine default fields plus F(3^12), F(13^12) and
+F(2147483647^12) with 1,000 pairs per cell, and the README tables summarize
+it. The run-time notes for the finite-field protocol apply here too: the
+verification costs O(N^2) coefficient products per pair and FLINT's
+extension arithmetic is slowest at degree 12, so the degree-12 cells at
+dimension 1024 are the most expensive, and `--subprocess-timeout` may need
+raising.

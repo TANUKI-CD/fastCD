@@ -1,0 +1,22 @@
+# Conventions of the original real kernels: four-space blocks, eight-space
+# continuations, type-attached pointers, and comments explaining each stage.
+BasedOnStyle: LLVM
+IndentWidth: 4
+ContinuationIndentWidth: 8
+ColumnLimit: 88
+PointerAlignment: Left
+DerivePointerAlignment: false
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+IndentCaseLabels: true
+SortIncludes: Never
+AlignAfterOpenBracket: DontAlign
+AlignOperands: DontAlign
+ReflowComments: false
+BreakStringLiterals: false
+SeparateDefinitionBlocks: Always
+# The token-pasting macro expands to a function name, not a declaration type.
+Macros:
+  - FASTCD_FF_JOIN(a,b)=a

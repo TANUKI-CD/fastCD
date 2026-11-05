@@ -1,16 +1,18 @@
 cff-version: 1.2.0
 message: "If you use fastCD in your work, please cite it using this metadata."
 type: software
-title: "fastCD: fast real Cayley–Dickson arithmetic"
+title: "fastCD: fast Cayley–Dickson arithmetic over real and complex numbers and finite fields"
 abstract: >-
   A C library and NumPy-compatible Python extension for multiplication in the
-  real Cayley–Dickson tower, including a quasilinear O(N log N) multiplication
-  algorithm alongside the direct recursion and the Cariow–Cariowa algorithm.
+  Cayley–Dickson tower over the real numbers, the complex numbers, and
+  odd-characteristic finite fields, including a quasilinear O(N log N)
+  multiplication algorithm alongside the direct recursion and the
+  Cariow–Cariowa algorithm.
 authors:
   - family-names: Lemley
     given-names: Harrison
-version: 1.1.0
-date-released: 2026-10-26
+version: 1.2.0
+date-released: 2026-11-04
 license: MIT
 repository-code: "https://git.tanuki-cd.com/algebraity/fastCD"
 keywords:
@@ -19,10 +21,11 @@ keywords:
   - quaternions
   - octonions
   - sedenions
+  - finite fields
   - fast multiplication
 preferred-citation:
   type: article
-  title: "Quasilinear multiplication in the Cayley--Dickson tower"
+  title: "Quasilinear multiplication in the Cayley-Dickson tower"
   authors:
     - family-names: Lemley
       given-names: Harrison
@@ -31,4 +34,3 @@ preferred-citation:
   identifiers:
     - type: other
       value: "arXiv:2609.11588"
-

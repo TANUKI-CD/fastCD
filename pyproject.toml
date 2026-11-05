@@ -72,7 +72,7 @@ wheel.exclude = [
     "pyfastcd/_core.c",
     "pyfastcd/_domains_core.c",
     "pyfastcd/__pycache__/**",
-    "pyfastcd/*.py[cod]",
+    "pyfastcd/*.py[co]",
 ]
 install.components = ["python"]
 sdist.inclusion-mode = "explicit"
@@ -99,7 +99,7 @@ sdist.include = [
 ]
 sdist.exclude = [
     "**/__pycache__/**",
-    "**/*.py[cod]",
+    "**/*.py[co]",
     "build/**",
 ]
 

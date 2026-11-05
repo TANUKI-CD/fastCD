@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -50,11 +51,17 @@ def test_paired_statistics_keep_modes_and_blocks_separate():
 
 @pytest.mark.parametrize("p,d", [(13, 5), (0, 2)])
 def test_native_runner_verifies_and_balances_modes(tmp_path, p, d):
-    runner = (
-        Path(__file__).resolve().parents[1] / "build/domains/fastcd_domains_benchmark"
+    root = Path(__file__).resolve().parents[1]
+    runner = Path(
+        os.environ.get(
+            "FASTCD_DOMAINS_RUNNER", root / "build/domains/fastcd_domains_benchmark"
+        )
     )
-    if not runner.exists():
+    if not runner.is_file():
+        if "FASTCD_DOMAINS_RUNNER" in os.environ:
+            pytest.fail(f"FASTCD_DOMAINS_RUNNER is not a file: {runner}")
         pytest.skip("native domain runner is not built here")
+    runner = runner.resolve()
     path = tmp_path / "pairs.bin"
     driver.corpus(path, p, d, 8, 5, 17)
     command = [

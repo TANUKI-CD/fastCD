@@ -5,7 +5,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
-## [Unreleased]
+## [1.2.0] - 2026-11-04
 
 ### Added
 
@@ -37,6 +37,10 @@ All notable changes to fastCD are recorded in this file. The project follows
 - C and Python tests for the new coefficient fields, exact workspace
   boundary checks, a portable reduction test, v1.1.0 pickle fixtures,
   `tools/check_v110_compat.py`, and type stubs that infer coefficient types.
+- T440 benchmark data for the 1.2.0 source: the full real-coefficient
+  protocol through dimension 1024, direct versus quasilinear over the
+  default finite fields and C, and the FLINT comparison. The README tables
+  use this run.
 
 ## [1.1.0] - 2026-10-26
 
