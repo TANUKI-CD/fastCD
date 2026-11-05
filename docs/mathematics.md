@@ -2,7 +2,7 @@
 
 This page describes the conventions used to represent Cayley-Dickson
 elements in fastCD and the mathematical results behind the implementation.
-The [paper (v2)](https://arxiv.org/abs/2609.11588v2) derives the quasilinear
+The [paper](https://arxiv.org/abs/2609.11588) derives the quasilinear
 recursion over a general coefficient ring and gives the arithmetic schedule
 implemented here, including the fused local map, its addition-count lower
 bound, and the complex octonion base case. This page describes that
