@@ -36,7 +36,8 @@ Notes
 -----
 The package intentionally exposes mathematical values rather than native
 status codes or workspace buffers. CD conjugation fixes coefficients;
-``quadratic_norm()`` returns their canonical field-valued quadratic form.
+``quadratic_norm()`` returns the quadratic form ``sum_i x_i**2`` in the
+coefficient field.
 Real parents reject complex coefficients.
 """
 

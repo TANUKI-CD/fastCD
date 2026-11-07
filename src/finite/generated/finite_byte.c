@@ -191,11 +191,11 @@ static void fastcd_ff_byte64_node32(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_byte64_ValueLocal a = fastcd_ff_byte64_vlocal(
-                                            ur, vr, sr, tr, gp, dp, ctx),
-                                    b = fastcd_ff_byte64_vlocal(
-                                            ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_byte64_ValueLocal c = fastcd_ff_byte64_vlocal(
+        fastcd_ff_byte64_ValueNonrecursive a = fastcd_ff_byte64_vnonrecursive(
+                                                   ur, vr, sr, tr, gp, dp, ctx),
+                                           b = fastcd_ff_byte64_vnonrecursive(
+                                                   ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_byte64_ValueNonrecursive c = fastcd_ff_byte64_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -343,11 +343,11 @@ static void fastcd_ff_byte64_node16(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_byte64_ValueLocal a = fastcd_ff_byte64_vlocal(
-                                            ur, vr, sr, tr, gp, dp, ctx),
-                                    b = fastcd_ff_byte64_vlocal(
-                                            ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_byte64_ValueLocal c = fastcd_ff_byte64_vlocal(
+        fastcd_ff_byte64_ValueNonrecursive a = fastcd_ff_byte64_vnonrecursive(
+                                                   ur, vr, sr, tr, gp, dp, ctx),
+                                           b = fastcd_ff_byte64_vnonrecursive(
+                                                   ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_byte64_ValueNonrecursive c = fastcd_ff_byte64_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -518,11 +518,11 @@ static void fastcd_ff_byte64_node8(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_byte64_ValueLocal a = fastcd_ff_byte64_vlocal(
-                                            ur, vr, sr, tr, gp, dp, ctx),
-                                    b = fastcd_ff_byte64_vlocal(
-                                            ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_byte64_ValueLocal c = fastcd_ff_byte64_vlocal(
+        fastcd_ff_byte64_ValueNonrecursive a = fastcd_ff_byte64_vnonrecursive(
+                                                   ur, vr, sr, tr, gp, dp, ctx),
+                                           b = fastcd_ff_byte64_vnonrecursive(
+                                                   ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_byte64_ValueNonrecursive c = fastcd_ff_byte64_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -711,11 +711,11 @@ static void fastcd_ff_byte64_node4(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_byte64_ValueLocal a = fastcd_ff_byte64_vlocal(
-                                            ur, vr, sr, tr, gp, dp, ctx),
-                                    b = fastcd_ff_byte64_vlocal(
-                                            ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_byte64_ValueLocal c = fastcd_ff_byte64_vlocal(
+        fastcd_ff_byte64_ValueNonrecursive a = fastcd_ff_byte64_vnonrecursive(
+                                                   ur, vr, sr, tr, gp, dp, ctx),
+                                           b = fastcd_ff_byte64_vnonrecursive(
+                                                   ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_byte64_ValueNonrecursive c = fastcd_ff_byte64_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -919,11 +919,11 @@ static void fastcd_ff_byte64_node2(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_byte64_ValueLocal a = fastcd_ff_byte64_vlocal(
-                                            ur, vr, sr, tr, gp, dp, ctx),
-                                    b = fastcd_ff_byte64_vlocal(
-                                            ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_byte64_ValueLocal c = fastcd_ff_byte64_vlocal(
+        fastcd_ff_byte64_ValueNonrecursive a = fastcd_ff_byte64_vnonrecursive(
+                                                   ur, vr, sr, tr, gp, dp, ctx),
+                                           b = fastcd_ff_byte64_vnonrecursive(
+                                                   ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_byte64_ValueNonrecursive c = fastcd_ff_byte64_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -1142,11 +1142,11 @@ static void fastcd_ff_byte64_node1(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_byte64_ValueLocal a = fastcd_ff_byte64_vlocal(
-                                            ur, vr, sr, tr, gp, dp, ctx),
-                                    b = fastcd_ff_byte64_vlocal(
-                                            ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_byte64_ValueLocal c = fastcd_ff_byte64_vlocal(
+        fastcd_ff_byte64_ValueNonrecursive a = fastcd_ff_byte64_vnonrecursive(
+                                                   ur, vr, sr, tr, gp, dp, ctx),
+                                           b = fastcd_ff_byte64_vnonrecursive(
+                                                   ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_byte64_ValueNonrecursive c = fastcd_ff_byte64_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -1280,8 +1280,8 @@ static void fastcd_ff_byte64_root(Coef* restrict out, const Coef* x, const Coef*
             s = mask(s, keep);
             t = mask(t, keep);
         }
-        fastcd_ff_byte64_ValueLocal a =
-                fastcd_ff_byte64_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_byte64_ValueNonrecursive a =
+                fastcd_ff_byte64_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         sum = add(sum, a.scalar);
         st(out + i, add(ld(out + i), a.first));
         st(out + h + i, sub(a.second, ld(out + h + i)));

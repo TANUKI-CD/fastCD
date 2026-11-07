@@ -20,8 +20,8 @@ static void FASTCD_FF_NAME(recover)(FASTCD_FF_WORD* real, FASTCD_FF_WORD* imag,
     FASTCD_FF_SUB(imag, imag, q, ctx);
 }
 
-// Evaluate one coordinate of the local bilinear map B, including its pairing.
-static void FASTCD_FF_NAME(local)(FASTCD_FF_WORD* first, FASTCD_FF_WORD* scalar,
+// Evaluate one coordinate of the nonrecursive bilinear map B, including its pairing.
+static void FASTCD_FF_NAME(nonrecursive)(FASTCD_FF_WORD* first, FASTCD_FF_WORD* scalar,
         FASTCD_FF_WORD* second, const FASTCD_FF_WORD* u, const FASTCD_FF_WORD* v,
         const FASTCD_FF_WORD* s, const FASTCD_FF_WORD* t, const FASTCD_FF_WORD* gamma,
         const FASTCD_FF_WORD* delta, FASTCD_FF_WORD* tmp, FASTCD_FF_CONTEXT* ctx) {
@@ -43,7 +43,7 @@ static void FASTCD_FF_NAME(local)(FASTCD_FF_WORD* first, FASTCD_FF_WORD* scalar,
  * The pair algebra is an auxiliary arithmetic device even if iota^2+1
  * splits over the field. Odd characteristic supplies the modular halvings;
  * no square root of -1 or additional defining polynomial is selected here.
- * n=4 uses the explicit six-product local map. At larger nodes the children
+ * n=4 uses the explicit six-product nonrecursive map. At larger nodes the children
  * occupy the output halves and share transformed operands and child scratch.
  */
 static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
@@ -59,9 +59,9 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         }
         return;
     }
-    FASTCD_FF_WORD* local = workspace;
+    FASTCD_FF_WORD* nonrecursive = workspace;
     if (n > 4) {
-        // Leave 32 coefficients for local maps, then four transformed
+        // Leave 32 coefficients for nonrecursive maps, then four transformed
         // half-size planes and one child scratch region shared sequentially.
         FASTCD_FF_WORD* axr = workspace + 32 * step;
         FASTCD_FF_WORD* axi = axr + h * step;
@@ -102,12 +102,12 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
             FASTCD_FF_ZERO(out_imag + i * step, ctx);
         }
     }
-#define T(j) (local + (j) * step)
-    // Local slots 0..2 accumulate scalar pairings; 3..4 hold gamma/delta
+#define T(j) (nonrecursive + (j) * step)
+    // Nonrecursive slots 0..2 accumulate scalar pairings; 3..4 hold gamma/delta
     // sums. Slots 5..18 hold the p,q,w maps and their shared input sums;
     // 19..26 hold recovered map coordinates and child recombinations.
     // Slots below 32 are separate from every live transformed input plane.
-    // p,q,w local maps share their three scalar pairing accumulators.
+    // p,q,w nonrecursive maps share their three scalar pairing accumulators.
     FASTCD_FF_ZERO(T(0), ctx);
     FASTCD_FF_ZERO(T(1), ctx);
     FASTCD_FF_ZERO(T(2), ctx);
@@ -117,17 +117,17 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         size_t k = i * step, l = (h + i) * step;
         // Three real-coefficient B evaluations recover its auxiliary pair
         // value, including the scalar pairing, without creating a field iota.
-        FASTCD_FF_NAME(local)
+        FASTCD_FF_NAME(nonrecursive)
         (T(5), T(6), T(7), xr + k, yr + k, xr + l, yr + l, xr + h * step, yr + h * step,
                 T(8), ctx);
-        FASTCD_FF_NAME(local)
+        FASTCD_FF_NAME(nonrecursive)
         (T(9), T(10), T(11), xi + k, yi + k, xi + l, yi + l, xi + h * step,
                 yi + h * step, T(8), ctx);
         FASTCD_FF_ADD(T(12), xr + k, xi + k, ctx);
         FASTCD_FF_ADD(T(13), yr + k, yi + k, ctx);
         FASTCD_FF_ADD(T(14), xr + l, xi + l, ctx);
         FASTCD_FF_ADD(T(15), yr + l, yi + l, ctx);
-        FASTCD_FF_NAME(local)
+        FASTCD_FF_NAME(nonrecursive)
         (T(16), T(17), T(18), T(12), T(13), T(14), T(15), T(3), T(4), T(8), ctx);
         FASTCD_FF_ADD(T(0), T(0), T(6), ctx);
         FASTCD_FF_ADD(T(1), T(1), T(10), ctx);
@@ -172,11 +172,11 @@ static void FASTCD_FF_NAME(cd)(FASTCD_FF_WORD* out, const FASTCD_FF_WORD* x,
         for (size_t i = 0; i < n; i++) FASTCD_FF_ZERO(out + i * step, ctx);
     }
     if (n >= 4) {
-        // Add the root local map; its second half reverses the child's sign.
+        // Add the root nonrecursive map; its second half reverses the child's sign.
         FASTCD_FF_ZERO(tmp, ctx);
         for (size_t i = 1; i < h; i++) {
             size_t k = i * step, l = (h + i) * step;
-            FASTCD_FF_NAME(local)
+            FASTCD_FF_NAME(nonrecursive)
             (tmp + step, tmp + 2 * step, tmp + 3 * step, x + k, y + k, x + l, y + l,
                     x + h * step, y + h * step, tmp + 4 * step, ctx);
             FASTCD_FF_ADD(tmp, tmp, tmp + 2 * step, ctx);

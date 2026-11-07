@@ -251,12 +251,13 @@ static void fastcd_ff_mont16_node8(uint32_t* restrict real, uint32_t* restrict i
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_mont16_ValueLocal a =
-                fastcd_ff_mont16_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_mont16_ValueLocal b =
-                fastcd_ff_mont16_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_mont16_ValueLocal c = fastcd_ff_mont16_vlocal(add(ur, ui, ctx),
-                add(vr, vi, ctx), add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
+        fastcd_ff_mont16_ValueNonrecursive a =
+                fastcd_ff_mont16_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_mont16_ValueNonrecursive b =
+                fastcd_ff_mont16_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_mont16_ValueNonrecursive c =
+                fastcd_ff_mont16_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
+                        add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
         aw = add(aw, c.scalar, ctx);
@@ -430,12 +431,13 @@ static void fastcd_ff_mont16_node4(uint32_t* restrict real, uint32_t* restrict i
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_mont16_ValueLocal a =
-                fastcd_ff_mont16_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_mont16_ValueLocal b =
-                fastcd_ff_mont16_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_mont16_ValueLocal c = fastcd_ff_mont16_vlocal(add(ur, ui, ctx),
-                add(vr, vi, ctx), add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
+        fastcd_ff_mont16_ValueNonrecursive a =
+                fastcd_ff_mont16_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_mont16_ValueNonrecursive b =
+                fastcd_ff_mont16_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_mont16_ValueNonrecursive c =
+                fastcd_ff_mont16_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
+                        add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
         aw = add(aw, c.scalar, ctx);
@@ -609,12 +611,13 @@ static void fastcd_ff_mont16_node2(uint32_t* restrict real, uint32_t* restrict i
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_mont16_ValueLocal a =
-                fastcd_ff_mont16_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_mont16_ValueLocal b =
-                fastcd_ff_mont16_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_mont16_ValueLocal c = fastcd_ff_mont16_vlocal(add(ur, ui, ctx),
-                add(vr, vi, ctx), add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
+        fastcd_ff_mont16_ValueNonrecursive a =
+                fastcd_ff_mont16_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_mont16_ValueNonrecursive b =
+                fastcd_ff_mont16_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_mont16_ValueNonrecursive c =
+                fastcd_ff_mont16_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
+                        add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
         aw = add(aw, c.scalar, ctx);
@@ -788,12 +791,13 @@ static void fastcd_ff_mont16_node1(uint32_t* restrict real, uint32_t* restrict i
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_mont16_ValueLocal a =
-                fastcd_ff_mont16_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_mont16_ValueLocal b =
-                fastcd_ff_mont16_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_mont16_ValueLocal c = fastcd_ff_mont16_vlocal(add(ur, ui, ctx),
-                add(vr, vi, ctx), add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
+        fastcd_ff_mont16_ValueNonrecursive a =
+                fastcd_ff_mont16_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_mont16_ValueNonrecursive b =
+                fastcd_ff_mont16_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_mont16_ValueNonrecursive c =
+                fastcd_ff_mont16_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
+                        add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
         aw = add(aw, c.scalar, ctx);
@@ -868,8 +872,8 @@ static void fastcd_ff_mont16_prime_cd(uint32_t* restrict out, const uint32_t* x,
             s = _mm512_and_si512(s, mask);
             t = _mm512_and_si512(t, mask);
         }
-        fastcd_ff_mont16_ValueLocal a =
-                fastcd_ff_mont16_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_mont16_ValueNonrecursive a =
+                fastcd_ff_mont16_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         scalar = add(scalar, a.scalar, ctx);
         Word f = add(_mm512_loadu_si512((const void*)(out + i)), a.first, ctx),
              g = sub(a.second, _mm512_loadu_si512((const void*)(out + h + i)), ctx);
@@ -978,8 +982,8 @@ static void fastcd_ff_points16_cd4(uint32_t* restrict out, const uint32_t* x,
             s = _mm512_and_si512(s, keep);
             t = _mm512_and_si512(t, keep);
         }
-        fastcd_ff_mont16_ValueLocal a =
-                fastcd_ff_mont16_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_mont16_ValueNonrecursive a =
+                fastcd_ff_mont16_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         sum = add(sum, a.scalar, ctx);
         Word f = add(_mm512_loadu_si512((const void*)(out + i * 4)), a.first, ctx),
              g = sub(a.second, _mm512_loadu_si512((const void*)(out + (h + i) * 4)),
@@ -1113,8 +1117,8 @@ static void fastcd_ff_points16_cd8(uint32_t* restrict out, const uint32_t* x,
             s = _mm512_and_si512(s, keep);
             t = _mm512_and_si512(t, keep);
         }
-        fastcd_ff_mont16_ValueLocal a =
-                fastcd_ff_mont16_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_mont16_ValueNonrecursive a =
+                fastcd_ff_mont16_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         sum = add(sum, a.scalar, ctx);
         Word f = add(_mm512_loadu_si512((const void*)(out + i * 8)), a.first, ctx),
              g = sub(a.second, _mm512_loadu_si512((const void*)(out + (h + i) * 8)),

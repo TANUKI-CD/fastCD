@@ -29,8 +29,9 @@
  * into generated straight-line code with no runtime sign or mask evaluation
  * and no caller-provided scratch.  Above it the same operations run as
  * loops over generated sign-correction tables (cariow_cariowa_impl.h) with
- * 2N scratch coefficients and the correction terms of each output summed in
- * four interleaved partial sums, because the unrolled form grows with N^2
+ * 2N scratch coefficients. Fixed groups of mask words use bounded
+ * interleaved chains, and their totals are combined by a balanced tree.
+ * The unrolled form grows with N^2
  * and is about 13 MB of code at dimension 1024.  The algorithm is not
  * recommended above 64: quasilinear is faster in the recorded benchmarks,
  * and this implementation does not vectorize the gathered sign corrections

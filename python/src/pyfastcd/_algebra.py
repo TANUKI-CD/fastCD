@@ -96,8 +96,8 @@ class Algebra:
     -----
     Exactly one of ``dimension`` and ``level`` must be supplied.  Algebra
     objects are immutable, cannot be subclassed, and are cached by dimension
-    and coefficient presentation. Default calls use the original real tower
-    and native ``float64`` implementation. Explicit complex parents use
+    and coefficient presentation. Without selectors, coefficients are real
+    ``float64`` values. Explicit complex parents use
     ``complex128``; finite parents use canonical ``uint32`` polynomial words.
     See ``coefficient_shape`` for complete record axes.
 
@@ -166,8 +166,8 @@ class Algebra:
             field = FiniteField(char=p, deg=d)
         elif d not in (1, 2):
             raise ValueError("char=0 supports only deg=1 (R) or deg=2 (C)")
-        # Keep the original integer cache key for real parents. New domains
-        # include the actual finite presentation, not merely its field order.
+        # Real parents are cached by dimension alone. Complex and finite-field
+        # keys include the finite presentation, not merely its field order.
         key = (
             normalized_dimension
             if p == 0 and d == 1
@@ -183,8 +183,8 @@ class Algebra:
         object.__setattr__(self, "_char", p)
         object.__setattr__(self, "_deg", d)
         object.__setattr__(self, "_field", field)
-        # Only explicitly selected domains construct the separate native
-        # context; the default real path retains its original implementation.
+        # Only explicitly selected complex and finite-field parents construct
+        # the separate native context; real parents use the _core module.
         if p or d != 1:
             from . import _domains_core
 
@@ -319,8 +319,8 @@ class Algebra:
 
         One of ``"direct"``, ``"cariow_cariowa"``, or ``"quasilinear"``.
         Real batches can evaluate two products per SIMD instruction, and
-        their defaults come from the real benchmark. Complex/finite parents
-        currently select quasilinear for every batch size.
+        their defaults come from the real benchmark. Complex and finite-field
+        parents select quasilinear for every batch size.
         Passing this name explicitly to :meth:`multiply` reproduces ``X * Y``
         exactly for arrays with at least two records.
         """
@@ -561,7 +561,7 @@ class Algebra:
         Notes
         -----
         Coefficients are always copied. Only leading batch axes broadcast;
-        finite extension records retain their trailing ``(dimension, deg)``
+        finite extension records keep their trailing ``(dimension, deg)``
         axes. Integer residues reduce before narrowing.
         """
 
@@ -963,11 +963,11 @@ def cd_element(
         One complete record with a nonempty power-of-two number of CD
         coefficients. Default real and explicit complex/prime-field inputs
         have shape ``(N,)``; finite extensions have shape ``(N, deg)``.
-        An existing Element is copied, retaining its parent when no new
+        An Element argument is copied and keeps its parent unless
         coefficient selectors are supplied.
     char, deg, field : optional
         Coefficient selectors with the same contract as :class:`Algebra`.
-        Omitting them preserves the original real constructor calls.
+        Omitting them selects real coefficients.
 
     Returns
     -------
@@ -1024,7 +1024,7 @@ def cd_element(
 
 
 def _algebra_from_domain(dimension: int, char: int, deg: int, field: Any) -> Algebra:
-    """Restore a new-domain pickle using its actual finite field presentation."""
+    """Restore a complex or finite-field pickle with its finite presentation."""
 
     return (
         Algebra(dimension=dimension, field=field)

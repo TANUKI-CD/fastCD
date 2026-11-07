@@ -285,11 +285,11 @@ static void fastcd_ff_ternary16_node16(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_ternary16_ValueLocal a = fastcd_ff_ternary16_vlocal(
-                                               ur, vr, sr, tr, gp, dp, ctx),
-                                       b = fastcd_ff_ternary16_vlocal(
-                                               ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_ternary16_ValueLocal c = fastcd_ff_ternary16_vlocal(
+        fastcd_ff_ternary16_ValueNonrecursive a = fastcd_ff_ternary16_vnonrecursive(
+                                                      ur, vr, sr, tr, gp, dp, ctx),
+                                              b = fastcd_ff_ternary16_vnonrecursive(
+                                                      ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_ternary16_ValueNonrecursive c = fastcd_ff_ternary16_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -537,11 +537,11 @@ static void fastcd_ff_ternary16_node8(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_ternary16_ValueLocal a = fastcd_ff_ternary16_vlocal(
-                                               ur, vr, sr, tr, gp, dp, ctx),
-                                       b = fastcd_ff_ternary16_vlocal(
-                                               ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_ternary16_ValueLocal c = fastcd_ff_ternary16_vlocal(
+        fastcd_ff_ternary16_ValueNonrecursive a = fastcd_ff_ternary16_vnonrecursive(
+                                                      ur, vr, sr, tr, gp, dp, ctx),
+                                              b = fastcd_ff_ternary16_vnonrecursive(
+                                                      ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_ternary16_ValueNonrecursive c = fastcd_ff_ternary16_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -785,11 +785,11 @@ static void fastcd_ff_ternary16_node4(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_ternary16_ValueLocal a = fastcd_ff_ternary16_vlocal(
-                                               ur, vr, sr, tr, gp, dp, ctx),
-                                       b = fastcd_ff_ternary16_vlocal(
-                                               ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_ternary16_ValueLocal c = fastcd_ff_ternary16_vlocal(
+        fastcd_ff_ternary16_ValueNonrecursive a = fastcd_ff_ternary16_vnonrecursive(
+                                                      ur, vr, sr, tr, gp, dp, ctx),
+                                              b = fastcd_ff_ternary16_vnonrecursive(
+                                                      ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_ternary16_ValueNonrecursive c = fastcd_ff_ternary16_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -1033,11 +1033,11 @@ static void fastcd_ff_ternary16_node2(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_ternary16_ValueLocal a = fastcd_ff_ternary16_vlocal(
-                                               ur, vr, sr, tr, gp, dp, ctx),
-                                       b = fastcd_ff_ternary16_vlocal(
-                                               ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_ternary16_ValueLocal c = fastcd_ff_ternary16_vlocal(
+        fastcd_ff_ternary16_ValueNonrecursive a = fastcd_ff_ternary16_vnonrecursive(
+                                                      ur, vr, sr, tr, gp, dp, ctx),
+                                              b = fastcd_ff_ternary16_vnonrecursive(
+                                                      ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_ternary16_ValueNonrecursive c = fastcd_ff_ternary16_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -1281,11 +1281,11 @@ static void fastcd_ff_ternary16_node1(Coef* restrict real, Coef* restrict imag,
             tr = mask(tr, keep);
             ti = mask(ti, keep);
         }
-        fastcd_ff_ternary16_ValueLocal a = fastcd_ff_ternary16_vlocal(
-                                               ur, vr, sr, tr, gp, dp, ctx),
-                                       b = fastcd_ff_ternary16_vlocal(
-                                               ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_ternary16_ValueLocal c = fastcd_ff_ternary16_vlocal(
+        fastcd_ff_ternary16_ValueNonrecursive a = fastcd_ff_ternary16_vnonrecursive(
+                                                      ur, vr, sr, tr, gp, dp, ctx),
+                                              b = fastcd_ff_ternary16_vnonrecursive(
+                                                      ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_ternary16_ValueNonrecursive c = fastcd_ff_ternary16_vnonrecursive(
                 add(ur, ui), add(vr, vi), add(sr, si), add(tr, ti), gw, dw, ctx);
         ap = add(ap, a.scalar);
         aq = add(aq, b.scalar);
@@ -1387,8 +1387,8 @@ static void fastcd_ff_ternary16_root(Coef* restrict out, const Coef* x, const Co
             s = mask(s, keep);
             t = mask(t, keep);
         }
-        fastcd_ff_ternary16_ValueLocal a =
-                fastcd_ff_ternary16_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_ternary16_ValueNonrecursive a =
+                fastcd_ff_ternary16_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         sum = add(sum, a.scalar);
         st(out + i, add(ld(out + i), a.first));
         st(out + h + i, sub(a.second, ld(out + h + i)));

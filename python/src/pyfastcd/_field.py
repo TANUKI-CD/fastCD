@@ -59,10 +59,10 @@ class FiniteField:
     The constructor chooses a deterministic polynomial basis. Use
     :meth:`from_modulus` for an explicit presentation. Parents are cached by
     their actual defining polynomial: isomorphic fields with different
-    presentations do not coerce implicitly. Pickles retain that polynomial.
+    presentations do not coerce implicitly. Pickles record that polynomial.
 
-    Scalars and arrays use the existing ``Element`` and ``ElementArray``
-    classes. Integers embed in the prime subfield and reduce before storage
+    Scalars and arrays are ``Element`` and ``ElementArray`` objects, as for
+    algebras. Integers embed in the prime subfield and reduce before storage
     conversion; floating-point coefficients are rejected. For extensions,
     pass all ``deg`` polynomial coordinates explicitly when constructing a
     non-prime-subfield value. ``quadratic_norm()`` on a scalar c is c*c;
@@ -245,7 +245,7 @@ class FiniteField:
         Return an ``Element`` for scalar operands, otherwise an
         ``ElementArray``. ``out`` follows the algebra multiplication contract:
         exact broadcast shape, native writable contiguous storage, and no
-        overlap with inputs. A supplied wrapper is returned unchanged.
+        overlap with inputs. A supplied ``ElementArray`` is itself returned.
         """
 
         from ._domains import multiply

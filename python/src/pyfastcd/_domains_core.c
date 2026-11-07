@@ -11,7 +11,7 @@
 
 /*
  * Buffer-protocol bridge for the explicitly selected complex/finite paths.
- * The original real extension remains the default and is not routed here.
+ * Real parents use the _core extension and never reach this module.
  * No NumPy C API is required: Python adapters select parents and broadcast
  * leading axes; this module validates layouts and executes coefficient loops.
  *
@@ -259,7 +259,7 @@ static int overlap(const void* a, size_t an, const void* b, size_t bn) {
 }
 
 /* A contiguous batch or one fully broadcast coefficient record can use the
- * public batch kernel. General views retain the validated strided loop. */
+ * public batch kernel. General views use the validated strided loop. */
 static int flat_stride(Py_buffer* v, int rank, size_t words, size_t* stride) {
     if (PyBuffer_IsContiguous(v, 'C')) {
         *stride = words;
@@ -502,7 +502,7 @@ static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_domains_core",
         "Native finite and complex CD arithmetic.", -1, methods, NULL, NULL, NULL,
         NULL};
 
-// Initialize the private extension without touching the original real module
+// Initialize the private extension; the real _core module does not use it
 PyMODINIT_FUNC PyInit__domains_core(void) {
     return PyModule_Create(&module);
 }

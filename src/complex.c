@@ -105,6 +105,39 @@ static int overlap(const void* a, size_t an, const void* b, size_t bn) {
     return an && bn && (x <= y ? y - x < an : x - y < bn);
 }
 
+/* Reduce two coefficient components with one block/carry schedule. Keep this
+ * frame outside small dots and leaf-only products. No conjugation is applied. */
+static FASTCD_NOINLINE C dot_blocks(const C* x, const C* y, size_t begin, size_t n) {
+    c128_BalancedTree2 tree;
+    c128_Sum2 total = {0, 0};
+    tree.blocks = 0;
+    for (size_t base = begin; base < n; base += FASTCD_SUM_BLOCK) {
+        size_t count = n - base < FASTCD_SUM_BLOCK ? n - base : FASTCD_SUM_BLOCK;
+        C first = mul(x[base], y[base]);
+        total.first = first.real;
+        total.second = first.imag;
+        for (size_t i = base + 1; i < base + count; i++) {
+            C term = mul(x[i], y[i]);
+            total.first = total.first + term.real;
+            total.second = total.second + term.imag;
+        }
+        if (count == FASTCD_SUM_BLOCK) c128_sum2_block(&tree, total);
+    }
+    total = c128_sum2_finish(&tree, total, (n - begin) % FASTCD_SUM_BLOCK != 0);
+    C result = {total.first, total.second};
+    return result;
+}
+
+// A short left fold is exactly the one-block schedule, without tree storage.
+static C dot_range(const C* x, const C* y, size_t begin, size_t n) {
+    if (n - begin > FASTCD_SUM_BLOCK) return dot_blocks(x, y, begin, n);
+    C result = {0, 0};
+    if (begin == n) return result;
+    result = mul(x[begin], y[begin]);
+    for (size_t i = begin + 1; i < n; i++) result = add(result, mul(x[i], y[i]));
+    return result;
+}
+
 /* ---------- Defining and quasilinear products ---------- */
 
 /* Evaluate (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c)).
@@ -180,7 +213,10 @@ static void product(
     for (size_t i = 1; i < n; i++) {
         C cross = {rr[i], ri[i]};
         out[i] = add(cross, add(mul(x[0], y[i]), mul(y[0], x[i])));
-        q = sub(q, mul(x[i], y[i]));
+    }
+    if (n > 1) {
+        C pairing = dot_range(x, y, 1, n);
+        q = sub(q, pairing);
     }
     out[0] = q;
 }
@@ -210,9 +246,7 @@ FastCDStatus fastcd_workspace_size_c128(size_t n, FastCDOperation op, size_t* le
 
 // Accumulate the coefficient-bilinear pairing; no scalar is conjugated
 static C dot(const C* x, const C* y, size_t n) {
-    C result = {0, 0};
-    for (size_t i = 0; i < n; i++) result = add(result, mul(x[i], y[i]));
-    return result;
+    return dot_range(x, y, 0, n);
 }
 
 // Validate the entire call before writing output, then apply one record operation

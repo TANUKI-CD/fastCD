@@ -1,6 +1,6 @@
 /* One compile-time polynomial-degree specialization of the buffer schedule.
  * This header intentionally has no guard: finite.c includes it for d=1..12.
- * Scalar primitives permit exact aliases, which the local-map temporaries
+ * Scalar primitives permit exact aliases, which the nonrecursive-map temporaries
  * use throughout recursion. No scalar call performs a degree dispatch. */
 #define FASTCD_FF_WORD uint32_t
 #define FASTCD_FF_STEP FASTCD_FF_DEGREE

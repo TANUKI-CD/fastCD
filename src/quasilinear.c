@@ -13,7 +13,7 @@
  * child, and above the base cases a complex node of dimension K needs two children of dimension
  * K/2 plus O(K) work, giving O(N log N) real arithmetic and O(N) scratch.
  *
- * The dimension-4 complex base uses a fused local bilinear map, and the
+ * The dimension-4 complex base uses a fused nonrecursive bilinear map, and the
  * dimension-8 base uses four sparse three-dimensional cross products.
  * Larger complex nodes use the fused map and two recursive children.
  * Complex nodes through max(8, FASTCD_QL_COMPLEX_LEAF), and complete products

@@ -231,12 +231,12 @@ static void fastcd_ff_medium_mont_node16(FastCDFFPacked16* restrict real,
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_medium_mont_ValueLocal b =
-                fastcd_ff_medium_mont_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_medium_mont_ValueLocal c =
-                fastcd_ff_medium_mont_vlocal(add(ur, ui, ctx), add(vr, vi, ctx),
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive b =
+                fastcd_ff_medium_mont_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive c =
+                fastcd_ff_medium_mont_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
                         add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
@@ -436,12 +436,12 @@ static void fastcd_ff_medium_mont_node8(FastCDFFPacked16* restrict real,
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_medium_mont_ValueLocal b =
-                fastcd_ff_medium_mont_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_medium_mont_ValueLocal c =
-                fastcd_ff_medium_mont_vlocal(add(ur, ui, ctx), add(vr, vi, ctx),
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive b =
+                fastcd_ff_medium_mont_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive c =
+                fastcd_ff_medium_mont_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
                         add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
@@ -641,12 +641,12 @@ static void fastcd_ff_medium_mont_node4(FastCDFFPacked16* restrict real,
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_medium_mont_ValueLocal b =
-                fastcd_ff_medium_mont_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_medium_mont_ValueLocal c =
-                fastcd_ff_medium_mont_vlocal(add(ur, ui, ctx), add(vr, vi, ctx),
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive b =
+                fastcd_ff_medium_mont_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive c =
+                fastcd_ff_medium_mont_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
                         add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
@@ -846,12 +846,12 @@ static void fastcd_ff_medium_mont_node2(FastCDFFPacked16* restrict real,
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_medium_mont_ValueLocal b =
-                fastcd_ff_medium_mont_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_medium_mont_ValueLocal c =
-                fastcd_ff_medium_mont_vlocal(add(ur, ui, ctx), add(vr, vi, ctx),
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive b =
+                fastcd_ff_medium_mont_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive c =
+                fastcd_ff_medium_mont_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
                         add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
@@ -1051,12 +1051,12 @@ static void fastcd_ff_medium_mont_node1(FastCDFFPacked16* restrict real,
             tr = _mm512_and_si512(tr, mask);
             ti = _mm512_and_si512(ti, mask);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_medium_mont_ValueLocal b =
-                fastcd_ff_medium_mont_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_medium_mont_ValueLocal c =
-                fastcd_ff_medium_mont_vlocal(add(ur, ui, ctx), add(vr, vi, ctx),
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive b =
+                fastcd_ff_medium_mont_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive c =
+                fastcd_ff_medium_mont_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
                         add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
@@ -1153,8 +1153,8 @@ static void fastcd_ff_medium_mont_points_cd8(FastCDFFPacked16* restrict out,
             s = _mm512_and_si512(s, keep);
             t = _mm512_and_si512(t, keep);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         sum = add(sum, a.scalar, ctx);
         Word f = add(_mm512_loadu_si512((const void*)(out + i * 8)), a.first, ctx),
              g = sub(a.second, _mm512_loadu_si512((const void*)(out + (h + i) * 8)),
@@ -1310,8 +1310,8 @@ static void fastcd_ff_medium_mont_points_cd16(FastCDFFPacked16* restrict out,
             s = _mm512_and_si512(s, keep);
             t = _mm512_and_si512(t, keep);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         sum = add(sum, a.scalar, ctx);
         Word f = add(_mm512_loadu_si512((const void*)(out + i * 16)), a.first, ctx),
              g = sub(a.second, _mm512_loadu_si512((const void*)(out + (h + i) * 16)),
@@ -6746,8 +6746,8 @@ static void fastcd_ff_medium_mont_prime_cd(FastCDFFPacked16* restrict out,
             s = _mm512_and_si512(s, mask);
             t = _mm512_and_si512(t, mask);
         }
-        fastcd_ff_medium_mont_ValueLocal a =
-                fastcd_ff_medium_mont_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_medium_mont_ValueNonrecursive a =
+                fastcd_ff_medium_mont_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         scalar = add(scalar, a.scalar, ctx);
         Word f = add(_mm512_loadu_si512((const void*)(out + i)), a.first, ctx),
              g = sub(a.second, _mm512_loadu_si512((const void*)(out + h + i)), ctx);

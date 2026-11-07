@@ -176,6 +176,13 @@ if(BUILD_TESTING)
     fastcd_configure_target(fastcd_leaf_tests)
     add_test(NAME fastcd.quasilinear_leaf COMMAND fastcd_leaf_tests)
 
+    add_executable(fastcd_stability_tests tests/test_stability.c)
+    target_include_directories(fastcd_stability_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    target_link_libraries(fastcd_stability_tests PRIVATE fastcd::fastcd)
+    fastcd_configure_target(fastcd_stability_tests)
+    add_test(NAME fastcd.stability COMMAND fastcd_stability_tests)
+    set_tests_properties(fastcd.stability PROPERTIES TIMEOUT 600)
+
     add_executable(fastcd_domain_tests tests/test_domains.c)
     if(FASTCD_HAVE_FINITE_SIMD)
         target_compile_definitions(fastcd_domain_tests PRIVATE FASTCD_TEST_FINITE_SIMD=1)

@@ -138,9 +138,9 @@ static inline Word fixed(Word a,Word b,Word quotient,const Context* c) {{
             "static void FASTCD_FF_NAME(recover)",
             "static inline __attribute__((always_inline)) void FASTCD_FF_NAME(recover)",
         )
-        first = schedule.index("static void FASTCD_FF_NAME(local)(")
+        first = schedule.index("static void FASTCD_FF_NAME(nonrecursive)(")
         last = schedule.index("\n/*", first)
-        replacement = """static inline __attribute__((always_inline)) void FASTCD_FF_NAME(local)(
+        replacement = """static inline __attribute__((always_inline)) void FASTCD_FF_NAME(nonrecursive)(
     Word* first,Word* scalar,Word* second,const Word* u,const Word* v,
     const Word* s,const Word* t,const Word* gamma,const Word* delta,Word* tmp,
     FASTCD_FF_CONTEXT* restrict ctx) {

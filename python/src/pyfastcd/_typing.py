@@ -4,7 +4,7 @@ The concrete scalar union intentionally avoids :class:`typing.SupportsFloat`:
 NumPy's complex scalar types satisfy that protocol even though fastCD rejects
 complex operands.  The ndarray arm expresses the supported real dtypes, but
 its zero-dimensional runtime requirement cannot be represented reliably by
-current NumPy factory return annotations.
+NumPy's factory return annotations.
 """
 
 from __future__ import annotations

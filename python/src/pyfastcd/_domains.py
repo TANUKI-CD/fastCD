@@ -1,7 +1,7 @@
 """Field-aware adapters; all coefficient loops execute in _domains_core.
 
-The legacy real methods remain the default implementations. These adapters
-are entered only for explicitly selected complex/finite parents.
+Real parents use the _core extension directly. These adapters are entered
+only for explicitly selected complex and finite-field parents.
 """
 
 from __future__ import annotations
@@ -70,9 +70,9 @@ def is_field(parent: Any) -> bool:
 
 
 def algorithm_code(name: Any) -> int:
-    """Validate a new-domain algorithm and map it to the existing native enum."""
+    """Validate an algorithm name for a complex or finite-field parent."""
 
-    # Share name parsing and unknown-name diagnostics with the original API.
+    # Reuse the real API's name parsing and unknown-name diagnostics.
     # Dimension one supports every real algorithm; only CC is field-specific.
     code = _core._algorithm(name, 1)
     if name == "cariow_cariowa":
@@ -156,7 +156,7 @@ def coefficients(
 ) -> Any:
     """Validate and construct storage under the requested copy policy.
 
-    Finite reduction precedes narrowing, so large Python integers retain
+    Finite reduction precedes narrowing, so large Python integers reduce to
     their exact residues. A shared mutable array must already be canonical;
     the native boundary checks it again before every arithmetic call.
     """
@@ -238,7 +238,7 @@ def coefficients(
 
 
 def element(parent: Any, value: Any = 0) -> Any:
-    """Copy one record into the existing immutable native Element type."""
+    """Copy one record into an immutable native Element."""
 
     if (
         isinstance(value, _core.Element)
@@ -255,7 +255,7 @@ def element(parent: Any, value: Any = 0) -> Any:
 
 
 def array(parent: Any, values: Any, *, copy: bool | None) -> Any:
-    """Wrap validated coefficient storage using the existing ElementArray type."""
+    """Wrap validated coefficient storage in an ElementArray."""
 
     from ._array import ElementArray
 
@@ -625,10 +625,10 @@ def _power(value: Any, exponent: Any, modulus: Any = None) -> Any:
 
 
 def element_dispatch(name: str, value: Any, extra: Any = None) -> Any:
-    """Handle native Element slots only for explicitly selected new domains.
+    """Handle native Element slots for complex and finite-field parents.
 
-    The real object layout and slot implementations stay on their existing
-    path. Coefficient access, hashes and reductions retain the chosen field.
+    Real elements never reach this function. Coefficient access, hashes and
+    reductions keep the selected field.
     """
 
     parent = value.algebra
@@ -772,7 +772,7 @@ def ufunc(value: Any, u: Any, method: str, *inputs: Any, **kwargs: Any) -> Any:
 
 
 def array_dispatch(name: str, value: Any, *args: Any, **kwargs: Any) -> Any:
-    """Implement new-domain array methods without changing real method bodies.
+    """Implement array methods for complex and finite-field parents.
 
     Only leading axes index or broadcast as batches; each coefficient record
     remains intact, including an extension's polynomial coordinate axis.
