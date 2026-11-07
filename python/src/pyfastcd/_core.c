@@ -36,8 +36,8 @@ typedef struct {
     double coefficients[];
 } PyFastCDElement;
 
-/* Only new domains reserve this trailer after their coefficient storage.
- * The real object layout and allocation size remain exactly those of v1.1.0.
+/* Only complex and finite-field Elements reserve this trailer after their
+ * coefficient storage; real Elements have no trailer.
  * A negative buffer_stride marks a trailer; real buffers always have stride 8.
  * The trailer owns no Python references and shares the element's lifetime. */
 typedef struct {
@@ -94,13 +94,14 @@ typedef struct {
 
 static PyTypeObject PyFastCDElementType;
 
-// Detect a domain trailer without enlarging the original real Element layout
+// Detect the trailer of a complex or finite-field Element
 static int pyfastcd_is_extended(PyObject* o) {
     return PyObject_TypeCheck(o, &PyFastCDElementType) &&
             ((PyFastCDElement*)o)->buffer_stride < 0;
 }
 
-// Route a new-domain slot to Python parent/shape handling and the native bridge
+// Route a complex or finite-field slot to Python parent/shape handling and the
+// native bridge
 static PyObject* pyfastcd_domain_call(
         const char* name, PyObject* self, PyObject* extra) {
     PyObject* module = PyImport_ImportModule("pyfastcd._domains");
@@ -122,7 +123,8 @@ static PyObject* pyfastcd_domain_binary(
     return result;
 }
 
-// Preserve keyword-capable slot signatures while keeping real dispatch unchanged
+// Forward keyword-capable complex and finite-field slots; real Elements are
+// handled natively
 static PyObject* pyfastcd_domain_keywords(
         const char* name, PyObject* self, PyObject* args, PyObject* kwargs) {
     PyObject* module = PyImport_ImportModule("pyfastcd._domains");
@@ -1730,7 +1732,7 @@ PyDoc_STRVAR(pyfastcd_element_norm_squared_doc,
              "norm_squared($self, /)\n"
              "--\n"
              "\n"
-             "Return the canonical field-valued quadratic norm, sum(x_i**2).\n"
+             "Return the quadratic form sum(x_i**2) in the coefficient field.\n"
              "\n"
              "Returns\n"
              "-------\n"
@@ -1740,8 +1742,8 @@ PyDoc_STRVAR(pyfastcd_element_norm_squared_doc,
              "Notes\n"
              "-----\n"
              "A coefficient-field scalar c has quadratic norm c*c.\n"
-             "The original real routine uses scaled accumulation to reduce overflow\n"
-             "and underflow.  NaN and infinity follow IEEE-754 behavior.");
+             "Over R it uses scaled accumulation to reduce overflow and underflow.\n"
+             "NaN and infinity follow IEEE-754 behavior.");
 
 // Return the Euclidean coefficient norm of an element
 static PyObject* pyfastcd_element_norm(PyObject* self_object,
@@ -2289,7 +2291,7 @@ PyDoc_STRVAR(pyfastcd_element_array_ufunc_doc,
 PyDoc_STRVAR(pyfastcd_element_algebra_doc,
 "Algebra or FiniteField: The cached parent.\n"
 "\n"
-"Structural results retain this parent. Finite quadratic norms and inner\n"
+"Structural results have this parent. Finite quadratic norms and inner\n"
 "products return an Element over the coefficient FiniteField instead.");
 
 PyDoc_STRVAR(pyfastcd_element_dimension_doc,
@@ -2326,7 +2328,7 @@ PyDoc_STRVAR(pyfastcd_element_dtype_doc,
 "float64 over R, complex128 over C, or uint32 over finite fields.");
 
 PyDoc_STRVAR(pyfastcd_element_array_priority_doc,
-"float: NumPy dispatch priority, currently ``1000.0``.\n\n"
+"float: NumPy dispatch priority, ``1000.0``.\n\n"
 "This lets supported mixed ufunc calls reach fastCD before ordinary ndarray\n"
 "coordinate semantics are selected.");
 
@@ -2365,7 +2367,7 @@ PyDoc_STRVAR(pyfastcd_element_quadratic_norm_doc,
 "The result is a float over R, complex over C, or an Element with the\n"
 "FiniteField parent over finite fields. CD conjugation fixes coefficients;\n"
 "x * x.conjugate() equals the scalar embedding of Q(x) in exact arithmetic.\n"
-"The original scaled real implementation is unchanged.\n"
+"Over R it uses scaled accumulation.\n"
 "For a coefficient-field scalar c, Q(c)=c*c, not the relative field norm.");
 
 static PyMethodDef pyfastcd_element_methods[] = {
@@ -4023,7 +4025,7 @@ static PyObject* pyfastcd_comparison_scalar_entry(PyObject* Py_UNUSED(module),
     return pyfastcd_comparison_scalar(value);
 }
 
-// Allocate an immutable domain record and its trailer using the existing Element type
+// Allocate an immutable complex or finite-field Element and its trailer
 static PyObject* pyfastcd_extended_element(PyObject* module, PyObject* args) {
     (void)module;
     PyObject* parent, *payload, *shape;

@@ -204,12 +204,13 @@ static void fastcd_ff_mont4_node2(uint32_t* restrict real, uint32_t* restrict im
             tr = _mm_and_si128(tr, mask);
             ti = _mm_and_si128(ti, mask);
         }
-        fastcd_ff_mont4_ValueLocal a =
-                fastcd_ff_mont4_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_mont4_ValueLocal b =
-                fastcd_ff_mont4_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_mont4_ValueLocal c = fastcd_ff_mont4_vlocal(add(ur, ui, ctx),
-                add(vr, vi, ctx), add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
+        fastcd_ff_mont4_ValueNonrecursive a =
+                fastcd_ff_mont4_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_mont4_ValueNonrecursive b =
+                fastcd_ff_mont4_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_mont4_ValueNonrecursive c =
+                fastcd_ff_mont4_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
+                        add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
         aw = add(aw, c.scalar, ctx);
@@ -342,12 +343,13 @@ static void fastcd_ff_mont4_node1(uint32_t* restrict real, uint32_t* restrict im
             tr = _mm_and_si128(tr, mask);
             ti = _mm_and_si128(ti, mask);
         }
-        fastcd_ff_mont4_ValueLocal a =
-                fastcd_ff_mont4_vlocal(ur, vr, sr, tr, gp, dp, ctx);
-        fastcd_ff_mont4_ValueLocal b =
-                fastcd_ff_mont4_vlocal(ui, vi, si, ti, gq, dq, ctx);
-        fastcd_ff_mont4_ValueLocal c = fastcd_ff_mont4_vlocal(add(ur, ui, ctx),
-                add(vr, vi, ctx), add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
+        fastcd_ff_mont4_ValueNonrecursive a =
+                fastcd_ff_mont4_vnonrecursive(ur, vr, sr, tr, gp, dp, ctx);
+        fastcd_ff_mont4_ValueNonrecursive b =
+                fastcd_ff_mont4_vnonrecursive(ui, vi, si, ti, gq, dq, ctx);
+        fastcd_ff_mont4_ValueNonrecursive c =
+                fastcd_ff_mont4_vnonrecursive(add(ur, ui, ctx), add(vr, vi, ctx),
+                        add(sr, si, ctx), add(tr, ti, ctx), gw, dw, ctx);
         ap = add(ap, a.scalar, ctx);
         aq = add(aq, b.scalar, ctx);
         aw = add(aw, c.scalar, ctx);
@@ -418,8 +420,8 @@ static void fastcd_ff_mont4_prime_cd(uint32_t* restrict out, const uint32_t* x,
             s = _mm_and_si128(s, mask);
             t = _mm_and_si128(t, mask);
         }
-        fastcd_ff_mont4_ValueLocal a =
-                fastcd_ff_mont4_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_mont4_ValueNonrecursive a =
+                fastcd_ff_mont4_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         scalar = add(scalar, a.scalar, ctx);
         Word f = add(_mm_loadu_si128((const void*)(out + i)), a.first, ctx),
              g = sub(a.second, _mm_loadu_si128((const void*)(out + h + i)), ctx);
@@ -502,8 +504,8 @@ static void fastcd_ff_points4_cd1(uint32_t* restrict out, const uint32_t* x,
             s = _mm_and_si128(s, keep);
             t = _mm_and_si128(t, keep);
         }
-        fastcd_ff_mont4_ValueLocal a =
-                fastcd_ff_mont4_vlocal(u, v, s, t, gamma, delta, ctx);
+        fastcd_ff_mont4_ValueNonrecursive a =
+                fastcd_ff_mont4_vnonrecursive(u, v, s, t, gamma, delta, ctx);
         sum = add(sum, a.scalar, ctx);
         Word f = add(_mm_loadu_si128((const void*)(out + i * 1)), a.first, ctx),
              g = sub(a.second, _mm_loadu_si128((const void*)(out + (h + i) * 1)), ctx);

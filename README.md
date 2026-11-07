@@ -2,9 +2,9 @@
 
 # fastCD - v1.2.0
 
-fastCD is a lean C kernel for Cayley-Dickson multiplication over real and complex numbers and finite fields, with a NumPy-compatible Python extension, written for researchers and engineers in need of faster Cayley-Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
+fastCD is a lean C kernel for Cayley–Dickson multiplication over real and complex numbers and finite fields, with a NumPy-compatible Python extension, written for researchers and engineers in need of faster Cayley–Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
 
-In addition to this new quasilinear algorithm, both direct Cayley-Dickson multiplication and an algorithm due to [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09) are also included in the library for real coefficients; complex and finite-field coefficients use the direct and quasilinear algorithms. The default multiplication algorithm for each dimension has been selected based on explicit single-core benchmarking for both single and batched multiplication. Quasilinear has the best asymptotic complexity of these three algorithms, but it is not the fastest at every lower dimension. The direct and Cariow-Cariowa algorithms are also used for some low dimensions over the real numbers; see [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) for more information on this.
+Besides the quasilinear algorithm, fastCD includes direct Cayley–Dickson multiplication and the algorithm of [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09). All three are available for real coefficients, while complex and finite-field coefficients use direct and quasilinear. Quasilinear has the best asymptotic complexity of the three, but it is not the fastest at every low dimension, so the default algorithm for each dimension was chosen from single-core benchmarks of single and batched products. Over the real numbers, direct or Cariow–Cariowa is the default at dimensions 8 and 16; see [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md).
 
 The canonical source repository is
 [git.tanuki-cd.com/algebraity/fastCD](https://git.tanuki-cd.com/algebraity/fastCD).
@@ -12,16 +12,17 @@ The canonical source repository is
 ## Convention
 
 ```text
-A_0 = F,   A_n = A_(n-1) x A_(n-1),   (a,b)(c,d) = (ac - conjugate(d) b, d a + b conjugate(c))
+A_0 := F,   A_n := A_(n-1) x A_(n-1),   (a,b)(c,d) := (ac - conjugate(d) b, d a + b conjugate(c))
 ```
 
-The coefficient field `F` is the real numbers by default, the complex numbers, or an
-odd-characteristic finite field `F_(p^d)`. An element is stored as a contiguous array of
-`N = 2^n` coefficients in the recursive standard basis (`double` over R, `complex128` over C,
-and `d` `uint32` residues per coefficient over `F_(p^d)`), where coordinate zero is the scalar
-and the two halves of the array are the pair `(a, b)`. [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
-should be read for full information on conventions and a brief explanation of the mathematical
-foundations of fastCD.
+The coefficient field `F` is the real numbers (the default), the complex numbers, or an
+odd-characteristic finite field `F_(p^d)`. An element is a contiguous array of `N := 2^n`
+coefficients in the recursive standard basis: coordinate zero is the scalar part, and the two
+halves of the array are the pair `(a, b)`. Each coefficient is one `double` over R, two
+`double`s with the real part first over C (`complex128` in NumPy), and `d` `uint32` residues
+over `F_(p^d)`. [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
+gives the full conventions and explains the algorithms: the basis signs, the quadratic form,
+how the quasilinear recursion works, and the exact operation counts.
 
 ## Using the C library
 
@@ -56,16 +57,15 @@ For more information on how to get started using fastCD in C and to familiarize 
 
 ## Using Python
 
-To use `pyfastcd`, make sure you have CPython 3.10 or newer and NumPy 1.26 or newer installed. Building from source additionally requires a C11 compiler, Python development headers,
-and CMake 3.18 or newer.
-
-To install the pip package, run this command:
+`pyfastcd` requires CPython 3.10 or newer and NumPy 1.26 or newer. Building it from source also
+requires a C11 compiler, Python development headers, and CMake 3.18 or newer. To build and
+install it from the repository root, run:
 
 ```sh
 python -m pip install .
 ```
 
-After doing so, you may use the `Algebra`, `FiniteField`, `Element`, and `ElementArray` classes directly in Python after importing `pyfastcd`. Here's an example of what you can do over the real numbers; `Algebra(dimension=8, char=13, deg=5)` or `Algebra(dimension=8, char=0, deg=2)` selects octonions over `F_(13^5)` or over the complex numbers.
+After importing `pyfastcd`, you can use the `Algebra`, `FiniteField`, `Element`, and `ElementArray` classes. Here's an example of what you can do over the real numbers; `Algebra(dimension=8, char=13, deg=5)` or `Algebra(dimension=8, char=0, deg=2)` selects octonions over `F_(13^5)` or over the complex numbers.
 
 ```python
 import numpy as np
@@ -84,8 +84,8 @@ y = x * b                                  # batch product, leading axes broadca
 z = O.multiply(x, b, algorithm="quasilinear")
 ```
 
-The `Element` class is immutable and represents a unique Cayley-Dickson element, while `ElementArray` stores a mutable array of Elements and processes batches of shape `(..., N)`
-(or `(..., N, d)` over an extension field) in compiled code. See the [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
+An `Element` is one immutable Cayley–Dickson element. An `ElementArray` holds a batch of elements in a NumPy coefficient array of shape `(..., N)`
+(or `(..., N, d)` over an extension field) and evaluates batch operations in compiled code. See the [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
 the [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md) for more information on how each class works.
 
 ## Building the C library
@@ -109,11 +109,15 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 ## Benchmark
 
-All timings below were measured on 2026-11-04 on a Dell PowerEdge T440 with an Intel Xeon Gold 6148, one logical CPU per run, GCC 16.2.1 and Linux 7.2.11, from the v1.2.0 source. The archived build records list the SHA-256 of every measured source file and the build identifier, and they match the v1.2.0 tree; git describes the run as `c500d40-dirty` because the 1.2.0 version string and documentation were committed after the measurement. The host is shared, and no governor, turbo, or SMT settings were changed. Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every product of every operand pair was checked against an independent implementation before timing. The raw observations, environment, commands, and build records are archived in [benchmark-results/t440-20261104/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261104/), and the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) describes the protocol and how to rerun it.
+All timings below were measured on 2026-11-04 on a Dell PowerEdge T440 with an Intel Xeon Gold 6148, using one logical CPU per run, GCC 16.2.1 and Linux 7.2.11. The host is shared, and no governor, turbo, or SMT settings were changed.
+
+Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every product of every operand pair was checked against an independent implementation before timing.
+
+The measured source is the v1.2.0 tree: the archived build records list the SHA-256 of every measured source file, and these match v1.2.0. Git describes the run as `c500d40-dirty` because the 1.2.0 version string and documentation were committed after the measurement. The raw observations, environment, commands, and build records are archived in [benchmark-results/t440-20261104/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261104/), and the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) describes the protocol and how to rerun it.
 
 ### Real coefficients
 
-Mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timing blocks of 10,000 operand pairs, in batch mode (one call for all 10,000 products, two products per SIMD instruction where the kernels support it) and single mode (one validated call per product). All 600,000 verification checks passed with zero mismatches. `fastest mean` names the lowest mean, or a tie when the paired per-block ratio of the two lowest means does not separate them, and `default` is the algorithm that automatic selection uses. The automatic choices agree with this run; at dimension 4, single products are a tie between direct and quasilinear, and quasilinear is kept.
+Mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timing blocks of 10,000 operand pairs, in batch mode (one call for all 10,000 products, two products per SIMD instruction where the kernels support it) and single mode (one validated call per product). All 600,000 verification checks passed with zero mismatches. `fastest mean` names the lowest mean, or a tie when the paired per-block ratio of the two lowest means does not separate them, and `default` is the algorithm that automatic selection uses. The automatic choices agree with this run; at dimension 4, single products are a tie between direct and quasilinear, and the default is quasilinear.
 
 #### Batch products (ns per product)
 
@@ -147,7 +151,7 @@ Mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timi
 
 ### Finite fields and complex coefficients
 
-The same protocol compares the direct and quasilinear algorithms over the nine default finite fields and over C, with 1,000 operand pairs per cell and 24 timing blocks. Every pair is verified before timing, against independent schoolbook polynomial arithmetic over the finite fields and against a long-double oracle over C; all 100,000 pairs passed. Each cell below gives the quasilinear mean in nanoseconds per single product and, in parentheses, the paired direct/quasilinear ratio, so a ratio above 1 favors quasilinear. Direct is faster at dimension 2 everywhere and at dimension 4 for most fields; from dimension 8 upward quasilinear is faster in every cell, and automatic selection uses it over every finite field and over C. Batch mode is within a few percent of single mode from dimension 16 upward. Both modes, every dimension and the confidence intervals are in `domains.md` in the archive.
+The same protocol compares direct and quasilinear multiplication over C and over the nine finite fields in the table below, which are the field benchmark's default set: the prime fields F_3, F_5, F_13, F_65521 and F_2147483647 and the extension fields F_(3^5), F_(5^2), F_(13^5) and F_(65521^2). Each cell uses 1,000 operand pairs and 24 timing blocks. Every pair is verified before timing, against independent schoolbook polynomial arithmetic over the finite fields and against a long-double reference over C; all 100,000 pairs passed. Each cell below gives the quasilinear mean in nanoseconds per single product and, in parentheses, the paired direct/quasilinear ratio, so a ratio above 1 favors quasilinear. Direct is faster at dimension 2 everywhere and at dimension 4 for most fields, and quasilinear is faster in every cell from dimension 8 upward. Automatic selection uses quasilinear at every dimension over C and every finite field. Batch mode is within a few percent of single mode from dimension 16 upward. Both modes, every dimension and the confidence intervals are in [domains.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261104/domains.md) in the archive.
 
 #### Single products over finite fields and C: quasilinear ns per product (direct/quasilinear)
 
@@ -166,7 +170,7 @@ The same protocol compares the direct and quasilinear algorithms over the nine d
 
 ### Comparison with FLINT
 
-FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C library. The comparison times fastCD's finite-field arithmetic against FLINT 3.6.0 on two workloads with identical operands and defining polynomials, 1,000 operand pairs per cell and 24 paired blocks, every pair verified against the same independent implementation; all 132,000 pairs passed. The scalar workload is one field multiplication (`fastcd_ff_field_mul` against `nmod_mul` for prime fields or `fq_nmod_mul` for extensions). The CD workload is one complete product at each dimension, where both sides evaluate the same quasilinear schedule and only the coefficient arithmetic differs: fastCD's packed kernels against FLINT's field operations. Ratios are paired geometric means of FLINT time over fastCD time, so a ratio above 1 favors fastCD. Every dimension and the intervals for the CD cells are in `flint.md` in the archive.
+FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C library. The comparison times fastCD's finite-field arithmetic against FLINT 3.6.0 on two workloads with identical operands and defining polynomials, 1,000 operand pairs per cell and 24 paired blocks, every pair verified against the same independent implementation; all 132,000 pairs passed. The scalar workload is one field multiplication (`fastcd_ff_field_mul` against `nmod_mul` for prime fields or `fq_nmod_mul` for extensions). The CD workload is one complete product at each dimension, where both sides evaluate the same quasilinear schedule and only the coefficient arithmetic differs: fastCD's packed kernels against FLINT's field operations. Ratios are paired geometric means of FLINT time over fastCD time, so a ratio above 1 favors fastCD. Every dimension and the intervals for the CD cells are in [flint.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261104/flint.md) in the archive.
 
 #### Scalar field multiplication: ns per product
 
@@ -215,7 +219,7 @@ FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C libr
 All code is released under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) and is presented with no warranty or guarantees. You may use it in any way for any purpose and are not restricted by the original author of the code. To cite the software, use the metadata in [CITATION.cff](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CITATION.cff). The changelog is in [CHANGELOG.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/CHANGELOG.md).
 
 The quasilinear algorithm is due to Harrison Lemley (me!), [*Quasilinear
-multiplication in the Cayley–Dickson tower*](https://arxiv.org/abs/2609.11588) . The
+multiplication in the Cayley–Dickson tower*](https://arxiv.org/abs/2609.11588). The
 Cariow–Cariowa algorithm follows Aleksandr Cariow and Galina Cariowa,
 [*An unified approach for developing rationalized algorithms for hypercomplex
 number multiplication*](https://doi.org/10.15199/48.2015.02.09), *Przegląd

@@ -5,12 +5,32 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
+## [Unreleased]
+
+### Added
+
+- Drivers for an exact-reference accuracy study and paired timings
+  (`benchmarks/stability*.py`), and the C regression test
+  `tests/test_stability.c`.
+
+### Changed
+
+- Floating-point sums whose length grows with the dimension are accumulated
+  in blocks of eight with a balanced tree between blocks: in the quasilinear
+  kernels, in the complex-coefficient pairing shared by quadratic norms,
+  squares, anticommutators and reciprocals, and in the Cariow–Cariowa
+  correction sums above dimension 256. From dimension 16 upward,
+  quasilinear products and the complex-coefficient operations that use the
+  pairing can round differently from 1.2.0, as can Cariow–Cariowa results at
+  dimensions 512 and 1024. Direct and finite-field results, the public API,
+  workspace sizes and the published arithmetic counts are unchanged.
+
 ## [1.2.0] - 2026-11-04
 
 ### Added
 
-- `FiniteField(char=..., deg=...)`: immutable, cached finite-field
-  coefficient parents with deterministic irreducible polynomial selection,
+- `FiniteField(char=..., deg=...)`: immutable, cached finite fields for use
+  as coefficients, with deterministic irreducible polynomial selection,
   and `FiniteField.from_modulus` for an explicit polynomial. Field scalars
   and batches use the `Element` and `ElementArray` classes with exact
   polynomial storage.
@@ -48,19 +68,20 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 - Automatic single-product selection at dimension 4 now uses quasilinear
   instead of direct, including one-record batches and composite operations.
-  This follows the lower measured mean in the earlier 2026-10-23 T440 run; the paired
-  95% interval still includes equal performance. AUTO results can round
-  differently from the previous direct default.
-- Quasilinear multiplication uses a fused local bilinear map and a specialized
-  complex octonion alternating-product base case; arithmetic counts and
-  validation instructions are documented in `docs/mathematics.md`. Its
-  floating-point rounding can differ from version 1.0.0.
+  This follows the lower measured mean in the earlier 2026-10-23 T440 run;
+  the paired 95% interval still includes equal performance. AUTO results
+  can round differently from the previous direct default.
+- Quasilinear multiplication uses a fused nonrecursive bilinear map and a
+  specialized complex octonion alternating-product base case; arithmetic
+  counts and validation instructions are documented in
+  `docs/mathematics.md`. Its floating-point rounding can differ from version
+  1.0.0.
 - The complex octonion base case of the quasilinear recursion uses 72
   products, 156 additions/subtractions and 15 halvings, 243 operations in
   total, so a full dimension-16 real product uses 417 operations. The
   arithmetic-count check covers dimensions through 1024, and the
   mathematics documentation gives the addition-count argument for the
-  fixed local-map decomposition.
+  fixed nonrecursive-map decomposition.
 - The C and Python stability documentation clarifies that AUTO choices,
   workspace lengths, and arithmetic schedules can change between compatible
   releases; bitwise floating-point reproducibility across versions is not
@@ -79,9 +100,9 @@ All notable changes to fastCD are recorded in this file. The project follows
 ### Fixed
 
 - Documentation matches scalar-comparison exceptions, NumPy return types,
-  zero-copy layout rules, and the current arithmetic schedules. The local-map
-  addition-count argument is given in full, and the mathematics documentation
-  follows the notation of the paper's v2.
+  zero-copy layout rules, and the current arithmetic schedules. The
+  nonrecursive-map addition-count argument is given in full, and the
+  mathematics documentation follows the notation of the paper's v2.
 - NumPy boolean scalars are rejected as dimensions, levels, and basis indices,
   matching Python booleans consistently across supported NumPy versions.
 - README image and file links use absolute URLs on `git.tanuki-cd.com`, so the
@@ -117,9 +138,9 @@ The first public release.
 - Independent reference oracles for the C and Python test suites, and a
   reproducible benchmark driver that records source, executable, and corpus
   hashes with its results.
-- Single quasilinear products above dimension 16 evaluate the two children
-  of the top complex node in the two SIMD lanes and continue through the
-  paired kernel, bitwise identical for finite results to the
+- Single quasilinear products above dimension 16 evaluate the two recursive
+  calls of the top complex-kernel call in the two SIMD lanes and continue
+  through the paired kernel, bitwise identical for finite results to the
   scalar and batched forms; the quasilinear workspace query grows
   accordingly. The `FASTCD_CC_DOUBLING=1` tuning option evaluates
   Cariow–Cariowa products through one doubling step with paired

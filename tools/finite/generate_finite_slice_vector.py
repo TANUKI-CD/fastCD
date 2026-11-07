@@ -149,8 +149,8 @@ static void sv4_node{B}(Coef* restrict real,Coef* restrict imag,const Coef* xr,c
   if(i==0){{__m256i keep=_mm256_setr_epi64x({",".join("0" if k < B else "-1" for k in range(4))});
    ur=mask(ur,keep);ui=mask(ui,keep);vr=mask(vr,keep);vi=mask(vi,keep);
    sr=mask(sr,keep);si=mask(si,keep);tr=mask(tr,keep);ti=mask(ti,keep);}}
-  sv4_ValueLocal a=sv4_vlocal(ur,vr,sr,tr,gp,dp,ctx),b=sv4_vlocal(ui,vi,si,ti,gq,dq,ctx);
-  sv4_ValueLocal c=sv4_vlocal(add(ur,ui),add(vr,vi),add(sr,si),add(tr,ti),gw,dw,ctx);
+  sv4_ValueNonrecursive a=sv4_vnonrecursive(ur,vr,sr,tr,gp,dp,ctx),b=sv4_vnonrecursive(ui,vi,si,ti,gq,dq,ctx);
+  sv4_ValueNonrecursive c=sv4_vnonrecursive(add(ur,ui),add(vr,vi),add(sr,si),add(tr,ti),gw,dw,ctx);
   ap=add(ap,a.scalar);aq=add(aq,b.scalar);aw=add(aw,c.scalar);
   Word cr0,cr1,ci0,ci1;
   {childload("cr", 0)}{childload("cr", 1)}{childload("ci", 0)}{childload("ci", 1)}
@@ -174,7 +174,7 @@ static void sv4_root(Coef* restrict out,const Coef* x,const Coef* y,size_t n,Coe
  Word sum=VZERO,dot=VZERO;
  for(size_t i=0;i<h;i+=4){Word u=ld(x+i),v=ld(y+i),s=ld(x+h+i),t=ld(y+h+i);
   if(i==0){__m256i keep=_mm256_setr_epi64x(0,-1,-1,-1);u=mask(u,keep);v=mask(v,keep);s=mask(s,keep);t=mask(t,keep);}
-  sv4_ValueLocal a=sv4_vlocal(u,v,s,t,gamma,delta,ctx);sum=add(sum,a.scalar);
+  sv4_ValueNonrecursive a=sv4_vnonrecursive(u,v,s,t,gamma,delta,ctx);sum=add(sum,a.scalar);
   st(out+i,add(ld(out+i),a.first));st(out+h+i,sub(a.second,ld(out+h+i)));
  }
  Coef partial[4],a={0,0};st(partial,sum);for(int k=0;k<4;k++)a=sa(a,partial[k]);out[h]=a;

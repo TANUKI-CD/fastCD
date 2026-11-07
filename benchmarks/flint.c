@@ -325,7 +325,7 @@ static int parse_minimum(const char* text, uint64_t* value) {
 }
 
 // Exercise all supported degrees, both small and large primes, zero/unit/
-// boundary/dense operands, and every level where the local maps change shape.
+// boundary/dense operands, and every level where the nonrecursive maps change shape.
 static int self_test(void) {
     for (uint32_t group = 0; group < 3; group++) {
         uint32_t p = group == 0 ? 3 : group == 1 ? 13 : 2147483647;

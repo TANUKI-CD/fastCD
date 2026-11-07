@@ -6,7 +6,7 @@ schedules (defining recursion / direct, Cariow--Cariowa, quasilinear) for fixed
 small dimensions and writes fully unrolled C11 code into ``src/generated``.
 It also writes the Cariow--Cariowa sign-correction tables that the
 table-driven kernel uses above the unrolled dimensions.
-The quasilinear code uses the fused local map and complex octonion base
+The quasilinear code uses the fused nonrecursive map and complex octonion base
 case shared with the runtime recursion.  Direct
 leaves accumulate coordinate terms sequentially, so their rounding can
 differ from the grouped defining recursion.  Basis signs are derived here
@@ -165,6 +165,36 @@ def input_ptr(name: str, n: int) -> Ptr:
 # ---------------------------------------------------------------------------
 # Quasilinear schedule (mirrors src/quasilinear.c exactly)
 # ---------------------------------------------------------------------------
+def balanced_sum(e: Emitter, terms: list[str]) -> str:
+    """Mirror balanced_sum.h's default B=8 schedule without zero additions.
+
+    These leaves have at most 31 terms, so their depth is bounded even when
+    tuning the runtime block size. The octonion's fused expressions are kept.
+    """
+
+    levels: dict[int, str] = {}
+    blocks = 0
+    tail = None
+    for start in range(0, len(terms), 8):
+        block = terms[start:start + 8]
+        value = block[0]
+        for term in block[1:]:
+            value = e.add(value, term)
+        if len(block) < 8:
+            tail = value
+            break
+        occupied, level = blocks, 0
+        while occupied & 1:
+            value = e.add(levels.pop(level), value)
+            occupied >>= 1
+            level += 1
+        levels[level] = value
+        blocks += 1
+    for level in sorted(levels):
+        tail = levels[level] if tail is None else e.add(levels[level], tail)
+    return "0.0" if tail is None else tail
+
+
 def octonion_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
                    y_r: Ptr, y_i: Ptr) -> None:
     """Emit the 243-operation C_3 leaf, fusing the two scalar contributions."""
@@ -271,7 +301,7 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
     def csub(a, b):
         return (e.sub(a[0], b[0]), e.sub(a[1], b[1]))
 
-    def local(u, v, s, t, gamma, delta):
+    def nonrecursive(u, v, s, t, gamma, delta):
         return (e.sub(e.mul(gamma, t), e.mul(delta, s)),
                 e.sub(e.mul(s, v), e.mul(t, u)),
                 e.sub(e.mul(delta, u), e.mul(gamma, v)))
@@ -283,7 +313,7 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
         return (e.half(a[0]), e.half(a[1]))
 
     gamma_sum, delta_sum = e.add(*gamma), e.add(*delta)
-    scalars = [None, None, None]
+    scalars: list[list[str]] = [[], [], []]
     for i in range(1, half):
         u = (rd(x_r, i), rd(x_i, i))
         v = (rd(y_r, i), rd(y_i, i))
@@ -291,13 +321,13 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
         t = (rd(y_r, half + i), rd(y_i, half + i))
         plus = (rd(o_r, i), rd(o_i, i))
         minus = (rd(o_r, half + i), rd(o_i, half + i))
-        p = local(u[0], v[0], s[0], t[0], gamma[0], delta[0])
-        q = local(u[1], v[1], s[1], t[1], gamma[1], delta[1])
-        w = local(e.add(*u), e.add(*v), e.add(*s), e.add(*t),
+        p = nonrecursive(u[0], v[0], s[0], t[0], gamma[0], delta[0])
+        q = nonrecursive(u[1], v[1], s[1], t[1], gamma[1], delta[1])
+        w = nonrecursive(e.add(*u), e.add(*v), e.add(*s), e.add(*t),
                   gamma_sum, delta_sum)
         first, second = recover(p[0], q[0], w[0]), recover(p[2], q[2], w[2])
         for j, value in enumerate((p[1], q[1], w[1])):
-            scalars[j] = value if i == 1 else e.add(scalars[j], value)
+            scalars[j].append(value)
         # At level two the child alternating products are identically zero.
         if dim > 4:
             first = cadd(chalf(cadd(plus, minus)), first)
@@ -309,7 +339,7 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
         wr(o_i, half + i, second[1])
     wr(o_r, 0, "0.0")
     wr(o_i, 0, "0.0")
-    scalar = recover(*scalars)
+    scalar = recover(*(balanced_sum(e, terms) for terms in scalars))
     wr(o_r, half, scalar[0])
     wr(o_i, half, scalar[1])
 
@@ -326,19 +356,19 @@ def quasilinear_cross(e: Emitter, out: Ptr, x: Ptr, y: Ptr, dim: int,
     delta = rd(y, half)
     complex_cross(e, out, off(out, half), x, off(x, half), y, off(y, half),
                   half, ws)
-    scalar = None
+    scalar_terms = []
     for i in range(1, half):
         pair = e.sub(e.mul(rd(x, half + i), rd(y, i)),
                      e.mul(rd(y, half + i), rd(x, i)))
         first = e.add(rd(out, i), e.mul(gamma, rd(y, half + i)))
         second = e.sub(e.mul(delta, rd(x, i)), e.mul(gamma, rd(y, i)))
-        scalar = pair if i == 1 else e.add(scalar, pair)
+        scalar_terms.append(pair)
         first = e.sub(first, e.mul(delta, rd(x, half + i)))
         second = e.sub(second, rd(out, half + i))
         wr(out, i, first)
         wr(out, half + i, second)
     wr(out, 0, "0.0")
-    wr(out, half, scalar)
+    wr(out, half, balanced_sum(e, scalar_terms))
 
 
 def reconstruct(e: Emitter, out: Ptr, x: Ptr, y: Ptr, dim: int) -> None:
@@ -347,9 +377,7 @@ def reconstruct(e: Emitter, out: Ptr, x: Ptr, y: Ptr, dim: int) -> None:
     if dim == 1:
         wr(out, 0, e.mul(alpha, beta))
         return
-    dot = e.mul(rd(x, 1), rd(y, 1))
-    for i in range(2, dim):
-        dot = e.add(dot, e.mul(rd(x, i), rd(y, i)))
+    dot = balanced_sum(e, [e.mul(rd(x, i), rd(y, i)) for i in range(1, dim)])
     wr(out, 0, e.sub(e.mul(alpha, beta), dot))
     for i in range(1, dim):
         st = e.add(e.mul(alpha, rd(y, i)), e.mul(beta, rd(x, i)))

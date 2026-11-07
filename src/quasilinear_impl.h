@@ -2,6 +2,8 @@
  * Intentionally included twice with FASTCD_REAL, FASTCD_ZERO, and FASTCD_NAME
  * supplied by the owning translation unit. */
 
+#include "balanced_sum.h"
+
 typedef struct FASTCD_NAME(FastCDComplex) {
     FASTCD_REAL real;
     FASTCD_REAL imag;
@@ -21,24 +23,24 @@ static inline FASTCD_NAME(FastCDComplex) FASTCD_NAME(complex_sub)(
     return result;
 }
 
-// Reconstruct one complex output of the three real local-map evaluations
+// Reconstruct one complex output of the three real nonrecursive-map evaluations
 static inline FASTCD_NAME(FastCDComplex) FASTCD_NAME(complex_recover)(
         FASTCD_REAL p, FASTCD_REAL q, FASTCD_REAL w) {
     FASTCD_NAME(FastCDComplex) result = {p - q, (w - p) - q};
     return result;
 }
 
-typedef struct FASTCD_NAME(FastCDLocal) {
+typedef struct FASTCD_NAME(FastCDNonrecursive) {
     FASTCD_REAL first;
     FASTCD_REAL scalar;
     FASTCD_REAL second;
-} FASTCD_NAME(FastCDLocal);
+} FASTCD_NAME(FastCDNonrecursive);
 
 // One coordinate of B: (gamma t - delta s, s v - t u, delta u - gamma v)
-static inline FASTCD_NAME(FastCDLocal) FASTCD_NAME(local_bilinear)(
+static inline FASTCD_NAME(FastCDNonrecursive) FASTCD_NAME(nonrecursive_bilinear)(
         FASTCD_REAL u, FASTCD_REAL v, FASTCD_REAL s, FASTCD_REAL t,
         FASTCD_REAL gamma, FASTCD_REAL delta) {
-    FASTCD_NAME(FastCDLocal) result = {gamma * t - delta * s,
+    FASTCD_NAME(FastCDNonrecursive) result = {gamma * t - delta * s,
         s * v - t * u, delta * u - gamma * v};
     return result;
 }
@@ -65,6 +67,13 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
         FASTCD_REAL* restrict out_imag,
         const FASTCD_REAL* x_real, const FASTCD_REAL* x_imag,
         const FASTCD_REAL* y_real, const FASTCD_REAL* y_imag, size_t dimension,
+        FASTCD_REAL* restrict workspace);
+
+// Keep non-leaf recursion and temporary planes out of the generated-leaf frame.
+static FASTCD_NOINLINE void FASTCD_NAME(complex_cross_node)(FASTCD_REAL* restrict out_real,
+        FASTCD_REAL* restrict out_imag,
+        const FASTCD_REAL* x_real, const FASTCD_REAL* x_imag,
+        const FASTCD_REAL* y_real, const FASTCD_REAL* y_imag, size_t dimension,
         FASTCD_REAL* restrict workspace) {
     size_t half;
     FASTCD_REAL* transformed_x_real;
@@ -74,41 +83,8 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
     FASTCD_REAL* child_workspace;
     FASTCD_NAME(FastCDComplex) gamma;
     FASTCD_NAME(FastCDComplex) delta;
-    FASTCD_REAL scalar_p = FASTCD_ZERO;
-    FASTCD_REAL scalar_q = FASTCD_ZERO;
-    FASTCD_REAL scalar_w = FASTCD_ZERO;
     FASTCD_REAL gamma_sum;
     FASTCD_REAL delta_sum;
-
-    // AltC_1 = 0 (dimension 2); dimension 1 is also zero.  Dimension 4 uses
-    // the fused local map, dimension 8 the octonion leaf, and dimension 16
-    // unrolls the fused recurrence above that leaf when the cutoff allows it.
-    switch (dimension) {
-        case 1:
-            out_real[0] = FASTCD_ZERO;
-            out_imag[0] = FASTCD_ZERO;
-            return;
-        case 2:
-            FASTCD_NAME(ql_complex_cross_2)(out_real, out_imag, x_real, x_imag,
-                    y_real, y_imag);
-            return;
-        case 4:
-            FASTCD_NAME(ql_complex_cross_4)(out_real, out_imag, x_real, x_imag,
-                    y_real, y_imag);
-            return;
-        case 8:
-            FASTCD_NAME(ql_complex_cross_8)(out_real, out_imag, x_real, x_imag,
-                    y_real, y_imag);
-            return;
-#if FASTCD_QL_COMPLEX_LEAF >= 16
-        case 16:
-            FASTCD_NAME(ql_complex_cross_16)(out_real, out_imag, x_real, x_imag,
-                    y_real, y_imag);
-            return;
-#endif
-        default:
-            break;
-    }
 
     // Reserve four half-dimensional input planes and scratch for AltC_{n-1}.
     half = dimension >> 1;
@@ -165,11 +141,11 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
         FASTCD_NAME(FastCDComplex) plus = {out_real[i], out_imag[i]};
         FASTCD_NAME(FastCDComplex) minus = {out_real[half + i], out_imag[half + i]};
         // Fuse B across its products and reductions before complex recovery.
-        FASTCD_NAME(FastCDLocal) p = FASTCD_NAME(local_bilinear)(
+        FASTCD_NAME(FastCDNonrecursive) p = FASTCD_NAME(nonrecursive_bilinear)(
                 u.real, v.real, s.real, t.real, gamma.real, delta.real);
-        FASTCD_NAME(FastCDLocal) q = FASTCD_NAME(local_bilinear)(
+        FASTCD_NAME(FastCDNonrecursive) q = FASTCD_NAME(nonrecursive_bilinear)(
                 u.imag, v.imag, s.imag, t.imag, gamma.imag, delta.imag);
-        FASTCD_NAME(FastCDLocal) w = FASTCD_NAME(local_bilinear)(
+        FASTCD_NAME(FastCDNonrecursive) w = FASTCD_NAME(nonrecursive_bilinear)(
                 u.real + u.imag, v.real + v.imag, s.real + s.imag,
                 t.real + t.imag, gamma_sum, delta_sum);
         FASTCD_NAME(FastCDComplex) first = FASTCD_NAME(complex_recover)(
@@ -181,9 +157,9 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
                 FASTCD_NAME(complex_sub)(plus, minus));
         FASTCD_NAME(FastCDComplex) mixed = {-difference.imag, difference.real};
         // Accumulate three real pairings; reconstruct lambda once below.
-        scalar_p = i == 1 ? p.scalar : scalar_p + p.scalar;
-        scalar_q = i == 1 ? q.scalar : scalar_q + q.scalar;
-        scalar_w = i == 1 ? w.scalar : scalar_w + w.scalar;
+        transformed_x_real[i] = p.scalar;
+        transformed_x_imag[i] = q.scalar;
+        transformed_y_real[i] = w.scalar;
         first = FASTCD_NAME(complex_add)(FASTCD_NAME(complex_half)(
                     FASTCD_NAME(complex_add)(plus, minus)), first);
         second = FASTCD_NAME(complex_add)(second, mixed);
@@ -193,13 +169,57 @@ static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
         out_real[half + i] = second.real;
         out_imag[half + i] = second.imag;
     }
+    // Child inputs are dead; their planes temporarily hold the three sums.
+    FASTCD_NAME(Sum3) scalars = FASTCD_NAME(sum3_arrays)(
+            transformed_x_real + 1, transformed_x_imag + 1,
+            transformed_y_real + 1, half - 1);
     // Return (F,G): F has scalar coordinate 0 and G has scalar coordinate lambda.
     out_real[0] = FASTCD_ZERO;
     out_imag[0] = FASTCD_ZERO;
     FASTCD_NAME(FastCDComplex) scalar = FASTCD_NAME(complex_recover)(
-            scalar_p, scalar_q, scalar_w);
+            scalars.first, scalars.second, scalars.third);
     out_real[half] = scalar.real;
     out_imag[half] = scalar.imag;
+}
+
+// Dispatch small complex products before entering the recursive node.
+static void FASTCD_NAME(complex_cross)(FASTCD_REAL* restrict out_real,
+        FASTCD_REAL* restrict out_imag,
+        const FASTCD_REAL* x_real, const FASTCD_REAL* x_imag,
+        const FASTCD_REAL* y_real, const FASTCD_REAL* y_imag, size_t dimension,
+        FASTCD_REAL* restrict workspace) {
+    // AltC_1 = 0 (dimension 2); dimension 1 is also zero.  Dimension 4 uses
+    // the fused nonrecursive map, dimension 8 the octonion leaf, and dimension 16
+    // unrolls the fused recurrence above that leaf when the cutoff allows it.
+    switch (dimension) {
+        case 1:
+            out_real[0] = FASTCD_ZERO;
+            out_imag[0] = FASTCD_ZERO;
+            return;
+        case 2:
+            FASTCD_NAME(ql_complex_cross_2)(out_real, out_imag, x_real, x_imag,
+                    y_real, y_imag);
+            return;
+        case 4:
+            FASTCD_NAME(ql_complex_cross_4)(out_real, out_imag, x_real, x_imag,
+                    y_real, y_imag);
+            return;
+        case 8:
+            FASTCD_NAME(ql_complex_cross_8)(out_real, out_imag, x_real, x_imag,
+                    y_real, y_imag);
+            return;
+#if FASTCD_QL_COMPLEX_LEAF >= 16
+        case 16:
+            FASTCD_NAME(ql_complex_cross_16)(out_real, out_imag, x_real, x_imag,
+                    y_real, y_imag);
+            return;
+#endif
+        default:
+            break;
+    }
+
+    FASTCD_NAME(complex_cross_node)(out_real, out_imag, x_real, x_imag,
+            y_real, y_imag, dimension, workspace);
 }
 
 /*
@@ -214,7 +234,7 @@ static void FASTCD_NAME(ql_cross_recursive)(FASTCD_REAL* restrict out,
     size_t half;
     FASTCD_REAL gamma;
     FASTCD_REAL delta;
-    FASTCD_REAL scalar = FASTCD_ZERO;
+    FASTCD_NAME(BalancedSum) scalar;
 
     // AltR_1 = 0 (dimension 2); dimension 1 is also zero.  Larger leaves
     // expand the same AltR recurrence into generated straight-line code.
@@ -255,22 +275,51 @@ static void FASTCD_NAME(ql_cross_recursive)(FASTCD_REAL* restrict out,
     // Store Re_C Z in the lower output half and Im_C Z in the upper half.
     FASTCD_NAME(complex_cross)(out, out + half, x, x + half, y, y + half, half,
             workspace);
+    FASTCD_NAME(sum_init)(&scalar);
     // lambda = <s,v> - <t,u>; F = Re_C Z + gamma t - delta s;
     // the non-scalar part of G is delta u - gamma v - Im_C Z.
-    for (size_t i = 1; i < half; i++) {
-        FASTCD_REAL pair = x[half + i] * y[i] - y[half + i] * x[i];
-        FASTCD_REAL first = out[i] + gamma * y[half + i];
-        FASTCD_REAL second = delta * x[i] - gamma * y[i];
+    for (size_t base = 1; base < half; base += FASTCD_SUM_BLOCK) {
+        size_t count = half - base < FASTCD_SUM_BLOCK ? half - base : FASTCD_SUM_BLOCK;
+        FASTCD_REAL total = FASTCD_ZERO;
+        for (size_t i = base; i < base + count; i++) {
+            FASTCD_REAL pair = x[half + i] * y[i] - y[half + i] * x[i];
+            FASTCD_REAL first = out[i] + gamma * y[half + i];
+            FASTCD_REAL second = delta * x[i] - gamma * y[i];
 
-        scalar = i == 1 ? pair : scalar + pair;
-        first = first - delta * x[half + i];
-        second = second - out[half + i];
-        out[i] = first;
-        out[half + i] = second;
+            total = i == base ? pair : total + pair;
+            first = first - delta * x[half + i];
+            second = second - out[half + i];
+            out[i] = first;
+            out[half + i] = second;
+        }
+        if (count == FASTCD_SUM_BLOCK) FASTCD_NAME(sum_block)(&scalar, total);
+        else {
+            scalar.block = total;
+            scalar.used = (unsigned)count;
+        }
     }
     // Return (F,G), placing lambda in the scalar coordinate of G.
     out[0] = FASTCD_ZERO;
-    out[half] = scalar;
+    out[half] = FASTCD_NAME(sum_finish)(&scalar);
+}
+
+// Reduce imaginary-coordinate products in complete blocks with one carry each.
+static inline FASTCD_REAL FASTCD_NAME(imaginary_dot)(const FASTCD_REAL* x,
+        const FASTCD_REAL* y, size_t dimension) {
+    FASTCD_NAME(BalancedSum) dot;
+
+    FASTCD_NAME(sum_init)(&dot);
+    for (size_t base = 1; base < dimension; base += FASTCD_SUM_BLOCK) {
+        size_t count = dimension - base < FASTCD_SUM_BLOCK ? dimension - base : FASTCD_SUM_BLOCK;
+        FASTCD_REAL total = x[base] * y[base];
+        for (size_t i = base + 1; i < base + count; i++) total = total + x[i] * y[i];
+        if (count == FASTCD_SUM_BLOCK) FASTCD_NAME(sum_block)(&dot, total);
+        else {
+            dot.block = total;
+            dot.used = (unsigned)count;
+        }
+    }
+    return FASTCD_NAME(sum_finish)(&dot);
 }
 
 // Add the scalar--imaginary terms to a completed imaginary cross product
@@ -280,11 +329,7 @@ static void FASTCD_NAME(reconstruct)(FASTCD_REAL* restrict out,
     // hold X = ImPart(x), Y = ImPart(y).  out already contains Z = AltR_n(X,Y).
     FASTCD_REAL alpha = x[0];
     FASTCD_REAL beta = y[0];
-    FASTCD_REAL dot = x[1] * y[1];
-
-    // Compute <X,Y> and write the scalar part alpha beta - <X,Y>.
-    for (size_t i = 2; i < dimension; i++) dot = dot + x[i] * y[i];
-    out[0] = alpha * beta - dot;
+    out[0] = alpha * beta - FASTCD_NAME(imaginary_dot)(x, y, dimension);
     // Complete the imaginary part Z + alpha Y + beta X.
     for (size_t i = 1; i < dimension; i++) {
         out[i] = out[i] + (alpha * y[i] + beta * x[i]);

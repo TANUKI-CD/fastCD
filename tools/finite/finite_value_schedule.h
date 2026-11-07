@@ -3,7 +3,7 @@
  * VADD, VSUB, VMUL, VDIFF, VHALF and VNORMALIZE use the local ctx pointer.
  * No field representation, modulus or machine instruction is assumed here.
  *
- * As in src/quasilinear_impl.h, the local map and recursive children are
+ * As in src/quasilinear_impl.h, the nonrecursive map and recursive children are
  * separate stages. Values live in scalar registers or independent SIMD
  * lanes; only transformed operand planes occupy recursive scratch.
  * Index zero of each alternating input plane is ignored. The auxiliary
@@ -12,14 +12,14 @@
 
 typedef struct {
     Word first, scalar, second;
-} FASTCD_FF_NAME(ValueLocal);
+} FASTCD_FF_NAME(ValueNonrecursive);
 
 // Evaluate B=(gamma*t-delta*s, s*v-t*u, delta*u-gamma*v) in value arithmetic
-static inline FASTCD_FF_ALWAYS_INLINE FASTCD_FF_NAME(ValueLocal)
-        FASTCD_FF_NAME(vlocal)(Word u, Word v, Word s, Word t, Word gamma, Word delta,
+static inline FASTCD_FF_ALWAYS_INLINE FASTCD_FF_NAME(ValueNonrecursive)
+        FASTCD_FF_NAME(vnonrecursive)(Word u, Word v, Word s, Word t, Word gamma, Word delta,
                 const Context* restrict ctx) {
     (void)ctx;
-    FASTCD_FF_NAME(ValueLocal)
+    FASTCD_FF_NAME(ValueNonrecursive)
     r = {VDIFF(gamma, t, delta, s), VDIFF(s, v, t, u), VDIFF(delta, u, gamma, v)};
     return r;
 }
@@ -33,7 +33,7 @@ static void FASTCD_FF_NAME(pair_cross)(Word* restrict real, Word* restrict imag,
         Word* restrict workspace, const Context* restrict ctx) {
     size_t h = n / 2;
     // Alternation vanishes at dimensions one and two; dimension four uses
-    // only the local map because both recursive children would vanish.
+    // only the nonrecursive map because both recursive children would vanish.
     if (n <= 2) {
         for (size_t i = 0; i < n; i++) real[i] = imag[i] = VZERO;
         return;
@@ -76,12 +76,12 @@ static void FASTCD_FF_NAME(pair_cross)(Word* restrict real, Word* restrict imag,
         Word sr = xr[h + i], si = xi[h + i], tr = yr[h + i], ti = yi[h + i];
         // Recover B over the pair algebra from B(real), B(imag), and B(sum).
         // Accumulate scalar pairings before recovering the central coordinate.
-        FASTCD_FF_NAME(ValueLocal)
-        p = FASTCD_FF_NAME(vlocal)(ur, vr, sr, tr, gp, dp, ctx);
-        FASTCD_FF_NAME(ValueLocal)
-        q = FASTCD_FF_NAME(vlocal)(ui, vi, si, ti, gq, dq, ctx);
-        FASTCD_FF_NAME(ValueLocal)
-        w = FASTCD_FF_NAME(vlocal)(
+        FASTCD_FF_NAME(ValueNonrecursive)
+        p = FASTCD_FF_NAME(vnonrecursive)(ur, vr, sr, tr, gp, dp, ctx);
+        FASTCD_FF_NAME(ValueNonrecursive)
+        q = FASTCD_FF_NAME(vnonrecursive)(ui, vi, si, ti, gq, dq, ctx);
+        FASTCD_FF_NAME(ValueNonrecursive)
+        w = FASTCD_FF_NAME(vnonrecursive)(
                 VADD(ur, ui), VADD(vr, vi), VADD(sr, si), VADD(tr, ti), gw, dw, ctx);
         ap = VADD(ap, p.scalar);
         aq = VADD(aq, q.scalar);
@@ -117,8 +117,8 @@ static void FASTCD_FF_NAME(cd)(Word* restrict out, const Word* x, const Word* y,
     if (n >= 4) {
         Word g = x[h], d = y[h], sum = VZERO;
         for (size_t i = 1; i < h; i++) {
-            FASTCD_FF_NAME(ValueLocal)
-            v = FASTCD_FF_NAME(vlocal)(x[i], y[i], x[h + i], y[h + i], g, d, ctx);
+            FASTCD_FF_NAME(ValueNonrecursive)
+            v = FASTCD_FF_NAME(vnonrecursive)(x[i], y[i], x[h + i], y[h + i], g, d, ctx);
             sum = VADD(sum, v.scalar);
             out[i] = VADD(out[i], v.first);
             out[h + i] = VSUB(v.second, out[h + i]);

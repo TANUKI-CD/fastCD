@@ -17,7 +17,7 @@ FastCDFFStatus fastcd_ff_plan_init(
     if (level >= sizeof(size_t) * CHAR_BIT) return FASTCD_FF_SIZE_OVERFLOW;
     size_t n = (size_t)1 << level, d = field->degree;
     if (n > SIZE_MAX / sizeof(uint32_t) / d / 2) return FASTCD_FF_SIZE_OVERFLOW;
-    // The buffer schedule reserves 32 coefficients for local maps at each
+    // The buffer schedule reserves 32 coefficients for nonrecursive maps at each
     // node and four transformed half-size planes above its dimension-4 leaf.
     // Children run sequentially and share the tail of the same scratch.
     size_t cd = 32;

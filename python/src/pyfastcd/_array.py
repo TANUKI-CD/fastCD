@@ -337,8 +337,8 @@ class ElementArray:
         No coefficient data are copied.  Mutations are visible through this
         wrapper and any source shared by :meth:`Algebra.asarray`, but changing
         the returned ndarray's own metadata does not alter this wrapper's
-        internal ndarray object.  The view can be read-only when the original
-        source was read-only or was an immutable Element.
+        internal ndarray object.  The view can be read-only when the source
+        storage was read-only or was an immutable Element.
         """
 
         return self._coefficients.view()
@@ -596,7 +596,7 @@ class ElementArray:
         -------
         numpy.ndarray
             Coefficients of shape ``batch_shape + (dimension,)``.  The
-            zero-copy result preserves the original strides and writeability.
+            zero-copy result keeps the source strides and writeability.
 
         Raises
         ------
@@ -1125,7 +1125,7 @@ class ElementArray:
         return _scalar_binary(self.algebra, self, other, _core._SCALAR_INNER)
 
     def norm_squared(self) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """Return the canonical quadratic form over the batch shape.
+        """Return the quadratic form of every record over the batch shape.
 
         Returns
         -------
@@ -1135,9 +1135,9 @@ class ElementArray:
 
         Notes
         -----
-        This is the same form as ``quadratic_norm()``. The unchanged real
-        path uses scaled accumulation to reduce avoidable overflow and
-        underflow, with IEEE-754 NaN/infinity behavior. Complex and finite
+        This is the same form as ``quadratic_norm()``. Over R it uses scaled
+        accumulation to reduce avoidable overflow and underflow, with
+        IEEE-754 NaN/infinity behavior. Complex and finite
         forms can vanish on nonzero records and are not Hermitian norms.
         """
 
@@ -1150,7 +1150,7 @@ class ElementArray:
         return _scalar_unary(self.algebra, self, _core._SCALAR_NORM_SQUARED)
 
     def quadratic_norm(self) -> Any:
-        """Return the canonical CD quadratic form over the coefficient field."""
+        """Return the quadratic form ``sum_i x_i**2`` in the coefficient field."""
 
         return self.norm_squared()
 
