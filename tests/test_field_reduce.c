@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Compare 64-bit reductions with the % operator for several primes
 int main(void) {
     const uint32_t primes[] = {3, 5, 13, 257, 65521, 2147483647};
     for (size_t i = 0; i < sizeof(primes) / sizeof(primes[0]); i++) {

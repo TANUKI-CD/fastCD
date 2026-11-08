@@ -22,7 +22,7 @@ def append(lanes, bits, prefix, flags, build=True):
 
     z = f"{p}_setzero_si{bits}()"
     source = []
-    # Child lanes occupy the low branch bits; adjacent groups are coordinates.
+    # Child lanes occupy the low branch bits, and adjacent groups are coordinates
     for batch in [1 << k for k in reversed(range(lanes.bit_length()))]:
         func = f"{name}_node{batch}"
         signature = f"""static void {func}(uint32_t* restrict real,uint32_t* restrict imag,
@@ -176,7 +176,7 @@ def append(lanes, bits, prefix, flags, build=True):
                 + ",".join(map(str, idx))
                 + "),a)"
             )
-        # A negative lane uses b-a; the other lanes use a+b.
+        # A negative lane uses b-a and the other lanes use a+b
         mask = [-1 if i & width else 0 for i in range(lanes)]
         maskexpr = f"{p}_setr_epi32(" + ",".join(map(str, mask)) + ")"
         perm += [

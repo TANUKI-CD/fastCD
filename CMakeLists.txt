@@ -192,6 +192,11 @@ if(BUILD_TESTING)
     add_test(NAME fastcd.domains COMMAND fastcd_domain_tests)
     set_tests_properties(fastcd.domains PROPERTIES TIMEOUT 600)
 
+    add_executable(fastcd_finite_direct_tests tests/test_finite_direct.c)
+    target_include_directories(fastcd_finite_direct_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    fastcd_configure_target(fastcd_finite_direct_tests)
+    add_test(NAME fastcd.finite_direct_schedule COMMAND fastcd_finite_direct_tests)
+
     add_executable(fastcd_portable_reduce_tests tests/test_field_reduce.c)
     target_link_libraries(fastcd_portable_reduce_tests PRIVATE fastcd::fastcd)
     fastcd_configure_target(fastcd_portable_reduce_tests)

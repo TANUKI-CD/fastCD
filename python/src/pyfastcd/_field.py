@@ -146,8 +146,8 @@ class FiniteField:
         if len(mod) == 2:
             if mod[1] != 1:
                 raise ValueError("modulus must be monic")
-            # Linear moduli do not change degree-one coordinates or arithmetic.
-            # Give all such presentations the single canonical prime parent.
+            # Linear moduli do not change degree-one coordinates or arithmetic,
+            # so every such presentation maps to the one canonical prime parent
             return cls(char=p)
         return _make_field(p, len(mod) - 1, mod)
 
@@ -184,9 +184,8 @@ class FiniteField:
     def __repr__(self) -> str:
         """Show the selectors or explicit polynomial needed to recreate this parent."""
 
-        # Default status belongs to the polynomial, not construction history.
-        # Resolve the cached default lazily; pickles still restore the actual
-        # explicit polynomial without depending on default selection.
+        # Default status depends on the polynomial rather than construction history,
+        # so the cached default resolves lazily and pickles keep the polynomial
         if self is FiniteField(char=self.char, deg=self.deg):
             return f"FiniteField(char={self.char}, deg={self.deg})"
         return f"FiniteField.from_modulus(char={self.char}, modulus={self.modulus!r})"

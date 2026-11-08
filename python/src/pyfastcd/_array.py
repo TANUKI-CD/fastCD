@@ -71,9 +71,9 @@ def _is_real_scalar(value: Any) -> bool:
     if not isinstance(value, SupportsFloat):
         return False
 
-    # Some array containers also provide __float__, usually for their 0-D
-    # case.  Honor their array dimensionality before the scalar protocol so a
-    # dual-protocol coefficient vector cannot be mistaken for a real scalar.
+    # Some array containers also provide __float__, usually for their 0-D case,
+    # so their array dimensionality is honored before the scalar protocol and a
+    # dual-protocol coefficient vector cannot be mistaken for a real scalar
     if hasattr(value, "__dlpack__"):
         ndim = getattr(value, "ndim", None)
         if ndim is None:
@@ -1178,7 +1178,7 @@ class ElementArray:
         return _scalar_unary(self.algebra, self, _core._SCALAR_NORM)
 
     def imag_cross(self, other: Any) -> ElementArray:
-        """Return pairwise generalized imaginary cross products.
+        """Return pairwise alternating products of the imaginary parts.
 
         Parameters
         ----------
@@ -1188,7 +1188,7 @@ class ElementArray:
         Returns
         -------
         ElementArray
-            New records equal to ``(u*v - v*u)/2``, where ``u`` and ``v``
+            New records equal to ``(X*Y - Y*X)/2``, where ``X`` and ``Y``
             are the imaginary parts.  Coordinate zero is zero.
 
         Raises
@@ -1571,8 +1571,8 @@ def _coordinate_equal(array: ElementArray, other: Any, *, invert: bool) -> Any:
         if scalar is NotImplemented:
             return NotImplemented
         real = array._coefficients[..., 0]
-        # NumPy's native numeric promotion can round large integers or narrow
-        # floats. Object comparison uses Python's exact numeric comparisons.
+        # NumPy's numeric promotion can round large integers or narrow floats,
+        # so object comparison uses Python's exact numeric comparisons
         values = real if isinstance(scalar, float) else real.astype(object)
         comparison = values == scalar
         if array.dimension > 1:
@@ -1581,7 +1581,7 @@ def _coordinate_equal(array: ElementArray, other: Any, *, invert: bool) -> Any:
         isinstance(other, (Element, ElementArray))
         and other.algebra is not array.algebra
     ):
-        # As NumPy does for incomparable operands, every pair is unequal.
+        # As NumPy does for incomparable operands, every pair is unequal
         other_shape = other.batch_shape if isinstance(other, ElementArray) else ()
         shape = np.broadcast_shapes(array.batch_shape, other_shape)
         comparison = np.zeros(shape, dtype=bool)

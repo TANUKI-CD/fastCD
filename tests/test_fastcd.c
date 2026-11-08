@@ -4,9 +4,9 @@
  * Every arithmetic result is checked against tests/reference_cd.c, an
  * independent literal evaluation of the Cayley--Dickson doubling formula, and
  * every public routine is exercised through its documented validation,
- * aliasing, and workspace contracts.  "Exact" comparisons use ==, so they are
- * bitwise except that +0.0 and -0.0 compare equal (mathematically equivalent
- * operation orders legitimately differ in the sign of an exact zero); bitwise
+ * aliasing and workspace contracts. "Exact" comparisons use ==, so they are
+ * bitwise except that +0.0 and -0.0 compare equal: mathematically equivalent
+ * operation orders can differ in the sign of an exact zero. Bitwise
  * comparisons are used where two library calls must agree identically.
  */
 
@@ -320,47 +320,53 @@ static FastCDStatus mul_route_batch(const MulRoute* route, double* out,
             y, y_stride, count, dimension, route->algorithm, workspace);
 }
 
-// Wrap each explicit algorithm in the generic binary-operation signature
+// Multiply with the direct algorithm in the generic binary-operation signature
 static FastCDStatus mul_direct(double* out, const double* x, const double* y,
         size_t dimension, const FastCDWorkspaceF64* workspace) {
     return fastcd_mul_with_algorithm_f64(out, x, y, dimension,
             FASTCD_ALGORITHM_DIRECT, workspace);
 }
 
+// Multiply with the Cariow--Cariowa algorithm
 static FastCDStatus mul_cariow_cariowa(double* out, const double* x,
         const double* y, size_t dimension, const FastCDWorkspaceF64* workspace) {
     return fastcd_mul_with_algorithm_f64(out, x, y, dimension,
             FASTCD_ALGORITHM_CARIOW_CARIOWA, workspace);
 }
 
+// Multiply with the quasilinear algorithm
 static FastCDStatus mul_quasilinear(double* out, const double* x,
         const double* y, size_t dimension, const FastCDWorkspaceF64* workspace) {
     return fastcd_mul_with_algorithm_f64(out, x, y, dimension,
             FASTCD_ALGORITHM_QUASILINEAR, workspace);
 }
 
+// Multiply with AUTO passed as an explicit algorithm
 static FastCDStatus mul_auto_explicit(double* out, const double* x,
         const double* y, size_t dimension, const FastCDWorkspaceF64* workspace) {
     return fastcd_mul_with_algorithm_f64(out, x, y, dimension,
             FASTCD_ALGORITHM_AUTO, workspace);
 }
 
-// Wrap each explicit algorithm's workspace query in the generic signature
+// Query the direct algorithm's workspace in the generic signature
 static FastCDStatus query_direct(size_t dimension, size_t* length) {
     return fastcd_mul_algorithm_workspace_size(dimension,
             FASTCD_ALGORITHM_DIRECT, length);
 }
 
+// Query the Cariow--Cariowa workspace
 static FastCDStatus query_cariow_cariowa(size_t dimension, size_t* length) {
     return fastcd_mul_algorithm_workspace_size(dimension,
             FASTCD_ALGORITHM_CARIOW_CARIOWA, length);
 }
 
+// Query the quasilinear workspace
 static FastCDStatus query_quasilinear(size_t dimension, size_t* length) {
     return fastcd_mul_algorithm_workspace_size(dimension,
             FASTCD_ALGORITHM_QUASILINEAR, length);
 }
 
+// Query the workspace for AUTO passed explicitly
 static FastCDStatus query_auto_explicit(size_t dimension, size_t* length) {
     return fastcd_mul_algorithm_workspace_size(dimension,
             FASTCD_ALGORITHM_AUTO, length);
@@ -379,9 +385,9 @@ typedef enum RouteKind {
 } RouteKind;
 
 /*
- * Evaluate one operation from oracle products only.  For the ternary
- * operators the operands are named (x, y, z) = (a, b, x) of the library
- * declarations.  t1, t2, and t3 are scratch elements.
+ * Evaluate one operation from oracle products only. For the ternary operators
+ * the operands are named (x, y, z) = (a, b, x) of the library declarations,
+ * and t1, t2 and t3 are scratch elements.
  */
 // Compute the oracle reference of one route
 static bool route_reference(RouteKind kind, double* expected, const double* x,
@@ -638,9 +644,9 @@ static void test_algorithm_selection(void) {
                 "both automatic selections are quasilinear from N=64 (N=%zu)",
                 dimension);
         {
-            /* The documented tables (docs/c-api.md, "Algorithm selection").
-             * A build without SIMD pairing serves batches from the single
-             * table; that build is recognized by its batch choice at N=16. */
+            /* These are the documented tables (docs/c-api.md, "Algorithm
+             * selection"). A build without SIMD pairing serves batches from
+             * the single table and is recognized by its batch choice at N=16. */
             static const FastCDAlgorithm documented_single[] = {
                 FASTCD_ALGORITHM_QUASILINEAR, FASTCD_ALGORITHM_QUASILINEAR,
                 FASTCD_ALGORITHM_QUASILINEAR, FASTCD_ALGORITHM_DIRECT,
@@ -749,8 +755,8 @@ static void test_algorithm_selection(void) {
             "public workspace query rejects a null length");
 
     {
-        /* wide is twice the Cariow--Cariowa maximum; the scratch covers the
-         * 2N table-kernel workspace at that maximum. */
+        // wide is twice the Cariow--Cariowa maximum, and the scratch covers the
+        // 2N table-kernel workspace at that maximum
         enum { wide = 2048, scratch_length = 2048 };
         double x[wide];
         double y[wide];
@@ -2277,9 +2283,9 @@ static double numerical_random(uint64_t* state) {
 
 /*
  * Sum the signed basis products for each coordinate, independently of every
- * multiplication recurrence.  Compensation reduces accumulation error even
- * on platforms where long double has the same precision as double.  The
- * fixtures keep all products and partial sums in the normal double range.
+ * multiplication recurrence. Compensation reduces accumulation error even on
+ * platforms where long double has the same precision as double. The fixtures
+ * keep all products and partial sums in the normal double range.
  */
 // Compute a compensated direct basis-product reference in long double
 static void numerical_reference(long double* out, const double* x,
@@ -2307,10 +2313,10 @@ static void numerical_reference(long double* out, const double* x,
 }
 
 /*
- * The smallest dense products are approximately 2^-960; the largest are
- * approximately 2^960.  Reciprocal operands separately reach 2^900 and
- * 2^-900.  No fixture relies on overflow, subnormal preservation, or NaN
- * semantics.  Zero and near-zero output coordinates are intentionally common.
+ * Dense products range from about 2^-960 to about 2^960, and reciprocal
+ * operands separately reach 2^900 and 2^-900. No fixture relies on overflow,
+ * subnormal preservation or NaN semantics. Zero and near-zero output
+ * coordinates are intentionally common.
  */
 // Fill one deterministic finite-range or cancellation fixture
 static void numerical_fill(double* x, double* y, size_t dimension,
@@ -2485,9 +2491,8 @@ static bool batch_matches(const MulRoute* route, const double* out,
         size_t out_stride, const double* x, size_t x_stride, const double* y,
         size_t y_stride, size_t count, size_t dimension,
         const FastCDWorkspaceF64* workspace, double* scalar, double* expected) {
-    /* An automatic batch of two or more records follows the batch selection,
-     * so reproduce it with that concrete algorithm rather than the
-     * single-product default. */
+    // An automatic batch of two or more records follows the batch selection,
+    // so reproduce it with that algorithm rather than the single-product default
     FastCDAlgorithm batch_algorithm = FASTCD_ALGORITHM_AUTO;
     bool use_batch_default = route->algorithm == FASTCD_ALGORITHM_AUTO
         && count >= 2
@@ -2899,7 +2904,7 @@ static void test_batch_backends(void) {
         fill_unit_interval(x, 3 * stride);
         fill_unit_interval(y, 3 * stride);
         for (size_t k = 0; k < 3; k++) {
-            /* Distinct scales catch mixing the independent SIMD lanes. */
+            // Distinct scales catch mixing of the independent SIMD lanes
             for (size_t i = 0; i < dimension; i++) {
                 x[k * stride + i] *= k == 0 ? 0x1p-20 : 0x1p20;
             }
@@ -2931,10 +2936,9 @@ static void test_batch_backends(void) {
                             SENTINEL) && guarded_workspace_intact(&workspace),
                         "backend preserves padding and guards N=%zu", dimension);
                 for (size_t k = 0; k < count; k++) {
-                    /* A product by a scalar is exact for direct and
-                     * quasilinear, but the Cariow--Cariowa transforms round,
-                     * so that algorithm is always checked against its own
-                     * single-product result. */
+                    /* A product by a scalar is exact for direct and quasilinear,
+                     * but the Cariow--Cariowa transforms round, so that algorithm
+                     * is always checked against its own single-product result. */
                     if (dimension <= 128
                             || algorithm == FASTCD_ALGORITHM_CARIOW_CARIOWA) {
                         CHECK(fastcd_mul_with_algorithm_f64(scalar,
@@ -3275,7 +3279,7 @@ static void test_composite_products(void) {
             pair_scale = nx * ny;
             triple_scale = 2.0L * nx * ny * nz;
 
-            /* imaginary cross product */
+            // Alternating product (imag_cross)
             CHECK(route_reference(ROUTE_CROSS, expected, x, y, NULL, dimension,
                         t1, t2, t3), "cross reference N=%zu trial=%zu",
                     dimension, trial);
@@ -3309,7 +3313,7 @@ static void test_composite_products(void) {
             CHECK(guarded_workspace_intact(&cross_workspace),
                     "cross preserves workspace guards N=%zu", dimension);
 
-            /* commutator */
+            // Commutator
             CHECK(route_reference(ROUTE_COMMUTATOR, expected, x, y, NULL,
                         dimension, t1, t2, t3),
                     "commutator reference N=%zu trial=%zu", dimension, trial);
@@ -3341,7 +3345,7 @@ static void test_composite_products(void) {
                     "commutator is exactly twice the cross N=%zu trial=%zu",
                     dimension, trial);
 
-            /* anticommutator */
+            // Anticommutator
             CHECK(route_reference(ROUTE_ANTICOMMUTATOR, expected, x, y, NULL,
                         dimension, t1, t2, t3),
                     "anticommutator reference N=%zu trial=%zu", dimension,
@@ -3358,7 +3362,7 @@ static void test_composite_products(void) {
                     "anticommutator is symmetric N=%zu trial=%zu", dimension,
                     trial);
 
-            /* associator */
+            // Associator
             CHECK(route_reference(ROUTE_ASSOCIATOR, expected, x, y, z,
                         dimension, t1, t2, t3),
                     "associator reference N=%zu trial=%zu", dimension, trial);
@@ -3377,7 +3381,7 @@ static void test_composite_products(void) {
             CHECK(guarded_workspace_intact(&associator_workspace),
                     "associator preserves workspace guards N=%zu", dimension);
 
-            /* left operator commutator */
+            // Left operator commutator
             CHECK(route_reference(ROUTE_LOP, expected, x, y, z, dimension, t1,
                         t2, t3), "left-operator reference N=%zu trial=%zu",
                     dimension, trial);
@@ -3393,7 +3397,7 @@ static void test_composite_products(void) {
                     "left operator preserves workspace guards N=%zu",
                     dimension);
 
-            /* right operator commutator */
+            // Right operator commutator
             CHECK(route_reference(ROUTE_ROP, expected, x, y, z, dimension, t1,
                         t2, t3), "right-operator reference N=%zu trial=%zu",
                     dimension, trial);

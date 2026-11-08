@@ -921,7 +921,7 @@ class ElementProtocolTests(FastCDTestCase):
             def __float__(self) -> float:
                 raise ValueError("synthetic conversion failure")
 
-        # A float conversion alone does not define numeric equality.
+        # A float conversion alone does not define numeric equality
         self.assertFalse(self.element == RaisingFloat())
         nan_element = self.algebra([math.nan, 0, 0, 0])
         self.assertNotEqual(nan_element, nan_element)
@@ -1350,8 +1350,8 @@ class MultiplicationOracleTests(FastCDTestCase):
     def test_at_least_one_thousand_products_against_defining_recursion(self) -> None:
         """Compare over one thousand products with defining recursion."""
 
-        # 205 trials in each of five dimensions gives 1,025 independent
-        # products while keeping the quadratic Python oracle inexpensive.
+        # 205 trials in each of five dimensions give 1,025 independent
+        # products while keeping the quadratic Python oracle inexpensive
         trials_per_dimension = 205
         total_products = 0
         for dimension in (1, 2, 4, 8, 16):
@@ -1369,7 +1369,7 @@ class MultiplicationOracleTests(FastCDTestCase):
         """Exercise the production quasilinear path across nested levels."""
 
         # Exercise nested complex recursion and Python workspace allocation
-        # through the real production interface.
+        # through the production interface
         for dimension in (32, 64, 128):
             rng = np.random.default_rng(64_000 + dimension)
             left = rng.normal(0.0, 0.25, size=(3, dimension))
@@ -1781,7 +1781,7 @@ class MultiplicationAlgorithmTests(FastCDTestCase):
                     ):
                         rhs = right[0] if broadcast else right
                         # Batches of two or more records follow the batch
-                        # selection; reproduce it with single products.
+                        # selection, which single products reproduce here
                         scalar_name = (
                             algebra.default_batch_algorithm
                             if name == "auto"
@@ -2589,8 +2589,8 @@ class OutAndUfuncTests(FastCDTestCase):
                 strided_left.coefficients, strided_right.coefficients
             )
         )
-        # Records pair as (0, 1) and (2, 2): disjoint or identical, so the
-        # shared storage is accepted.
+        # Records pair as (0, 1) and (2, 2), each disjoint or identical, so the
+        # shared storage is accepted
         self.assertCoefficientsClose(
             self.algebra.multiply(strided_left, strided_right).coefficients,
             reference.multiply_batch(storage[:3:2], storage[1:3]),

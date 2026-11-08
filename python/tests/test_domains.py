@@ -10,6 +10,23 @@ import pyfastcd as fcd
 import pytest
 
 
+@pytest.mark.parametrize("p,d", [(3, 1), (3, 5), (5, 2), (13, 5), (65521, 2)])
+@pytest.mark.parametrize("n", [1, 2, 4, 8, 16, 128, 256])
+def test_finite_default_selection(p, d, n):
+    A = fcd.Algebra(dimension=n, char=p, deg=d)
+    expected = "direct" if n <= 4 else "quasilinear"
+    assert A.default_algorithm == expected
+    assert A.default_batch_algorithm == expected
+    rng = np.random.default_rng(p + d + n)
+    shape = (n, d) if d > 1 else (n,)
+    x = A(rng.integers(0, p, size=shape, dtype=np.uint32))
+    y = A(rng.integers(0, p, size=shape, dtype=np.uint32))
+    np.testing.assert_array_equal(
+        A.multiply(x, y, algorithm="auto").coefficients,
+        A.multiply(x, y, algorithm=expected).coefficients,
+    )
+
+
 def field_mul(a, b, p, modulus):
     d = len(modulus) - 1
     t = [0] * (2 * d - 1)

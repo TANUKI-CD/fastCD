@@ -7,10 +7,10 @@
 #include <flint/nmod.h>
 #include <flint/nmod_poly.h>
 
-/* Benchmark-only coefficient adapters. The arithmetic recurrence is the
- * maintained production template, rather than an independently optimized
- * or quadratic implementation attributed to FLINT. FLINT supplies the field
- * operations; it does not supply a Cayley--Dickson multiplication routine. */
+/* Benchmark-only FLINT coefficient adapters. The CD schedule is fastCD's own
+ * quasilinear template, not an independently optimized or quadratic
+ * implementation attributed to FLINT. FLINT supplies the field operations and
+ * has no Cayley--Dickson multiplication routine. */
 typedef struct {
     FastCDPlanFF plan;
     size_t workspace_coefficients;
@@ -68,16 +68,17 @@ typedef struct {
 #undef FASTCD_FF_STATS_ARG
 #undef FASTCD_FF_STATS_DECL
 
-// Compare address spans without subtracting pointers to unrelated objects.
+// Compare address spans without subtracting pointers to unrelated objects
 static int bench_flint_overlap(const void* a, size_t an, const void* b, size_t bn) {
     uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;
     return an && bn && (x <= y ? y - x < an : x - y < bn);
 }
 
-/* Match the public native entry's complete-record buffer checks. All element
- * objects and their coefficient capacities are initialized before timing.
- * This wrapper validates the contiguous descriptor/word spans; extension
- * coefficient allocations are owned by those disjoint element objects. */
+/* The wrapper matches the complete-record buffer checks of the public native
+ * entry. Element objects and their coefficient capacities are initialized
+ * before timing, so it validates the contiguous descriptor and word spans, and
+ * extension coefficient allocations belong to those disjoint objects. */
+// Multiply complete CD records through the quasilinear template with FLINT fields
 static FastCDFFStatus bench_flint_cd(void* out, const void* x, const void* y,
         const FlintPlan* plan, void* scratch, size_t available) {
     if (!plan || !out || !x || !y) return FASTCD_FF_NULL_POINTER;

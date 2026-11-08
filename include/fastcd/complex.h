@@ -7,20 +7,22 @@ extern "C" {
 #endif
 /*
  * Standard CD arithmetic over complex coefficients. The portable complex128
- * record contains two binary64 components; the CD involution fixes these
- * coefficient scalars and negates only imaginary CD coordinates.
+ * coefficient holds two binary64 components. The CD involution fixes the
+ * coefficients and negates only the imaginary CD coordinates.
  *
- * Dimensions and batch strides count complex coefficients. Workspace lengths
- * count doubles, as in FastCDWorkspaceF64. All buffers are caller-owned and
- * arithmetic allocates no memory. An initialized workspace may be reused for
- * sequential calls; concurrent calls require separate writable storage.
+ * Dimensions and batch strides count complex coefficients, and workspace
+ * lengths count doubles, as in FastCDWorkspaceF64. All buffers are
+ * caller-owned, and arithmetic allocates no memory. An initialized workspace
+ * may be reused for sequential calls, and concurrent calls need separate
+ * writable storage.
  *
- * Exact out==x aliases are accepted by coordinatewise operations, reciprocal,
- * and square; addition/subtraction also accept out==y. Products, reductions,
- * basis permutations and composites require disjoint output. Inputs may be
- * the same complete record; other input overlaps are unsupported. Active
- * workspace must be disjoint from all operands and output. Reported errors
- * leave output unchanged. Record lengths and alignment remain preconditions.
+ * Coordinatewise operations, reciprocal and square accept an exact out == x
+ * alias, and addition and subtraction also accept out == y. Products,
+ * reductions, basis operations and composites need a disjoint output. Inputs
+ * may be the same complete record, and other input overlaps are rejected with
+ * FASTCD_OVERLAPPING_BUFFERS. Active workspace must be disjoint from every
+ * operand and the output. Reported errors leave the output unchanged. Record
+ * lengths and alignment are preconditions.
  */
 typedef struct FastCDComplexF64 {
     double real, imag;

@@ -4,8 +4,8 @@
 #include "fastcd/fastcd.h"
 
 /*
- * Link and execute a small public-only call chain.  In shared-library builds
- * this checks that the installed API symbols remain exported.
+ * Link and execute a small public-only call chain. In shared-library builds
+ * this checks that the installed API symbols are exported.
  */
 // Execute a public-only construction and multiplication call chain
 int main(void) {

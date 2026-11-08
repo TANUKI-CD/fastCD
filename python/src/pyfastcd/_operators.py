@@ -83,9 +83,8 @@ def _multiply(receiver: Any, inputs: tuple[Any, ...], out: Any | None) -> Any:
     return out if isinstance(out, np.ndarray) else result
 
 
-# The supported ufunc surface: each entry names the operator or method that
-# already implements the operation for both Element and ElementArray.  Only
-# np.multiply accepts an out= target; it is dispatched separately.
+# Supported ufuncs, each mapped to the operator or method that implements it
+# for Element and ElementArray; np.multiply, the only one with out=, is separate
 _HANDLERS: dict[Any, _Handler] = {
     np.add: _binary("__add__", "__radd__"),
     np.subtract: _binary("__sub__", "__rsub__"),

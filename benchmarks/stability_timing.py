@@ -57,7 +57,7 @@ def invoke(command: list[str]) -> dict[str, Any]:
 def corpus(path: Path, n: int, trials: int, domain: str, seed: int) -> str:
     """Write seeded uniform dyadic operands and return their SHA-256."""
     rng = random.Random(seed)
-    # The real runner reads x, y, z records; the complex runner reads x, y as pairs.
+    # The real runner reads x, y, z records and the complex runner reads x, y as pairs
     length = (3 if domain == "real" else 4) * n * trials
     values = [(rng.randrange(-1048576, 1048576) / 1048576) for _ in range(length)]
     payload = struct.pack(f"={length}d", *values)

@@ -19,10 +19,11 @@
 #define FASTCD_BENCHMARK_BUILD_ID "unrecorded"
 #endif
 
-/* One field/workload per process. Both backends replay identical fixed
- * operands using the same calibrated number of complete corpus passes.
- * Setup, representation conversion, allocation, verification and checksums
- * stay outside timing. FLINT's own internal arithmetic work stays inside. */
+/* fastCD versus FLINT benchmark runner, one field and workload per process.
+ * Both backends replay identical fixed operands with the same calibrated
+ * number of complete corpus passes. Setup, representation conversion,
+ * allocation, verification and checksums stay outside timing, while FLINT's
+ * internal arithmetic stays inside. */
 typedef struct {
     FlintPlan flint;
     size_t trials, n, count, words, work_count, native_work_words, flint_count,
@@ -34,7 +35,7 @@ typedef struct {
 
 /* ---------- Storage and independent verification ---------- */
 
-// Check additions and products before allocating arrays or forming pointers.
+// Check additions and products before allocating arrays or forming pointers
 static int task_init(
         FlintTask* t, uint32_t p, uint32_t d, size_t n, size_t trials, int scalar) {
     size_t level;
@@ -50,9 +51,9 @@ static int task_init(
     t->count = trials * n;
     if (t->count > SIZE_MAX / d) return 0;
     t->words = t->count * d;
-    // Packed native scratch is measured in words and need not be divisible
-    // by d. FLINT instead needs whole coefficient objects for the generic
-    // recurrence; compute that bound independently of native dispatch.
+    /* Packed native scratch is measured in words and need not be divisible
+     * by d, while FLINT needs whole coefficient objects for the shared
+     * schedule, so that bound is computed independently of native dispatch. */
     t->native_work_words = scalar ? 0 : t->flint.plan.workspace_words;
     t->work_count = scalar ? 0 : 32;
     if (!scalar)
@@ -87,8 +88,8 @@ static int task_init(
         nmod_poly_init(modulus, p);
         for (uint32_t j = 0; j <= d; j++)
             nmod_poly_set_coeff_ui(modulus, (slong)j, field.modulus[j]);
-        // An explicit polynomial prevents FLINT from choosing a different
-        // presentation or silently benchmarking a different representation.
+        // An explicit polynomial keeps FLINT from choosing a different
+        // presentation or silently benchmarking a different representation
         fq_nmod_ctx_init_modulus(t->flint.extension, modulus, "a");
         nmod_poly_clear(modulus);
         t->extension_initialized = 1;
@@ -99,14 +100,14 @@ static int task_init(
             t->initialized++;
         }
     }
-    // The shared template also defines loop entries; this protocol calls
-    // only its N-coefficient CD entry, including at the coefficient-field root.
+    // The shared template also defines loop entries, but this protocol calls
+    // only its N-coefficient CD entry, including at the coefficient-field root
     (void)bench_flint_prime_loop;
     (void)bench_flint_extension_loop;
     return 1;
 }
 
-// Every partially initialized state is safe to release after a setup error.
+// Release a task, including any partially initialized state after a setup error
 static void task_clear(FlintTask* t) {
     for (size_t i = 0; i < t->initialized; i++)
         fq_nmod_clear((fq_nmod_struct*)t->flint_storage + i, t->flint.extension);
@@ -115,7 +116,7 @@ static void task_clear(FlintTask* t) {
     free(t->storage);
 }
 
-// Convert once using public polynomial setters and preallocated capacities.
+// Convert the inputs once using public polynomial setters and preallocated capacities
 static int convert_inputs(FlintTask* t) {
     uint32_t d = t->flint.plan.field.degree, p = t->flint.plan.field.prime;
     for (size_t i = 0; i < t->words; i++)
@@ -136,7 +137,7 @@ static int convert_inputs(FlintTask* t) {
     return 1;
 }
 
-// Derive each signed basis product from the defining CD doubling convention.
+// Derive each signed basis product from the defining CD doubling convention
 static int basis_sign(size_t n, size_t i, size_t j) {
     if (n == 1) return 1;
     size_t h = n / 2;
@@ -146,8 +147,9 @@ static int basis_sign(size_t n, size_t i, size_t j) {
     return (j == h ? -1 : 1) * basis_sign(h, j - h, i - h);
 }
 
-// Ordinary schoolbook multiplication and long division share no optimized
-// scalar products, reduction helpers or evaluation maps with either backend.
+/* This reference shares no optimized scalar products, reduction helpers or
+ * evaluation maps with either backend. */
+// Multiply two field elements by schoolbook products and long division
 static void reference_scalar(
         uint32_t* out, const uint32_t* x, const uint32_t* y, const FastCDField* f) {
     uint64_t a[23] = {0};
@@ -162,7 +164,7 @@ static void reference_scalar(
     for (size_t i = 0; i < d; i++) out[i] = (uint32_t)a[i];
 }
 
-// Verify every pair, without relying on agreement between the two timed paths.
+// Compute every reference product, independently of both timed paths
 static int make_reference(FlintTask* t) {
     const FastCDField* f = &t->flint.plan.field;
     size_t n = t->n, d = f->degree;
@@ -191,9 +193,10 @@ static int make_reference(FlintTask* t) {
 
 /* ---------- Timed public calls ---------- */
 
-// Place one compiler-only fence at each whole-corpus boundary for both
-// backends. Repeated inline prime products must retain their output stores;
-// this emits no hardware fence and adds no per-product synchronization.
+/* One compiler-only fence at each whole-corpus boundary, for both backends,
+ * keeps repeated inline prime products from dropping their output stores. It
+ * adds no hardware fence and no per-product synchronization. */
+// Run the given number of corpus passes with one backend
 static int replay(FlintTask* t, int flint, size_t passes) {
     size_t d = t->flint.plan.field.degree, stride = t->n * d;
     for (size_t r = 0; r < passes; r++) {
@@ -235,8 +238,9 @@ static int replay(FlintTask* t, int flint, size_t passes) {
     return 1;
 }
 
-// Check the actual final timed output, and hash canonical uint32 coefficients
-// identically despite the backends' different physical element layouts.
+/* Canonical uint32 coefficients are hashed identically despite the backends'
+ * different physical element layouts. */
+// Check the final timed output against the reference and hash it
 static int check_output(const FlintTask* t, int flint, uint64_t* checksum) {
     size_t d = t->flint.plan.field.degree;
     uint64_t hash = UINT64_C(14695981039346656037);
@@ -258,7 +262,7 @@ static int check_output(const FlintTask* t, int flint, uint64_t* checksum) {
     return 1;
 }
 
-// Use the same high-resolution monotonic wall clock as the real benchmark.
+// Read the same high-resolution monotonic wall clock as the real benchmark
 static uint64_t now_ns(void) {
 #if defined(_WIN32)
     LARGE_INTEGER value, frequency;
@@ -272,7 +276,7 @@ static uint64_t now_ns(void) {
 #endif
 }
 
-// Retain thread CPU time as a diagnostic where the platform exposes it.
+// Read thread CPU time as a diagnostic where the platform exposes it
 static uint64_t thread_ns(void) {
 #if defined(CLOCK_THREAD_CPUTIME_ID)
     struct timespec value;
@@ -282,8 +286,9 @@ static uint64_t thread_ns(void) {
     return 0;
 }
 
-// Increase a common pass count until even the faster backend reaches the
-// target. Paired observations therefore contain exactly the same products.
+/* Both backends use the common pass count, so paired observations contain
+ * exactly the same products. */
+// Increase the pass count until even the faster backend reaches the target
 static int calibrate(FlintTask* t, size_t warmup, uint64_t minimum, size_t* passes) {
     for (int b = 0; b < 2; b++)
         if (!replay(t, b, warmup)) return 0;
@@ -301,7 +306,7 @@ static int calibrate(FlintTask* t, size_t warmup, uint64_t minimum, size_t* pass
 
 /* ---------- CLI and executable correctness checks ---------- */
 
-// Reject signed spellings, overflow and trailing characters before narrowing.
+// Parse a size, rejecting signed spellings, overflow and trailing characters
 static int parse_size(const char* text, size_t* value) {
     char* end;
     if (!text[0] || text[0] == '-' || text[0] == '+') return 0;
@@ -312,7 +317,7 @@ static int parse_size(const char* text, size_t* value) {
     return 1;
 }
 
-// Accept the same fractional millisecond targets as the real protocol.
+// Parse a fractional millisecond target, as the real protocol accepts
 static int parse_minimum(const char* text, uint64_t* value) {
     char* end;
     errno = 0;
@@ -324,8 +329,10 @@ static int parse_minimum(const char* text, uint64_t* value) {
     return 1;
 }
 
-// Exercise all supported degrees, both small and large primes, zero/unit/
-// boundary/dense operands, and every level where the nonrecursive maps change shape.
+/* The self-test covers every supported degree, small and large primes, zero,
+ * unit, boundary and dense operands, and every level where the nonrecursive
+ * maps change shape. */
+// Check both backends and the FLINT schedule's buffer validation (--self-test)
 static int self_test(void) {
     for (uint32_t group = 0; group < 3; group++) {
         uint32_t p = group == 0 ? 3 : group == 1 ? 13 : 2147483647;
@@ -381,7 +388,7 @@ static int self_test(void) {
     return 1;
 }
 
-// Run one independently verified field/workload and emit paired raw observations.
+// Run one verified field and workload and print paired raw observations
 int main(int argc, char** argv) {
     flint_set_num_threads(1);
     if (argc == 2 && !strcmp(argv[1], "--metadata")) {
@@ -466,8 +473,8 @@ int main(int argc, char** argv) {
     printf("],\"native_workspace_bytes\":%zu,\"flint_workspace_elements\":%zu,"
            "\"observations\":[",
             t.native_work_words * sizeof(uint32_t), t.work_count);
-    // Alternate the first backend across paired blocks for balanced positions.
-    // Every final output is checked after its timer, before accepting a sample.
+    // Alternate the first backend across paired blocks to balance positions,
+    // and check every final output after its timer before accepting a sample
     for (size_t block = 0; block < blocks && ok; block++)
         for (size_t order = 0; order < 2 && ok; order++) {
             int b = (int)((block + order + (order_seed & 1u)) & 1u);

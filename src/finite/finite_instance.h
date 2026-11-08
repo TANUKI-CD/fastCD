@@ -1,7 +1,8 @@
 /* One compile-time polynomial-degree specialization of the buffer schedule.
- * This header intentionally has no guard: finite.c includes it for d=1..12.
- * Scalar primitives permit exact aliases, which the nonrecursive-map temporaries
- * use throughout recursion. No scalar call performs a degree dispatch. */
+ * finite.c includes it for d = 1..12, so it has no include guard. The scalar
+ * primitives allow exact aliases, which the nonrecursive-map temporaries rely
+ * on, and no scalar call dispatches on the degree. */
+// Storage, naming and context for this degree's schedule
 #define FASTCD_FF_WORD uint32_t
 #define FASTCD_FF_STEP FASTCD_FF_DEGREE
 #define FASTCD_FF_CONTEXT const FastCDPlanFF
@@ -35,7 +36,7 @@ static inline void FASTCD_FF_NAME(scale)(
         return;
     }
     if (s == ctx->inverse_two) {
-        // Add p only to odd residues before an exact unsigned right shift.
+        // Add p only to odd residues before an exact unsigned right shift
         uint32_t p = ctx->field.prime;
         for (size_t i = 0; i < FASTCD_FF_DEGREE; i++)
             o[i] = (a[i] + (p & (0u - (a[i] & 1u)))) >> 1;
@@ -44,6 +45,7 @@ static inline void FASTCD_FF_NAME(scale)(
             o[i] = fastcd_ff_mul(a[i], s, &ctx->field);
 }
 
+// Field operations the shared schedules expand
 #define FASTCD_FF_ADD(o, a, b, c) FASTCD_FF_NAME(add)(o, a, b, c)
 #define FASTCD_FF_SUB(o, a, b, c) FASTCD_FF_NAME(sub)(o, a, b, c)
 #define FASTCD_FF_SCALE(o, a, s, c) FASTCD_FF_NAME(scale)(o, a, s, c)
@@ -55,6 +57,7 @@ static inline void FASTCD_FF_NAME(scale)(
     ((void)(c), memset(o, 0, FASTCD_FF_DEGREE * sizeof(uint32_t)))
 #define FASTCD_FF_INVERSE_TWO(c) ((c)->inverse_two)
 #define FASTCD_FF_INVERSE_N(c) ((c)->inverse_dimension)
+// Instantiate the quasilinear and direct schedules, then clear the macros
 #include "schedule_impl.h"
 #include "direct_instance.h"
 #undef FASTCD_FF_INVERSE_N

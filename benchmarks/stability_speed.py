@@ -111,7 +111,7 @@ def main() -> None:
                                 for (mode, algorithm), timing in times.items():
                                     values.setdefault((mode, algorithm, version), []).append(timing)
                                 continue
-                            # Both build orders occur at every rotation of the task order.
+                            # Both build orders occur at every rotation of the task order
                             shift = (block // 2) % len(REAL_TASKS)
                             for mode, algorithm in REAL_TASKS[shift:] + REAL_TASKS[:shift]:
                                 timing, raw = real_task(versions[version], path, n, trials, mode, algorithm,

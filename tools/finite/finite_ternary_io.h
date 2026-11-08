@@ -1,4 +1,5 @@
-/* Source-generation fragment for native ternary conversion and transforms. */
+/* Source fragment for native ternary conversion and transforms. */
+// Encode eight canonical residues as the two bit planes of a ternary vector
 static Word encode_values(
         const uint32_t* values, __m512i one_table, __m512i two_table, __m512i index) {
     __m512i x =
@@ -8,6 +9,7 @@ static Word encode_values(
             _mm512_permutexvar_epi64(x, two_table)};
 }
 
+// Count the set bits of each 64-bit lane
 static __m512i population_vector(__m512i a) {
     static const uint8_t bits[16] = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
     __m512i table = _mm512_broadcast_i32x4(_mm_loadu_si128((const void*)bits)),
@@ -18,6 +20,7 @@ static __m512i population_vector(__m512i a) {
     return _mm512_sad_epu8(_mm512_add_epi8(lo, hi), _mm512_setzero_si512());
 }
 
+// Reduce each byte modulo 3 with lookup tables
 static __m512i modulo_three(__m512i a) {
     static const uint8_t values[16] = {0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0};
     __m512i table = _mm512_broadcast_i32x4(_mm_loadu_si128((const void*)values));
@@ -26,6 +29,7 @@ static __m512i modulo_three(__m512i a) {
     return _mm512_shuffle_epi8(table, _mm512_add_epi64(lo, hi));
 }
 
+// Apply the Walsh--Hadamard transform to ternary-packed coefficients in place
 static void sh(Coef* data, size_t n) {
     for (size_t base = 0; base < n; base += 8) {
         Word a = ld(data + base);

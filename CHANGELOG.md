@@ -32,6 +32,9 @@ All notable changes to fastCD are recorded in this file. The project follows
   pairing can round differently from 1.2.0, as can Cariow–Cariowa results at
   dimensions 512 and 1024. Direct and finite-field results, the public API,
   workspace sizes and the published arithmetic counts are unchanged.
+- Over finite fields, AUTO selects direct multiplication up to dimension 4,
+  and direct multiplication uses the packed field arithmetic of the
+  quasilinear kernels from dimension 16 on.
 
 ## [1.2.0] - 2026-11-04
 

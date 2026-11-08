@@ -14,7 +14,7 @@ def generate(lanes, bits, prefix, target, fast=False, values=False, build=True):
     name = f"{'value' if values else 'fast' if fast else 'packed'}{lanes}"
     z = f"{p}_setzero_si{bits}()"
 
-    # Intrinsic names for register-wide bitwise operations follow register bits.
+    # Intrinsic names for register-wide bitwise operations follow the register width
     def And(a, b):
         return f"{p}_and_si{bits}({a},{b})"
 
@@ -96,14 +96,14 @@ void {name}_run(uint32_t* out,uint32_t* x,uint32_t* y,const FastCDPlanFF* p,uint
     }}
 }}
 """
-    # GNU/Clang permit a vector typedef with alignment one, avoiding accidental
-    # aligned load assumptions in the scalar schedule's pointer dereferences.
+    # GCC and Clang allow a vector typedef with alignment one, which avoids
+    # aligned-load assumptions in the scalar schedule's pointer dereferences
     source = source.replace(
         f"typedef {v} Word;", f"typedef {v} Word __attribute__((aligned(1),may_alias));"
     )
     if fast:
-        # A complete bilinear coordinate a*b-c*d can share one reduction.
-        # t=a*b+(p-c)*d < 2*p^2 < 2^63; t+m*p < 2^64 and REDC < 2p.
+        # A complete bilinear coordinate a*b-c*d shares one reduction, since
+        # t = a*b+(p-c)*d < 2*p^2 < 2^63, t+m*p < 2^64 and REDC < 2p
         extra = f"""
 static inline Word difference(Word a,Word b,Word x,Word y,const Context* c) {{
     Word pc={p}_sub_epi32(c->prime,x);
@@ -139,7 +139,8 @@ static inline Word fixed(Word a,Word b,Word quotient,const Context* c) {{
             "static inline __attribute__((always_inline)) void FASTCD_FF_NAME(recover)",
         )
         first = schedule.index("static void FASTCD_FF_NAME(nonrecursive)(")
-        last = schedule.index("\n/*", first)
+        # Replace through the end of the function
+        last = schedule.index("\n}\n", first) + 2
         replacement = """static inline __attribute__((always_inline)) void FASTCD_FF_NAME(nonrecursive)(
     Word* first,Word* scalar,Word* second,const Word* u,const Word* v,
     const Word* s,const Word* t,const Word* gamma,const Word* delta,Word* tmp,

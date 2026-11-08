@@ -166,8 +166,8 @@ class Algebra:
             field = FiniteField(char=p, deg=d)
         elif d not in (1, 2):
             raise ValueError("char=0 supports only deg=1 (R) or deg=2 (C)")
-        # Real parents are cached by dimension alone. Complex and finite-field
-        # keys include the finite presentation, not merely its field order.
+        # Real parents are cached by dimension alone, while complex and
+        # finite-field keys include the presentation, not just the field order
         key = (
             normalized_dimension
             if p == 0 and d == 1
@@ -184,7 +184,7 @@ class Algebra:
         object.__setattr__(self, "_deg", d)
         object.__setattr__(self, "_field", field)
         # Only explicitly selected complex and finite-field parents construct
-        # the separate native context; real parents use the _core module.
+        # the separate native context, and real parents use the _core module
         if p or d != 1:
             from . import _domains_core
 
@@ -213,8 +213,8 @@ class Algebra:
         called again when construction returns a cached Algebra.
         """
 
-        # Validation and initialization are performed in __new__.  The no-op
-        # __init__ is invoked again when a cached parent is returned.
+        # __new__ validates and initializes, and this no-op __init__ runs
+        # again whenever a cached parent is returned
         del dimension, level, char, deg, field
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -301,8 +301,9 @@ class Algebra:
         """str: Algorithm that ``"auto"`` selects for a single product.
 
         One of ``"direct"``, ``"cariow_cariowa"``, or ``"quasilinear"``; the
-        real selection depends only on dimension; complex/finite parents
-        always select quasilinear.  Products of two
+        real selection depends only on dimension. Complex parents select
+        quasilinear; finite-field parents select direct for ``dimension <= 4``
+        and quasilinear otherwise.  Products of two
         :class:`Element` objects, and batches containing exactly one record,
         use this algorithm, so passing the name explicitly to
         :meth:`multiply` reproduces ``x * y`` exactly for elements.  Batches
@@ -310,7 +311,9 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            return "quasilinear"
+            from . import _domains_core
+
+            return _domains_core.default_algorithm(self._ctx)
         return _core._default_algorithm(self.dimension)
 
     @property
@@ -320,13 +323,15 @@ class Algebra:
         One of ``"direct"``, ``"cariow_cariowa"``, or ``"quasilinear"``.
         Real batches can evaluate two products per SIMD instruction, and
         their defaults come from the real benchmark. Complex and finite-field
-        parents select quasilinear for every batch size.
+        parents make the same choice as :attr:`default_algorithm`.
         Passing this name explicitly to :meth:`multiply` reproduces ``X * Y``
         exactly for arrays with at least two records.
         """
 
         if self._ctx is not None:
-            return "quasilinear"
+            from . import _domains_core
+
+            return _domains_core.default_algorithm(self._ctx)
         return _core._default_batch_algorithm(self.dimension)
 
     def __repr__(self) -> str:

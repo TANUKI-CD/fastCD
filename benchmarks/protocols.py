@@ -1,4 +1,4 @@
-"""Select independent benchmark protocols without altering the legacy real run."""
+"""Run the finite-field and FLINT protocols, alone or with the real-coefficient run."""
 
 from __future__ import annotations
 

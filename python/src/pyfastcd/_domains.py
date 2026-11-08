@@ -72,8 +72,8 @@ def is_field(parent: Any) -> bool:
 def algorithm_code(name: Any) -> int:
     """Validate an algorithm name for a complex or finite-field parent."""
 
-    # Reuse the real API's name parsing and unknown-name diagnostics.
-    # Dimension one supports every real algorithm; only CC is field-specific.
+    # Reuse the real API's name parsing at dimension one, where every real
+    # algorithm is valid, so only Cariow--Cariowa needs a field-specific check
     code = _core._algorithm(name, 1)
     if name == "cariow_cariowa":
         raise ValueError("algorithm 'cariow_cariowa' is unavailable for this field")
@@ -187,8 +187,8 @@ def coefficients(
         if a.dtype.kind not in "biuO" and not isinstance(
             values, (np.ndarray, memoryview)
         ):
-            # Mixed large positive and negative Python integers can make
-            # NumPy infer float64. Recover their exact values before reduction.
+            # Mixed large positive and negative Python integers can make NumPy
+            # infer float64, so recover their exact values before reduction
             a = np.asarray(values, dtype=object)
         if a.dtype.kind not in "biuO":
             raise TypeError("finite-field coefficients must be integers")
@@ -496,7 +496,7 @@ def _binary_parent(left: Any, right: Any) -> Any:
     parent = _parent(left) or _parent(right)
     if parent is None:
         return None
-    # A coefficient-field scalar can combine with a containing CD element.
+    # A coefficient-field scalar can combine with a containing CD element
     other_parent = _parent(right)
     if other_parent is not None and other_parent.field is parent:
         parent = other_parent
@@ -562,7 +562,7 @@ def equal(parent: Any, left: Any, right: Any, *, invert: bool = False) -> Any:
             b = other.coefficients
             result = np.all(a == b, axis=tuple(range(-f, 0))) if f else a == b
     elif scalar(other, receiver.algebra):
-        # Comparison is exact and never performs modular scalar coercion.
+        # Comparison is exact and never performs modular scalar coercion
         if receiver.algebra.char:
             try:
                 value = operator.index(other)
@@ -574,9 +574,9 @@ def equal(parent: Any, left: Any, right: Any, *, invert: bool = False) -> Any:
                 np.all(a == coordinate, axis=tuple(range(-f, 0))) if f else a == value
             )
         else:
-            # Python's complex comparison preserves equality/hash semantics
-            # for large integers, Decimal and Fraction. NumPy's numeric
-            # promotion would round these operands before comparison.
+            # Python's complex comparison keeps equality and hash semantics for
+            # large integers, Decimal and Fraction, which NumPy's numeric
+            # promotion would round before comparison
             b = np.zeros(tail, dtype=object)
             b.flat[0] = (
                 other.item() if isinstance(other, (np.ndarray, np.generic)) else other
@@ -668,14 +668,14 @@ def element_dispatch(name: str, value: Any, extra: Any = None) -> Any:
         return bool(np.any(a != 0))
     if name == "hash":
         if not parent.char and bool(np.any(np.isnan(a))):
-            # Fresh NaN scalar objects hash by identity; the value's hash
-            # must remain stable over repeated calls.
+            # Fresh NaN scalar objects hash by identity, but the value's hash
+            # must be stable over repeated calls
             return parent.dimension
         flat = tuple(a.flat)
         if parent.char:
             if not is_field(parent) and bool(np.all(a[1:] == 0)):
                 # A constant CD element compares equal to its matching field
-                # scalar, including non-prime extension coefficients.
+                # scalar, including non-prime extension coefficients
                 flat = tuple(np.asarray(a[0]).flat)
                 parent = parent.field
             pure = all(v == 0 for v in flat[1:])
@@ -800,7 +800,7 @@ def array_dispatch(name: str, value: Any, *args: Any, **kwargs: Any) -> Any:
         return apply(parent, "imag_part", value)
     if name == "__getitem__":
         key = args[0]
-        # A key applies exclusively to batch axes. Coefficients stay complete.
+        # A key applies only to batch axes, so coefficients stay complete
         dummy = np.broadcast_to(np.empty((), dtype=np.uint8), batch)
         selected = dummy[key]
         result = a[_batch_key(key, len(batch), f)]

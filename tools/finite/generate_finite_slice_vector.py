@@ -89,7 +89,7 @@ static void sv4_node4(Coef* restrict r,Coef* restrict im,const Coef* xr,const Co
                 if final
                 else f"ld({arr}+i*{2 * B}+4)"
             )
-            # Generate C division, not Python's //.
+            # Generate C division, not Python's floor division
             lo = lo.replace("//", "/")
             hi = hi.replace("//", "/")
             if B == 2:

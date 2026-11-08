@@ -3,8 +3,8 @@
 
 #include <stddef.h>
 
-/* Two independent products share each SIMD instruction.  Other targets use
- * the same scalar kernels.  No extra alignment is required of caller data. */
+/* Two independent products share each SIMD instruction. Other targets use the
+ * same scalar kernels. Caller data needs no extra alignment. */
 #if !defined(FASTCD_DISABLE_SIMD) && (defined(__GNUC__) || defined(__clang__)) \
         && (defined(__SSE2__) || defined(__aarch64__))
 #define FASTCD_HAVE_PAIR 1
@@ -14,15 +14,15 @@ typedef void (*FastCDPairKernel)(FastCDPair* restrict, const FastCDPair*,
         const FastCDPair*, size_t, FastCDPair* restrict);
 
 /* The packing storage is a fixed array of 5 * FASTCD_PAIR_MAX_DIMENSION pairs
- * (40 KiB), which keeps batches safe on small thread stacks without relying
- * on variable-length arrays; pairing stopped paying off near dimension 1024
- * in measurements anyway.  Above this limit the ordinary recursive kernel
- * uses caller-owned scratch. */
+ * (40 KiB), which keeps batches safe on small thread stacks without
+ * variable-length arrays. Pairing stopped paying off near dimension 1024 in
+ * measurements. Above this limit the recursive kernel uses caller-owned
+ * scratch. */
 #define FASTCD_PAIR_MAX_DIMENSION ((size_t)512)
 
-/* The helper must be inlined into each batch function: with a fixed 40 KiB
- * array the compiler otherwise outlines it and calls the kernel through a
- * generic entry per pair, which measured 30% slower at dimension 16. */
+/* Each batch function must inline this helper. With a fixed 40 KiB array the
+ * compiler otherwise outlines it and calls the kernel through a generic entry
+ * per pair, which measured 30% slower at dimension 16. */
 // Pack and evaluate the even prefix of a validated batch at a bounded dimension
 static inline __attribute__((always_inline)) size_t fastcd_pair_batch(
         double* restrict out, size_t out_stride,
@@ -52,7 +52,8 @@ static inline __attribute__((always_inline)) size_t fastcd_pair_batch(
 }
 #else
 #define FASTCD_HAVE_PAIR 0
-/* No pairing: batches use the scalar kernels and the single-product table. */
+/* Without pairing, batches use the scalar kernels and the single-product
+ * table. */
 #define FASTCD_PAIR_MAX_DIMENSION ((size_t)0)
 #endif
 

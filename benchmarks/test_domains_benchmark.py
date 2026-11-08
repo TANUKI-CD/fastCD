@@ -50,7 +50,8 @@ def test_paired_statistics_keep_modes_and_blocks_separate():
 
 
 @pytest.mark.parametrize("p,d", [(13, 5), (0, 2)])
-def test_native_runner_verifies_and_balances_modes(tmp_path, p, d):
+@pytest.mark.parametrize("n", [2, 4, 8, 32, 256])
+def test_native_runner_verifies_and_balances_modes(tmp_path, p, d, n):
     root = Path(__file__).resolve().parents[1]
     runner = Path(
         os.environ.get(
@@ -63,7 +64,7 @@ def test_native_runner_verifies_and_balances_modes(tmp_path, p, d):
         pytest.skip("native domain runner is not built here")
     runner = runner.resolve()
     path = tmp_path / "pairs.bin"
-    driver.corpus(path, p, d, 8, 5, 17)
+    driver.corpus(path, p, d, n, 5, 17)
     command = [
         str(runner),
         "--corpus",
@@ -73,7 +74,7 @@ def test_native_runner_verifies_and_balances_modes(tmp_path, p, d):
         "--deg",
         str(d),
         "--dimension",
-        "8",
+        str(n),
         "--trials",
         "5",
         "--blocks",
@@ -87,6 +88,8 @@ def test_native_runner_verifies_and_balances_modes(tmp_path, p, d):
     ]
     run = json.loads(subprocess.check_output(command, text=True))
     assert run["verified"] == 5 and len(run["observations"]) == 16
+    assert run["default_algorithm"] == ("direct" if p and n <= 4 else "quasilinear")
+    assert run["backend"] == ("finite_shared_dispatch" if p else "complex_quasilinear")
     for block in range(4):
         current = [o for o in run["observations"] if o["block"] == block]
         assert {(o["algorithm"], o["mode"]) for o in current} == {

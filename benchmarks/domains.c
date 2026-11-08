@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #include "fastcd/complex.h"
 #include "fastcd/finite.h"
+#include "finite_backend.h"
 #include <errno.h>
 #include <float.h>
 #include <inttypes.h>
@@ -16,9 +17,10 @@
 #define FASTCD_BENCHMARK_BUILD_ID "unknown"
 #endif
 
-/* This executable owns all allocation, field setup, corpus I/O and oracle
- * verification outside timing. Each timed observation replays whole passes.
- * Each block rotates all algorithm/mode tasks to balance their positions. */
+/* Complex and finite-field multiplication benchmark runner. Allocation, field
+ * setup, corpus I/O and oracle verification all happen outside timing, and
+ * each timed observation replays whole corpus passes. Each block rotates every
+ * algorithm and mode task to balance their positions. */
 typedef struct {
     uint32_t p, d;
     size_t n, trials, words, bytes, length;
@@ -86,8 +88,8 @@ static int run(Task* t, int alg) {
         return 1;
     }
     if (alg == 2) {
-        /* Three real CD products form an independent complex baseline.
-         * Packing/reconstruction is included; all buffers are preallocated. */
+        // Three real CD products form an independent complex baseline, timed
+        // with packing and reconstruction in preallocated buffers
         double *xr = t->real_storage, *xi = xr + t->n, *yr = xi + t->n, *yi = yr + t->n;
         double *sx = yi + t->n, *sy = sx + t->n, *u = sy + t->n, *v = u + t->n,
                *w = v + t->n;
@@ -128,7 +130,7 @@ static int run(Task* t, int alg) {
     return 1;
 }
 
-// Hash output bytes after timing to retain observable results and provenance
+// Hash output bytes after timing to keep results observable and record provenance
 static uint64_t checksum(const Task* t) {
     const unsigned char* a = t->out;
     uint64_t h = UINT64_C(14695981039346656037);
@@ -336,8 +338,8 @@ int main(int argc, char** argv) {
     size_t item = t.p ? 4 : 8;
     if (t.trials > SIZE_MAX / t.bytes || t.length > SIZE_MAX / item)
         return EXIT_FAILURE;
-    // Corpus I/O and every production scratch allocation precede verification
-    // and timing. No implementation receives an allocation inside its timer.
+    // Corpus I/O and every scratch allocation precede verification and timing,
+    // so no implementation allocates inside its timer
     t.x = malloc(t.trials * t.bytes);
     t.y = malloc(t.trials * t.bytes);
     t.out = malloc(t.trials * t.bytes);
@@ -373,8 +375,8 @@ int main(int argc, char** argv) {
     }
     int tasks = algorithms * (both ? 2 : 1);
     int selected_mode = t.single;
-    // Calibrate whole corpus passes independently for each algorithm/mode;
-    // no prefix sampling changes which pairs contribute to an observation.
+    // Calibrate whole corpus passes independently for each algorithm and mode,
+    // so every observation covers the same pairs
     size_t passes[6] = {1, 1, 1, 1, 1, 1};
     for (int task = 0; task < tasks; task++) {
         int a = both ? task / 2 : task;
@@ -401,13 +403,15 @@ int main(int argc, char** argv) {
     if (t.p)
         for (size_t j = 0; j <= t.d; j++)
             printf("%s%" PRIu32, j ? "," : "", t.plan.field.modulus[j]);
-    printf("],\"backend\":\"%s\",\"warmup\":%zu,\"min_time_ns\":%" PRIu64
-           ",\"observations\":[",
-            t.p ? "finite_quasilinear_dispatch" : "complex_quasilinear", warmup,
-            minimum);
+    printf("],\"backend\":\"%s\",\"default_algorithm\":\"%s\","
+           "\"warmup\":%zu,\"min_time_ns\":%" PRIu64 ",\"observations\":[",
+            t.p ? "finite_shared_dispatch" : "complex_quasilinear",
+            fastcd_algorithm_string(
+                    t.p ? fastcd_ff_auto_algorithm(t.n) : FASTCD_ALGORITHM_QUASILINEAR),
+            warmup, minimum);
     const char* names[3] = {"direct", "quasilinear", "three_real"};
-    // Rotate task positions between blocks. Serialization, checksums and
-    // flushing occur after each timer, never inside measured product passes.
+    // Rotate task positions between blocks, with serialization, checksums and
+    // flushing after each timer and never inside measured product passes
     for (size_t block = 0; block < blocks; block++)
         for (int k = 0; k < tasks; k++) {
             int task = (int)((block + (size_t)k) % (size_t)tasks);
