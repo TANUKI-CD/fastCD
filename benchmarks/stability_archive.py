@@ -344,7 +344,7 @@ def readme(directory: Path) -> str:
               "These files are part of the repository and the source distributions.", "",
               "| File | Contents |", "|:---|:---|"]
     for name, description in PUBLISHED.items():
-        # README.md and SHA256SUMS are written after this text is generated.
+        # README.md and SHA256SUMS are written after this text is generated
         if name in ("README.md", "SHA256SUMS") or (directory / name).exists():
             lines.append(f"| `{name}` | {description} |")
     if all((directory / f"{name}.{extension}").exists() for name in FIGURES for extension in FIGURE_FORMATS):

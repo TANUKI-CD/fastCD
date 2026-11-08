@@ -520,8 +520,9 @@ A canonical residue is an integer in `0, ..., p - 1`.
 **Algorithms**
 
 The functions accept `FASTCD_ALGORITHM_AUTO`, `FASTCD_ALGORITHM_DIRECT` and
-`FASTCD_ALGORITHM_QUASILINEAR`. Over both fields `AUTO` selects quasilinear
-at every dimension; it does not use the real tables. Cariow–Cariowa returns
+`FASTCD_ALGORITHM_QUASILINEAR`. `AUTO` does not use the real tables: over C
+it selects quasilinear at every dimension, and over finite fields it selects
+direct for `N <= 4` and quasilinear otherwise. Cariow–Cariowa returns
 `FASTCD_UNSUPPORTED_ALGORITHM` (complex) or
 `FASTCD_FF_UNSUPPORTED_ALGORITHM` (finite).
 

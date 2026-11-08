@@ -1,6 +1,6 @@
-/* Independent coefficient/basis oracle and exact-workspace boundary tests.
- * The oracle uses schoolbook polynomial arithmetic and the defining CD sign
- * recursion, independently of both production multiplication algorithms. */
+/* Independent coefficient and basis oracle, and exact-workspace boundary
+ * tests. The oracle uses schoolbook polynomial arithmetic and the defining CD
+ * sign recursion, independent of both production multiplication algorithms. */
 #include "fastcd/complex.h"
 #include "fastcd/finite.h"
 #include <math.h>
@@ -90,9 +90,11 @@ static int finite_case(uint32_t prime, uint32_t degree, size_t level) {
         third[i] = next_word(&state, prime);
     }
     finite_reference(expected, x, y, &p);
-    for (int k = 0; k < 2; k++) {
-        FastCDAlgorithm alg =
-                k ? FASTCD_ALGORITHM_QUASILINEAR : FASTCD_ALGORITHM_DIRECT;
+    // Check every finite-field algorithm, including the AUTO choice
+    static const FastCDAlgorithm algorithms[] = {FASTCD_ALGORITHM_DIRECT,
+            FASTCD_ALGORITHM_QUASILINEAR, FASTCD_ALGORITHM_AUTO};
+    for (size_t k = 0; k < sizeof algorithms / sizeof *algorithms; k++) {
+        FastCDAlgorithm alg = algorithms[k];
         work[-1] = UINT32_C(0xdeadbeef);
         work[p.workspace_words] = UINT32_C(0xbaadf00d);
         CHECK(fastcd_mul_with_algorithm_ff(out, x, y, &p, alg, work,
@@ -110,10 +112,18 @@ static int finite_case(uint32_t prime, uint32_t degree, size_t level) {
                 FASTCD_FF_SUCCESS);
     }
     finite_reference(temp, y, y, &p);
-    CHECK(fastcd_mul_batch_ff(out, w, x, w, y, 0, 2, &p, FASTCD_ALGORITHM_QUASILINEAR,
-                  work, len) == FASTCD_FF_SUCCESS);
-    CHECK(memcmp(out, expected, w * sizeof(*out)) == 0);
-    CHECK(memcmp(other, temp, w * sizeof(*out)) == 0);
+    // Repeat the algorithms on a two-record batch with a broadcast operand
+    for (size_t k = 0; k < sizeof algorithms / sizeof *algorithms; k++) {
+        FastCDAlgorithm alg = algorithms[k];
+        work[-1] = UINT32_C(0xdeadbeef);
+        work[p.workspace_words] = UINT32_C(0xbaadf00d);
+        CHECK(fastcd_mul_batch_ff(out, w, x, w, y, 0, 2, &p, alg, work,
+                      p.workspace_words) == FASTCD_FF_SUCCESS);
+        CHECK(memcmp(out, expected, w * sizeof(*out)) == 0);
+        CHECK(memcmp(other, temp, w * sizeof(*out)) == 0);
+        CHECK(work[-1] == UINT32_C(0xdeadbeef));
+        CHECK(work[p.workspace_words] == UINT32_C(0xbaadf00d));
+    }
     CHECK(fastcd_mul_batch_ff(out, w - 1, x, w, y, 0, 2, &p,
                   FASTCD_ALGORITHM_QUASILINEAR, work, len) == FASTCD_FF_INVALID_STRIDE);
     CHECK(fastcd_mul_batch_ff(out, w, x, w, y, 0, SIZE_MAX, &p,
@@ -242,16 +252,17 @@ static int complex_cross_algorithm(void) {
             }
         }
     }
-    // Non-dyadic inputs distinguish the schedules by rounding. This prevents
-    // the test from passing when the DIRECT argument is silently ignored.
+    // Non-dyadic inputs make the schedules round differently, so the test
+    // fails if the DIRECT argument is silently ignored
     CHECK(memcmp(products[0] + 1, products[1] + 1, (n - 1) * sizeof(out[0])) != 0);
     free(scratch);
     return 1;
 }
 
-/* Canonical residues remain a public precondition. This deliberately violates
- * only that precondition to verify bounded table addresses under sanitizers,
- * without a nondeterministic writer race or a promise about invalid results. */
+/* Canonical residues are a precondition the library does not check. This
+ * test violates only that precondition, so sanitizers can confirm that table
+ * addresses stay in bounds, without a nondeterministic writer race or a
+ * promise about the results. */
 // Exercise the scalar table lookups used by eligible 8/16/32-lane backends
 static int lookup_bounds(void) {
 #if defined(FASTCD_TEST_FINITE_SIMD)
@@ -340,6 +351,11 @@ int main(void) {
     }
     if (!finite_case(3, 2, 8) || !finite_case(193, 1, 7) || !finite_case(257, 1, 7))
         return EXIT_FAILURE;
+    // Cover the dimensions where the packed backends of these fields begin
+    for (size_t level = 4; level <= 8; level++)
+        if (!finite_case(3, 5, level) || !finite_case(5, 1, level) ||
+                !finite_case(13, 1, level))
+            return EXIT_FAILURE;
     if (!validation() || !complex_cross_algorithm() || !lookup_bounds())
         return EXIT_FAILURE;
     puts("Complex and finite-field domain checks passed");

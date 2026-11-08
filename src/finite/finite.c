@@ -3,9 +3,9 @@
 #include "field_internal.h"
 #include "finite_backend.h"
 
-/* Instantiate the same buffer-based schedule at every supported polynomial
- * degree. A product chooses its degree once, outside the recursive loops;
- * the compiler then sees constant coefficient sizes and field operations. */
+/* Instantiate the buffer schedule once per supported polynomial degree. A
+ * product selects its degree outside the recursion, so the compiler sees
+ * constant coefficient sizes and field operations. */
 #define FASTCD_FF_STATS_DECL
 #define FASTCD_FF_STATS_ARG
 #define FASTCD_FF_RECORD_NODE(n) ((void)0)
@@ -46,11 +46,10 @@
 #include "finite_instance.h"
 #undef FASTCD_FF_DEGREE
 
-// Dispatch once per complete product, leaving the recursive loops specialized.
-// The private template also defines a loop component; every public CD call
-// below passes loop=0 and never enters that companion arithmetic path.
+// Run the buffer schedule specialized for the plan's degree
 static void dispatch(uint32_t* out, const uint32_t* x, const uint32_t* y,
         const FastCDPlanFF* plan, uint32_t* workspace, int loop) {
+    // Public CD calls pass loop = 0; the loop component serves the private template
     switch (plan->field.degree) {
 #define FASTCD_FF_CASE(d)                                                              \
     case d: {                                                                          \
@@ -91,29 +90,35 @@ FastCDFFStatus fastcd_ff_cd_mul(uint32_t* out, const uint32_t* x, const uint32_t
     return FASTCD_FF_SUCCESS;
 }
 
-/* Called after a single-product or complete-batch validation. ISA backends
- * convert canonical coefficients only inside this call; the degree-specific
- * buffer schedule remains the portable fallback when no backend applies. */
-// Evaluate one product without repeating public buffer validation
+// Evaluate one product after single-product or batch validation
 void fastcd_ff_mul_unchecked(uint32_t* out, const uint32_t* x, const uint32_t* y,
         const FastCDPlanFF* plan, FastCDAlgorithm algorithm, uint32_t* workspace) {
-    if (algorithm == FASTCD_ALGORITHM_DIRECT)
-        fastcd_ff_direct(out, x, y, plan, workspace);
-    else if (!fastcd_ff_finite_execute(out, x, y, plan, workspace, 0))
-        // Packed backends and the prime value schedule return one when they
-        // handled the product. Only extension fallback reaches this dispatch.
+    // Resolve AUTO from the dimension
+    if (algorithm == FASTCD_ALGORITHM_AUTO)
+        algorithm = fastcd_ff_auto_algorithm(plan->dimension);
+    if (algorithm == FASTCD_ALGORITHM_DIRECT) {
+        /* Packed backends run the defining recursion on their own coefficient
+         * encodings. The scalar recursion covers every other case. */
+        if (plan->dimension < FASTCD_FF_PACKED_MIN_DIMENSION ||
+                !fastcd_ff_finite_execute(
+                        out, x, y, plan, workspace, FASTCD_FF_SCHEDULE_DIRECT))
+            fastcd_ff_direct(out, x, y, plan, workspace);
+    } else if (!fastcd_ff_finite_execute(
+                       out, x, y, plan, workspace, FASTCD_FF_SCHEDULE_CD))
+        /* Backends convert canonical coefficients inside the call and return
+         * one when they handled the product. The prime value schedule always
+         * does, so only extension fields without a backend reach the portable
+         * buffer schedule. */
         dispatch(out, x, y, plan, workspace, 0);
 }
 
-/* Direct multiplication shares only the fixed-degree scalar primitives.
- * Its independent four-product CD recursion uses no tensor evaluation maps,
- * making its arithmetic schedule a separate reference for quasilinear. */
-// Dispatch the defining recursion once per complete product
+// Run the scalar direct recursion specialized for the plan's degree
 void fastcd_ff_direct(uint32_t* out, const uint32_t* x, const uint32_t* y,
         const FastCDPlanFF* p, uint32_t* work) {
+    /* Direct products use this recursion below FASTCD_FF_PACKED_MIN_DIMENSION
+     * and when no packed backend serves the field. It shares only the
+     * fixed-degree field primitives with quasilinear multiplication. */
     switch (p->field.degree) {
-        // This switch selects a constant-degree function, not an operation
-        // table inside the defining recursion or its polynomial products.
 #define DIRECT_CASE(d)                                                                 \
     case d:                                                                            \
         fastcd_ff_d##d##_direct(out, x, y, p->dimension, &p->field, work);             \

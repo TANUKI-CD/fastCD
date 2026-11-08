@@ -129,13 +129,14 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   operands, or a batch of one record. For real coefficients this is the
   choice of the C library's `fastcd_default_algorithm` (see
   [Automatic algorithm selection](mathematics.md#automatic-algorithm-selection)).
-  Over C and finite fields it is always `"quasilinear"`.
+  Over C it is `"quasilinear"`; over finite fields it is `"direct"` for
+  `N <= 4` and `"quasilinear"` otherwise.
 
 - `default_batch_algorithm: str`
 
   The algorithm that `"auto"` uses for batches of two or more records: the
   C library's `fastcd_default_batch_algorithm` for real coefficients, and
-  always `"quasilinear"` over C and finite fields.
+  the same choice as `default_algorithm` over C and finite fields.
 
 ### Methods
 

@@ -25,13 +25,14 @@
 #endif
 
 /*
- * fastCD multiplication benchmark runner.  Each invocation times one
- * algorithm at one dimension over one corpus and prints a single JSON
- * document.  Corpus I/O, allocation, warmup, calibration, and verification
- * are outside the recorded timing; each observation times whole passes over
- * the corpus, either as one validated batch call (mode batch) or as one
- * validated single-product call per pair (mode single).
- * benchmarks/benchmark.py drives this program and aggregates its output.
+ * fastCD multiplication benchmark runner. Each invocation times one algorithm
+ * at one dimension over one corpus and prints a single JSON document.
+ *
+ * Corpus I/O, allocation, warmup, calibration and verification are outside
+ * the recorded timing. Each observation times whole passes over the corpus,
+ * either as one validated batch call (mode batch) or as one validated
+ * single-product call per pair (mode single). benchmarks/benchmark.py drives
+ * this program and aggregates its output.
  */
 
 typedef struct BenchmarkConfig {
@@ -45,7 +46,7 @@ typedef struct BenchmarkConfig {
     double min_time_ms;
     size_t verify_trials;
     bool verify_explicit;
-    bool single;              /* time one validated call per product */
+    bool single;              /* Time one validated call per product. */
 } BenchmarkConfig;
 
 typedef struct Observation {
@@ -410,6 +411,7 @@ static void print_config(const BenchmarkConfig* config,
 
 /* ---------- Main ---------- */
 
+// Parse the options, time the requested algorithm and print the JSON report
 int main(int argc, char** argv) {
     BenchmarkConfig config = {NULL, 0, 0, FASTCD_ALGORITHM_AUTO, "auto",
         5, 1, 20.0, 0, false, false};
@@ -544,7 +546,7 @@ int main(int argc, char** argv) {
     task.workspace.length = workspace_length;
     task.workspace_pointer = workspace_length == 0 ? NULL : &task.workspace;
 
-    /* Warmup, then calibrate the pass count to the minimum observation time. */
+    // Warm up, then calibrate the pass count to the minimum observation time
     for (size_t pass = 0; pass < config.warmup; pass++) {
         if (run_pass(&task) != FASTCD_SUCCESS) {
             fprintf(stderr, "warmup multiplication failed\n");

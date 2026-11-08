@@ -153,7 +153,7 @@ static void sv8_node{B}(Coef* restrict real,Coef* restrict imag,const Coef* xr,c
         + """
  (void)rank;(void)input;(void)output;
  Coef a[12][3]={{{0,0}}},w[12]={{0,0}};size_t d=p->field.degree,n=p->dimension;
- const CdlSmallMap* maps=&fastcd_ff_small_maps[0][d-1];uint32_t reduced[25][12];
+ const FastCDFFSmallMap* maps=&fastcd_ff_small_maps[0][d-1];uint32_t reduced[25][12];
  fastcd_ff_small_remainders(reduced,&p->field,maps->total,3);
  Coef basis[25][3]={{{0,0}}};
  for(size_t k=0;k<maps->total;k++){__m512i v=_mm512_loadu_si512((const void*)maps->output[k]);

@@ -1,17 +1,17 @@
 /*
- * Shared exact schedule; included with coefficient operations supplied by the
- * owning translation unit, once per fixed polynomial degree. As in the
- * original real quasilinear_impl.h, one maintained recursion is instantiated
- * by macros; no run-time scalar function tags occur inside its arithmetic.
+ * Shared exact quasilinear schedule, included once per fixed polynomial degree
+ * with coefficient operations supplied by the including unit. Macros
+ * instantiate one recursion, as in src/quasilinear_impl.h, with no run-time
+ * function tables inside its arithmetic.
  *
- * FASTCD_FF_WORD is the storage word and FASTCD_FF_STEP the words per coefficient.
- * The supplied operations permit exact aliases and never retain operands.
- * All temporaries are complete field coefficients. The caller has validated
- * records and workspace; the recurrence itself performs no public checks.
- * This header intentionally has no include guard.
+ * FASTCD_FF_WORD is the storage word and FASTCD_FF_STEP the number of words per
+ * coefficient. The supplied operations allow exact aliases and keep no
+ * operands. Every temporary is a complete field coefficient, and the caller has
+ * validated records and workspace, so the recursion performs no public checks.
+ * The header has no include guard.
  */
 
-// Recover a pair coefficient (p-q, w-p-q) using the three-product identity.
+// Recover a pair coefficient (p-q, w-p-q) by the three-product identity
 static void FASTCD_FF_NAME(recover)(FASTCD_FF_WORD* real, FASTCD_FF_WORD* imag,
         const FASTCD_FF_WORD* p, const FASTCD_FF_WORD* q, const FASTCD_FF_WORD* w,
         FASTCD_FF_CONTEXT* ctx) {
@@ -20,7 +20,7 @@ static void FASTCD_FF_NAME(recover)(FASTCD_FF_WORD* real, FASTCD_FF_WORD* imag,
     FASTCD_FF_SUB(imag, imag, q, ctx);
 }
 
-// Evaluate one coordinate of the nonrecursive bilinear map B, including its pairing.
+// Evaluate one coordinate of the nonrecursive bilinear map B and its pairing term
 static void FASTCD_FF_NAME(nonrecursive)(FASTCD_FF_WORD* first, FASTCD_FF_WORD* scalar,
         FASTCD_FF_WORD* second, const FASTCD_FF_WORD* u, const FASTCD_FF_WORD* v,
         const FASTCD_FF_WORD* s, const FASTCD_FF_WORD* t, const FASTCD_FF_WORD* gamma,
@@ -36,20 +36,18 @@ static void FASTCD_FF_NAME(nonrecursive)(FASTCD_FF_WORD* first, FASTCD_FF_WORD* 
     FASTCD_FF_SUB(second, second, tmp, ctx);
 }
 
-/*
- * Two sequential children, over K[iota]/(iota^2+1), not a field extension.
- * Planes store real and iota coefficients; CD conjugation fixes iota.
- * Index zero is ignored on input and returned as zero on both output planes.
- * The pair algebra is an auxiliary arithmetic device even if iota^2+1
- * splits over the field. Odd characteristic supplies the modular halvings;
- * no square root of -1 or additional defining polynomial is selected here.
- * n=4 uses the explicit six-product nonrecursive map. At larger nodes the children
- * occupy the output halves and share transformed operands and child scratch.
- */
+// Evaluate the alternating product over K[iota]/(iota^2+1) with two sequential children
 static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         FASTCD_FF_WORD* out_imag, const FASTCD_FF_WORD* xr, const FASTCD_FF_WORD* xi,
         const FASTCD_FF_WORD* yr, const FASTCD_FF_WORD* yi, size_t n,
         FASTCD_FF_WORD* workspace, FASTCD_FF_CONTEXT* ctx FASTCD_FF_STATS_DECL) {
+    /*
+     * Planes hold the real and iota coefficients, and CD conjugation fixes
+     * iota. Index zero is ignored on input and returned as zero on both output
+     * planes. The pair algebra is an arithmetic device even when iota^2+1
+     * splits over the field, and odd characteristic supplies the halvings, so no
+     * square root of -1 or extra defining polynomial is needed.
+     */
     FASTCD_FF_RECORD_NODE(n);
     const size_t h = n / 2, step = FASTCD_FF_STEP;
     if (n <= 2) {
@@ -60,9 +58,11 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         return;
     }
     FASTCD_FF_WORD* nonrecursive = workspace;
+    // Above n = 4 the children fill the output halves and share the transformed
+    // operands and child scratch, while n = 4 uses the nonrecursive map alone
     if (n > 4) {
         // Leave 32 coefficients for nonrecursive maps, then four transformed
-        // half-size planes and one child scratch region shared sequentially.
+        // half-size planes and one child scratch region used in sequence
         FASTCD_FF_WORD* axr = workspace + 32 * step;
         FASTCD_FF_WORD* axi = axr + h * step;
         FASTCD_FF_WORD* byr = axi + h * step;
@@ -72,8 +72,8 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         FASTCD_FF_ZERO(axi, ctx);
         FASTCD_FF_ZERO(byr, ctx);
         FASTCD_FF_ZERO(byi, ctx);
-        // Form u + iota*s and v + iota*t. Scalar input coordinates stay zero
-        // so both children remain in their imaginary CD subspaces.
+        // Form u + iota*s and v + iota*t, keeping the scalar input coordinates zero
+        // so both children stay in their imaginary CD subspaces
         for (size_t i = 1; i < h; i++) {
             size_t k = i * step, l = (h + i) * step;
             FASTCD_FF_SUB(axr + k, xr + k, xi + l, ctx);
@@ -81,10 +81,10 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
             FASTCD_FF_SUB(byr + k, yr + k, yi + l, ctx);
             FASTCD_FF_ADD(byi + k, yi + k, yr + l, ctx);
         }
-        // Z_plus occupies the lower halves; inputs are reusable after the call.
+        // Z_plus fills the lower halves, after which the input planes are free
         FASTCD_FF_NAME(pair_cross)
         (out_real, out_imag, axr, axi, byr, byi, h, child, ctx FASTCD_FF_STATS_ARG);
-        // Reuse those planes for u - iota*s and v - iota*t.
+        // Reuse those planes for u - iota*s and v - iota*t
         for (size_t i = 1; i < h; i++) {
             size_t k = i * step, l = (h + i) * step;
             FASTCD_FF_ADD(axr + k, xr + k, xi + l, ctx);
@@ -92,7 +92,7 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
             FASTCD_FF_ADD(byr + k, yr + k, yi + l, ctx);
             FASTCD_FF_SUB(byi + k, yi + k, yr + l, ctx);
         }
-        // Z_minus occupies the upper halves, with the same child scratch.
+        // Z_minus fills the upper halves, with the same child scratch
         FASTCD_FF_NAME(pair_cross)
         (out_real + h * step, out_imag + h * step, axr, axi, byr, byi, h, child,
                 ctx FASTCD_FF_STATS_ARG);
@@ -103,11 +103,13 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         }
     }
 #define T(j) (nonrecursive + (j) * step)
-    // Nonrecursive slots 0..2 accumulate scalar pairings; 3..4 hold gamma/delta
-    // sums. Slots 5..18 hold the p,q,w maps and their shared input sums;
-    // 19..26 hold recovered map coordinates and child recombinations.
-    // Slots below 32 are separate from every live transformed input plane.
-    // p,q,w nonrecursive maps share their three scalar pairing accumulators.
+    /*
+     * Nonrecursive slots 0..2 accumulate the scalar pairings, 3..4 hold the
+     * gamma and delta sums, 5..18 hold the p, q, w maps and their shared input
+     * sums, and 19..26 hold the recovered map coordinates and the recombined
+     * recursive outputs. Slots below 32 never overlap a live transformed input
+     * plane, and the p, q, w maps share their three scalar pairing accumulators.
+     */
     FASTCD_FF_ZERO(T(0), ctx);
     FASTCD_FF_ZERO(T(1), ctx);
     FASTCD_FF_ZERO(T(2), ctx);
@@ -115,8 +117,8 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
     FASTCD_FF_ADD(T(4), yr + h * step, yi + h * step, ctx);
     for (size_t i = 1; i < h; i++) {
         size_t k = i * step, l = (h + i) * step;
-        // Three real-coefficient B evaluations recover its auxiliary pair
-        // value, including the scalar pairing, without creating a field iota.
+        // Three real-coefficient evaluations of B recover the pair value, including
+        // the scalar pairing, without forming iota in the field
         FASTCD_FF_NAME(nonrecursive)
         (T(5), T(6), T(7), xr + k, yr + k, xr + l, yr + l, xr + h * step, yr + h * step,
                 T(8), ctx);
@@ -134,7 +136,7 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         FASTCD_FF_ADD(T(2), T(2), T(17), ctx);
         FASTCD_FF_NAME(recover)(T(19), T(20), T(5), T(9), T(16), ctx);
         FASTCD_FF_NAME(recover)(T(21), T(22), T(7), T(11), T(18), ctx);
-        // First half gets (Z+ + Z-)/2; second gets iota*(Z+ - Z-)/2.
+        // The first half gets (Z+ + Z-)/2 and the second iota*(Z+ - Z-)/2
         FASTCD_FF_ADD(T(23), out_real + k, out_real + l, ctx);
         FASTCD_FF_ADD(T(24), out_imag + k, out_imag + l, ctx);
         FASTCD_FF_SUB(T(25), out_real + k, out_real + l, ctx);
@@ -148,7 +150,7 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
         FASTCD_FF_ADD(out_real + l, T(21), T(26), ctx);
         FASTCD_FF_ADD(out_imag + l, T(22), T(25), ctx);
     }
-    // Restore the zero scalar coordinates and the central lambda coordinate.
+    // Restore the zero scalar coordinates and the central lambda coordinate
     FASTCD_FF_ZERO(out_real, ctx);
     FASTCD_FF_ZERO(out_imag, ctx);
     FASTCD_FF_NAME(recover)
@@ -156,15 +158,14 @@ static void FASTCD_FF_NAME(pair_cross)(FASTCD_FF_WORD* out_real,
 #undef T
 }
 
-// One-call K root, followed by scalar--imaginary reconstruction.
+// Multiply records: one-call root over K, then scalar--imaginary reconstruction
 static void FASTCD_FF_NAME(cd)(FASTCD_FF_WORD* out, const FASTCD_FF_WORD* x,
         const FASTCD_FF_WORD* y, size_t n, FASTCD_FF_WORD* workspace,
         FASTCD_FF_CONTEXT* ctx FASTCD_FF_STATS_DECL) {
     size_t h = n / 2, step = FASTCD_FF_STEP;
     FASTCD_FF_WORD* tmp = workspace;
     if (n >= 8) {
-        // At the coefficient-field root, one auxiliary pair child supplies
-        // the two halves, exactly as the original real-root construction.
+        // At the coefficient-field root one pair child supplies both halves
         FASTCD_FF_NAME(pair_cross)
         (out, out + h * step, x, x + h * step, y, y + h * step, h, workspace,
                 ctx FASTCD_FF_STATS_ARG);
@@ -172,7 +173,7 @@ static void FASTCD_FF_NAME(cd)(FASTCD_FF_WORD* out, const FASTCD_FF_WORD* x,
         for (size_t i = 0; i < n; i++) FASTCD_FF_ZERO(out + i * step, ctx);
     }
     if (n >= 4) {
-        // Add the root nonrecursive map; its second half reverses the child's sign.
+        // Add the root nonrecursive map, whose second half reverses the child's sign
         FASTCD_FF_ZERO(tmp, ctx);
         for (size_t i = 1; i < h; i++) {
             size_t k = i * step, l = (h + i) * step;
@@ -185,8 +186,8 @@ static void FASTCD_FF_NAME(cd)(FASTCD_FF_WORD* out, const FASTCD_FF_WORD* x,
         }
         FASTCD_FF_COPY(out + h * step, tmp, ctx);
     }
-    // Reconstruct xy from X cross Y, alpha*Y+beta*X, and
-    // alpha*beta-<X,Y>, keeping all field coordinates canonical.
+    // Reconstruct xy from X cross Y, alpha*Y+beta*X and alpha*beta-<X,Y>,
+    // keeping every field coordinate canonical
     FASTCD_FF_MUL(tmp, x, y, ctx);
     for (size_t i = 1; i < n; i++) {
         size_t k = i * step;
@@ -200,7 +201,7 @@ static void FASTCD_FF_NAME(cd)(FASTCD_FF_WORD* out, const FASTCD_FF_WORD* x,
     FASTCD_FF_COPY(out, tmp, ctx);
 }
 
-// In-place unnormalized Walsh--Hadamard transform; canonical butterflies.
+// Apply an unnormalized Walsh--Hadamard transform in place with canonical butterflies
 static void FASTCD_FF_NAME(hadamard)(
         FASTCD_FF_WORD* a, size_t n, FASTCD_FF_WORD* tmp, FASTCD_FF_CONTEXT* ctx) {
     size_t step = FASTCD_FF_STEP;
@@ -217,13 +218,14 @@ static void FASTCD_FF_NAME(hadamard)(
     }
 }
 
-/* Private shared-template loop component, not exposed or called by fastCD's
- * CD API. Retained with its companion Hadamard map so template instances
- * continue to share one arithmetic definition. */
-// Complete the loop component using one sequential CD scratch region
+// Evaluate the loop component of the private template with one CD scratch region
 static void FASTCD_FF_NAME(loop)(FASTCD_FF_WORD* out, const FASTCD_FF_WORD* x,
         const FASTCD_FF_WORD* y, size_t n, FASTCD_FF_WORD* workspace,
         FASTCD_FF_CONTEXT* ctx FASTCD_FF_STATS_DECL) {
+    /*
+     * The public CD API never calls this loop. It stays beside its Hadamard map
+     * so the template instances share one arithmetic definition.
+     */
     size_t step = FASTCD_FF_STEP, size = n * step;
     FASTCD_FF_WORD* c = workspace;
     FASTCD_FF_WORD* u = c + size;

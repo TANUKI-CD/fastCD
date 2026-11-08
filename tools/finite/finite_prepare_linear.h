@@ -1,7 +1,9 @@
-/* Lagrange numerators are universal integers. Only their reduction, factorial
- * inverses and the caller's monic polynomial enter this complete product. */
+/* Lagrange reconstruction for linear evaluation points. The numerators are
+ * universal integers, and only their reduction, the factorial inverses and the
+ * field's monic polynomial depend on the call. */
 #include "finite_maps.h"
 
+// Invert a nonzero prime-field residue by Fermat's little theorem
 static uint32_t map_inverse(uint32_t a, const FastCDField* f) {
     uint32_t result = 1, e = f->prime - 2;
     while (e) {
@@ -12,6 +14,7 @@ static uint32_t map_inverse(uint32_t a, const FastCDField* f) {
     return result;
 }
 
+// Build the Lagrange reconstruction weights reduced into the field basis
 void fastcd_ff_prepare_linear(uint32_t output[48][12], const FastCDField* f) {
     size_t d = f->degree, rank = 2 * d - 1, groups = (rank + 15) / 16,
            offset = fastcd_ff_linear_offset[d - 1];

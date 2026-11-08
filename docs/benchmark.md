@@ -234,9 +234,9 @@ be a multiple of the number of algorithm/mode tasks, four by default and
 two with one mode. Native calls are timed, and Python object construction
 is excluded.
 
-The direct algorithm and the independent verification both perform O(N^2)
-coefficient products per pair, and over an extension field each
-coefficient product costs about `deg`^2 residue products, so the largest
+Direct multiplication and the independent verification both perform O(N^2)
+coefficient products per pair, and the verification computes each
+extension-field product with about `deg`^2 residue products, so the largest
 cells dominate the run time. With the default 10,000 pairs the campaign
 takes more than a day; the archived run used `--trials 1000`. Each cell
 runs in its own subprocess with a one-hour limit by default, which a
@@ -258,9 +258,10 @@ schoolbook polynomial arithmetic with signed CD basis accumulation, complex
 products against long-double accumulation with a norm-scaled tolerance.
 Raw timings, exact moduli, corpus hashes, build/source hashes, verification
 counts and paired direct/quasilinear ratios are retained; a ratio above 1
-favors quasilinear. The quasilinear timing includes its degree
-specialization, its packed SIMD arithmetic, and the field-specific maps
-that each call builds to split extension-field products into prime-field
+favors quasilinear. The quasilinear timings, and the direct timings from
+dimension 16 on where a packed kernel serves the field, include the degree
+specialization, the packed SIMD arithmetic and the field-specific maps that
+each call builds to split extension-field products into prime-field
 products, so the results measure the shipped implementations rather than
 coefficient operation counts alone.
 

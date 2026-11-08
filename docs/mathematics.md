@@ -598,10 +598,13 @@ features, characteristic, degree and dimension; a portable kernel covers
 other targets. The C library allocates no heap memory and keeps no global
 state.
 
-Direct multiplication evaluates the doubling formula down to quaternion-sized
-leaves, specialized by degree. Quasilinear multiplication uses `O(N log N)`
-operations in F and `O(N)` caller workspace; direct uses `O(N^2)`
-operations. The real-coefficient counts on this page are not instruction
+Direct multiplication evaluates the doubling formula recursively. Below
+dimension 16, and wherever no packed kernel serves the CPU and field, it uses
+scalar field arithmetic with quaternion-sized leaves, specialized by degree.
+From dimension 16 on it uses the packed field arithmetic of the quasilinear
+kernels, with leaves of eight coordinates. Quasilinear multiplication uses
+`O(N log N)` operations in F and `O(N)` caller workspace; direct uses
+`O(N^2)` operations. The real-coefficient counts on this page are not instruction
 counts for these kernels: polynomial multiplication, reduction and
 representation conversions add costs that depend on the characteristic and
 degree, so the speedup over direct varies between fields.

@@ -1,16 +1,16 @@
 /*
  * Coefficient evaluation and reconstruction around the CD schedule.
  *
- * As in the original real quasilinear kernel, preprocessing and recursive
- * arithmetic are separate stages. Here a polynomial CRT tensor expresses
- * each extension-field product as independent prime-field products; packed
- * backends run the same bilinear CD schedule on those product channels.
- * Linear, quadratic and, when needed, cubic factors cover the convolution.
+ * Preprocessing and recursive arithmetic are separate stages, as in the real
+ * quasilinear kernel: a polynomial CRT tensor turns each extension-field
+ * product into independent prime-field products, and the packed backends run
+ * the same bilinear CD schedule on those product channels. Linear, quadratic
+ * and, when needed, cubic factors cover the convolution.
  *
- * The maps depend on the actual monic defining polynomial. They are built
- * within each complete call, never cached globally or specialized to an
- * operand. Public inputs and outputs remain canonical uint32 coefficients;
- * Montgomery, byte, short and shuffled encodings exist only in scratch.
+ * The maps depend on the monic defining polynomial and are built inside each
+ * complete call, never cached globally or specialized to an operand. Public
+ * inputs and outputs stay canonical uint32 coefficients; Montgomery, byte,
+ * short and shuffled encodings exist only in scratch.
  */
 #include <string.h>
 #include "finite_backend.h"
@@ -22,8 +22,8 @@
 
 typedef struct {
     size_t rank;
-    // Each row evaluates one product channel; its matching output row
-    // projects that channel's result back to d polynomial coordinates.
+    // Each input row evaluates one product channel, and the matching output row
+    // projects that channel's result back to d polynomial coordinates
     uint32_t input[RANK_LIMIT][12];
     uint32_t output[RANK_LIMIT][12];
 } Tensor;
@@ -39,7 +39,7 @@ static uint32_t powmod(uint32_t a, uint32_t e, const FastCDField* f) {
     return r;
 }
 
-/* In-place division by a monic polynomial, returning its remainder. */
+// Divide in place by a monic polynomial, leaving the remainder
 static void poly_remainder(uint32_t* a, size_t length, const uint32_t* g, size_t degree,
         const FastCDField* f) {
     for (size_t k = length; k-- > degree;) {
@@ -51,7 +51,7 @@ static void poly_remainder(uint32_t* a, size_t length, const uint32_t* g, size_t
     }
 }
 
-// For degree two or three, absence of a prime-field root proves irreducibility
+// Report whether g has a root in F_p; for degree two or three none means irreducible
 static int has_root(const uint32_t* g, size_t h, const FastCDField* f) {
     for (uint32_t a = 0; a < f->prime; a++) {
         uint32_t v = g[h];
@@ -61,8 +61,7 @@ static int has_root(const uint32_t* g, size_t h, const FastCDField* f) {
     return 0;
 }
 
-/* Invert q modulo monic g of degree <=3 by solving its multiplication map.
- * The factors are irreducible and pairwise distinct, so pivots exist. */
+// Invert q modulo monic g of degree <= 3 by solving its multiplication map
 static void inverse(uint32_t* out, const uint32_t* q, const uint32_t* g, size_t h,
         const FastCDField* f) {
     uint32_t m[3][4] = {{0}};
@@ -76,7 +75,7 @@ static void inverse(uint32_t* out, const uint32_t* q, const uint32_t* g, size_t 
     for (size_t j = 0; j < h; j++) {
         size_t pivot = j;
         while (pivot < h && m[pivot][j] == 0) pivot++;
-        /* A failed pivot is an implementation error, never an input case. */
+        // Pivots exist because the factors are irreducible and pairwise distinct
         if (pivot == h) __builtin_trap();
         for (size_t k = 0; k <= h; k++) {
             uint32_t v = m[j][k];
@@ -96,15 +95,15 @@ static void inverse(uint32_t* out, const uint32_t* q, const uint32_t* g, size_t 
     for (size_t j = 0; j < h; j++) out[j] = m[j][h];
 }
 
-/* A product of degree-(d-1) polynomials has degree at most 2d-2. Distinct
- * irreducible factors with total degree >= 2d-1 therefore determine the
- * whole convolution, before reduction by the user's field polynomial. */
-// Construct matching evaluation and reconstruction maps for a field presentation
+// Build matching evaluation and reconstruction maps for a field presentation
 static void prepare_tensor(Tensor* t, const FastCDField* f) {
+    /* Products of degree-(d-1) polynomials have degree at most 2d-2, so
+     * distinct irreducible factors of total degree >= 2d-1 determine the whole
+     * convolution before reduction by the field polynomial. */
     uint32_t factors[23][4] = {{0}};
     size_t degrees[23], nf = 0, total = 0, target = 2 * f->degree - 1;
-    // Use distinct linear factors first. Higher-degree enumeration is needed
-    // only for small primes, when there are too few distinct linear points.
+    /* Use distinct linear factors first. Small primes, with too few linear
+     * points, also need quadratic and cubic factors. */
     for (uint32_t a = 0; a < f->prime && total < target; a++) {
         degrees[nf] = 1;
         factors[nf][0] = a ? f->prime - a : 0;
@@ -130,7 +129,7 @@ static void prepare_tensor(Tensor* t, const FastCDField* f) {
         }
     }
     if (total < target || total >= POLY_LIMIT) __builtin_trap();
-    // Multiply the selected factors to obtain the monic CRT nodal polynomial.
+    // Multiply the selected factors into the monic CRT nodal polynomial
     uint32_t nodal[POLY_LIMIT] = {1};
     size_t len = 1;
     for (size_t i = 0; i < nf; i++) {
@@ -147,8 +146,8 @@ static void prepare_tensor(Tensor* t, const FastCDField* f) {
     for (size_t i = 0; i < nf; i++) {
         size_t h = degrees[i];
         const uint32_t* g = factors[i];
-        // q = nodal/g. Then q * inverse(q mod g) is one modulo g and
-        // zero modulo all other factors: the CRT reconstruction idempotent.
+        // q = nodal/g, so q * inverse(q mod g) is one modulo g and zero modulo
+        // every other factor: the CRT reconstruction idempotent
         uint32_t temp[POLY_LIMIT], q[POLY_LIMIT] = {0};
         memcpy(temp, nodal, sizeof(temp));
         for (size_t k = total + 1; k-- > h;) {
@@ -168,8 +167,8 @@ static void prepare_tensor(Tensor* t, const FastCDField* f) {
             for (size_t k = 0; k < h; k++)
                 basis[j + k] =
                         fastcd_ff_add(basis[j + k], fastcd_ff_mul(q[j], inv[k], f), f);
-        // Reduce t^j times that idempotent into the user's field basis.
-        // These weights combine CRT reconstruction and final field reduction.
+        /* Reduce t^j times that idempotent into the field basis. These weights
+         * combine CRT reconstruction with the final field reduction. */
         uint32_t w[3][12] = {{0}};
         for (size_t j = 0; j < h; j++) {
             memcpy(temp, basis, sizeof(temp));
@@ -182,8 +181,8 @@ static void prepare_tensor(Tensor* t, const FastCDField* f) {
                 basis[k] =
                         fastcd_ff_sub(basis[k], fastcd_ff_mul(carry, nodal[k], f), f);
         }
-        // Record the coordinate map from the user's polynomial basis to
-        // residues modulo this factor; it is independent of operand values.
+        // Record the map from the field's polynomial basis to residues modulo
+        // this factor, which does not depend on operand values
         uint32_t rem[3][12] = {{0}};
         for (size_t j = 0; j < f->degree; j++) {
             memset(temp, 0, sizeof(temp));
@@ -191,9 +190,9 @@ static void prepare_tensor(Tensor* t, const FastCDField* f) {
             poly_remainder(temp, j + 1, g, h, f);
             for (size_t k = 0; k < h; k++) rem[k][j] = temp[k];
         }
-        // Quadratic and cubic convolution use three and six symmetric
-        // products. The tables restore their monomial coefficients from
-        // diagonal products and products of sums, before reduction modulo g.
+        /* Quadratic and cubic convolutions use three and six symmetric
+         * products, and the tables recover their monomial coefficients from
+         * diagonal products and products of sums before reduction modulo g. */
         size_t products = h == 1 ? 1 : h == 2 ? 3 : 6;
         static const int8_t cubic[6][5] = {{1, -1, -1, 0, 0}, {0, -1, 1, -1, 0},
                 {0, 0, -1, -1, 1}, {0, 1, 0, 0, 0}, {0, 0, 1, 0, 0}, {0, 0, 0, 1, 0}};
@@ -208,8 +207,8 @@ static void prepare_tensor(Tensor* t, const FastCDField* f) {
                 first = r == 5 ? 1 : 0;
                 second = r == 3 ? 1 : 2;
             }
-            // Evaluation rows contain either one residual coordinate or the
-            // sum of a pair; the matching projection undoes that product basis.
+            // An evaluation row holds one residue coordinate or the sum of a pair,
+            // and the matching projection undoes that product basis
             for (size_t j = 0; j < f->degree; j++)
                 t->input[t->rank][j] = first == second
                         ? rem[first][j]
@@ -227,16 +226,15 @@ static void prepare_tensor(Tensor* t, const FastCDField* f) {
             t->rank++;
         }
     }
-    // With d<=12 the selected factors fit these fixed setup arrays. Failure
-    // here indicates an internal schedule inconsistency, not a field input.
+    // With d <= 12 the selected factors fit these fixed arrays, so exceeding
+    // them is an internal inconsistency, not a property of the field
     if (t->rank > RANK_LIMIT) __builtin_trap();
 }
 
 #endif
 
 #if defined(FASTCD_FF_FINITE_SIMD)
-/* The small-characteristic ranks follow from the available irreducible CRT
- * factors; no defining polynomial or operand is singled out by dispatch. */
+// Count the product channels of the small-characteristic CRT tensor
 static size_t tensor_rank(const FastCDField* f) {
     size_t target = 2 * f->degree - 1;
     size_t degree = f->prime < target ? f->prime : target, rank = degree;
@@ -273,13 +271,13 @@ static size_t checked_words(size_t n, size_t factor, size_t extra) {
 
 /* ---------- Representation and instruction dispatch ---------- */
 
-/* Selection depends only on field parameters, dimension and CPU features.
- * The loop flag belongs to private shared templates; public fastCD calls
- * always select the CD component (loop=0). Scratch counts include encoding
- * and reconstruction, allowing the plan to reserve one safe shared buffer. */
 // Select a range-safe backend and report its scratch requirement in uint32 words
 FastCDFFBackend fastcd_ff_finite_select(
         const FastCDPlanFF* p, int loop, size_t* words) {
+    /* The choice depends only on field parameters, dimension and CPU
+     * features, and the scratch counts include encoding and reconstruction, so
+     * one plan buffer serves every backend. Public calls select the CD
+     * component. */
     *words = 0;
 #if defined(FASTCD_FF_FINITE_SIMD)
     size_t n = p->dimension, d = p->field.degree, lanes = 0;
@@ -289,12 +287,12 @@ FastCDFFBackend fastcd_ff_finite_select(
     int avx = __builtin_cpu_supports("avx2"), sse = __builtin_cpu_supports("sse4.1");
     if (prime == 3 && d <= 2 && bytes && n >= 256) {
         *words = checked_words(n / 4, d == 1 ? (loop ? 25 : 23) : (loop ? 33 : 29), 64);
-        /* n is a multiple of 256; the encoded arrays use byte lanes. */
+        // n is a multiple of 256, and the encoded arrays use byte lanes
         return d == 1 ? FASTCD_FF_FINITE_BYTE_PRIME : FASTCD_FF_FINITE_BYTE_QUADRATIC;
     }
     if (d == 1) {
-        // Prime fields skip tensor construction and use the narrowest safe
-        // arithmetic before falling back to full-width Montgomery lanes.
+        // Prime fields skip the tensor and use the narrowest safe arithmetic,
+        // then full-width Montgomery lanes
         if (prime < 8 && bytes && n >= 128) {
             *words = checked_words(n, loop ? 14 : 10, 64);
             return FASTCD_FF_FINITE_SMALL_PRIME32;
@@ -319,8 +317,8 @@ FastCDFFBackend fastcd_ff_finite_select(
                                  : FASTCD_FF_FINITE_MONT4;
         }
     } else if (prime < 8 && n >= 16) {
-        // Too few linear evaluation points: pack channels of the small-prime
-        // CRT tensor, with ternary encodings when p=3 and the ISA permits them.
+        // Too few linear evaluation points: pack the channels of the small-prime
+        // CRT tensor, with ternary encodings when p = 3 and the CPU supports them
         size_t rank = tensor_rank(&p->field);
         if (prime == 3 && bytes && n >= 32) {
             if (rank <= 16 && n >= 128) {
@@ -350,8 +348,8 @@ FastCDFFBackend fastcd_ff_finite_select(
             return lanes == 16 ? FASTCD_FF_FINITE_SMALL16 : FASTCD_FF_FINITE_SMALL8;
         }
     } else if (prime >= 2 * d - 1 && n >= 16) {
-        // Enough distinct linear points give the minimal 2*d-1 convolution
-        // channels. Grouping controls lane utilization and scratch layout.
+        /* Enough distinct linear points give the minimal 2*d-1 convolution
+         * channels. Grouping sets lane use and scratch layout. */
         if (bytes && prime < 32768 && n >= 32) {
             size_t points = point_width(2 * d - 1, 32), levels = 0;
             for (size_t k = points; k < 32; k *= 2) levels++;
@@ -373,8 +371,8 @@ FastCDFFBackend fastcd_ff_finite_select(
                                  : FASTCD_FF_FINITE_EXT4;
         }
     } else if (prime < 256 && n >= 64) {
-        // For remaining small fields, shuffle the general CRT channels in
-        // short lanes; larger fields retain the generic degree specialization.
+        // Other small fields shuffle the general CRT channels in short lanes,
+        // while larger fields use the portable degree specialization
         lanes = bytes ? 32 : avx ? 16 : sse ? 8 : 0;
         if (lanes) {
             *words = checked_words(n, (loop ? 13 : 5) * lanes / 2, 0);
@@ -391,12 +389,11 @@ FastCDFFBackend fastcd_ff_finite_select(
 }
 
 #if defined(FASTCD_FF_FINITE_SIMD)
-/* Keep the matrix stack frame out of the prime-field entry path, just as
- * the original real batch kernels isolate SIMD packing stack frames. */
 // Prepare field-specific maps once and pass them to the chosen packed kernel
 static __attribute__((noinline)) void execute_extension(FastCDFFProduct product,
         uint32_t* out, const uint32_t* x, const uint32_t* y, const FastCDPlanFF* p,
         uint32_t* work, int loop) {
+    // Not inlined, so the matrix stack frame stays out of the prime-field path
     Tensor tensor;
     if (p->field.prime < 8 && __builtin_cpu_supports("avx512f") &&
             __builtin_cpu_supports("avx512bw"))
@@ -415,12 +412,15 @@ static __attribute__((noinline)) void execute_extension(FastCDFFProduct product,
 
 // Execute a validated backend, returning zero only for the generic buffer fallback
 int fastcd_ff_finite_execute(uint32_t* out, const uint32_t* x, const uint32_t* y,
-        const FastCDPlanFF* p, uint32_t* work, int loop) {
+        const FastCDPlanFF* p, uint32_t* work, FastCDFFSchedule schedule) {
     size_t need;
-    FastCDFFBackend backend = fastcd_ff_finite_select(p, loop, &need);
-    /* Retain the portable schedule as a workspace-safe fallback. */
+    FastCDFFBackend backend =
+            fastcd_ff_finite_select(p, schedule == FASTCD_FF_SCHEDULE_LOOP, &need);
+    // Use the portable schedule when a backend needs more scratch than the plan
     size_t available = p->workspace_words;
     if (need > available) backend = FASTCD_FF_FINITE_GENERIC;
+    // Generated backends take the schedule as their int loop argument
+    int loop = (int)schedule;
 #if defined(FASTCD_FF_FINITE_SIMD)
     switch (backend) {
         case FASTCD_FF_FINITE_BYTE_PRIME:
@@ -475,7 +475,8 @@ int fastcd_ff_finite_execute(uint32_t* out, const uint32_t* x, const uint32_t* y
 #else
     (void)backend;
 #endif
-    if (p->field.degree == 1) {
+    // The prime value schedule has no direct mode; direct falls back to the caller
+    if (p->field.degree == 1 && schedule != FASTCD_FF_SCHEDULE_DIRECT) {
         fastcd_ff_finite_prime_scalar(out, x, y, p, work, loop);
         return 1;
     }

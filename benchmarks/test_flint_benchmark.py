@@ -182,7 +182,7 @@ def test_native_comparison_checks_every_timed_buffer(tmp_path, runner, p, d, n):
         ]
         assert positions.count(0) == positions.count(1) == 2
     # A shared NumPy corpus containing a noncanonical residue is rejected
-    # before either backend enters its arithmetic or produces observations.
+    # before either backend enters its arithmetic or produces observations
     with path.open("r+b") as output:
         np.asarray([p], dtype=np.uint32).tofile(output)
     failed = subprocess.run(command, capture_output=True, text=True)
@@ -239,7 +239,7 @@ def test_all_writes_separate_public_reports_and_matching_corpora(tmp_path, runne
             )
             assert measured["modulus"] == corresponding["modulus"]
             assert measured["corpus"]["sha256"] == corresponding["corpus"]["sha256"]
-    # Repeating a command must preserve the existing complete experiment.
+    # Repeating a command must leave the completed experiment untouched
     original = output.read_bytes()
     repeated = subprocess.run(command, capture_output=True, text=True)
     assert repeated.returncode != 0 and output.read_bytes() == original

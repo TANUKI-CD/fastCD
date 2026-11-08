@@ -1,5 +1,5 @@
-/* Reduction regressions across generated-leaf and recursive boundaries.
- * The oracle is a signed-XOR convolution from the defining doubling law;
+/* Reduction regressions across generated-leaf and recursive boundaries. The
+ * oracle is a signed-XOR convolution from the defining doubling law, and
  * bounded dyadics make both the reference and production results exact. */
 #include "fastcd/complex.h"
 #include <float.h>
@@ -21,6 +21,7 @@
     fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, #c); return 0; \
 } } while (0)
 
+// Obtain basis signs from the defining recursion, without production tables
 static int sign_basis(size_t n, size_t i, size_t j) {
     if (n == 1) return 1;
     size_t h = n / 2;
@@ -30,13 +31,15 @@ static int sign_basis(size_t n, size_t i, size_t j) {
     return (j == h ? -1 : 1) * sign_basis(h, j - h, i - h);
 }
 
+// Draw a multiple of 1/8 in [-4, 4) from a linear congruential generator
 static double sample(uint64_t* state) {
     *state = *state * UINT64_C(6364136223846793005) + 1;
     return (double)((int)(*state >> 58) - 32) * 0.125;
 }
 
-/* Independent recursive description of the prior blocked tree: no binary
- * counter, occupied slots or production helper calls are used here. */
+/* Independent recursive description of the blocked summation tree, without the
+ * binary counter, occupied slots or helper calls of balanced_sum.h. */
+// Sum blocks of FASTCD_SUM_BLOCK terms in sequence and combine halves recursively
 static double prior_block_tree(const double* terms, size_t length) {
     if (length == 0) return 0.0;
     if (length <= FASTCD_SUM_BLOCK) {
@@ -51,8 +54,9 @@ static double prior_block_tree(const double* terms, size_t length) {
             prior_block_tree(terms + split, length - split);
 }
 
-/* Whole-block entry points must preserve the exact prior tree independently
- * in each stream, including incomplete blocks and signed-zero singletons. */
+/* The whole-block entry points must reproduce the recursive tree exactly in
+ * each stream, including incomplete blocks and signed-zero singletons. */
+// Check the one-, two- and three-stream block sums against the recursive tree
 static int whole_block_cases(const double* first, size_t capacity) {
     double second[2052], third[2052];
     CHECK(capacity == sizeof(second) / sizeof(second[0]));
@@ -101,7 +105,8 @@ static int whole_block_cases(const double* first, size_t capacity) {
     return 1;
 }
 
-/* Empty, singleton, incomplete blocks and every binary carry boundary. */
+// Check empty and singleton sums, incomplete blocks and every binary carry
+// boundary of the accumulator
 static int accumulator_cases(void) {
     stability_BalancedSum sum;
     stability_sum_init(&sum);
@@ -117,7 +122,7 @@ static int accumulator_cases(void) {
             stability_sum_push(&sum, value);
         }
         CHECK(stability_sum_finish(&sum) == expected);
-        /* Finishing is read-only, allowing a later insertion. */
+        // Finishing is read-only, so the sum can keep growing
         stability_sum_push(&sum, 0.5);
         CHECK(stability_sum_finish(&sum) == expected + 0.5);
     }
@@ -139,8 +144,9 @@ static int accumulator_cases(void) {
     return 1;
 }
 
-/* Use only additions and products of small dyadics for exact comparisons;
- * non-dyadic cases are measured against a long-double independent oracle. */
+/* Small dyadics keep every sum and product exact in families 0 to 7 and 9,
+ * and the non-dyadic family 8 is measured against a long-double oracle. */
+// Fill n coefficients of x and y with one of the ten operand families
 static void fixture(FastCDComplexF64* x, FastCDComplexF64* y, size_t n,
         unsigned family, uint64_t* state) {
     for (size_t i = 0; i < n; i++) {
@@ -178,8 +184,8 @@ static void fixture(FastCDComplexF64* x, FastCDComplexF64* y, size_t n,
         }
     }
     if (family == 9) {
-        /* Exact cancellation of the real scalar coefficient with 2,4,...,512
-         * alternating unit terms. Complex phases also catch conjugation. */
+        // Exact cancellation of the real scalar coefficient with 2, 4, ..., 512
+        // alternating unit terms, with complex phases that also catch conjugation
         for (size_t i = 0; i < n; i++) {
             x[i].real = 1;
             x[i].imag = 0.5;
@@ -191,6 +197,7 @@ static void fixture(FastCDComplexF64* x, FastCDComplexF64* y, size_t n,
     }
 }
 
+// Compare batched, single and reference products of every family at dimension n
 static int run_dimension(size_t n) {
     const size_t count = 3, stride = n + 2;
     FastCDComplexF64* data = calloc(4 * count * stride, sizeof(*data));
@@ -269,7 +276,7 @@ static int run_dimension(size_t n) {
         CHECK(cw[0] == 12345.5 && cw[clen + 1] == -98765.5);
         CHECK(rw[0] == 12345.5 && rw[rlen + 1] == -98765.5);
     }
-    /* A short workspace and forbidden output alias must leave output intact. */
+    // A short workspace or a forbidden output alias must leave the output intact
     if (rlen) {
         real_work.length--;
         double before = ro[0];
@@ -295,8 +302,9 @@ static int run_dimension(size_t n) {
     return 1;
 }
 
+// Run the accumulator cases and every dimension around the generated cutoffs
 int main(void) {
-    /* Valid CD dimensions immediately surround the generated cutoffs 8/16. */
+    // Dimensions on both sides of the generated cutoffs 8 and 16
     const size_t dimensions[] = {2, 4, 8, 16, 32, 64, 128, 256, 512};
     if (sign_basis(4, 1, 2) != 1 || sign_basis(4, 2, 1) != -1)
         return EXIT_FAILURE;

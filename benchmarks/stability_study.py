@@ -319,7 +319,7 @@ class Study:
         self.save()
         self.run("readme", [*archive, "readme", str(self.output)])
         self.log(f"study complete: {self.output}; writing SHA256SUMS")
-        # SHA256SUMS covers raw/logs too, so nothing may write there afterwards.
+        # SHA256SUMS covers raw/logs too, so nothing may write there afterwards
         listed = subprocess.run([*archive, "checksums", str(self.output)], check=True, capture_output=True, text=True)
         print(listed.stdout.strip(), flush=True)
 

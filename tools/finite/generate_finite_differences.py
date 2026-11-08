@@ -27,7 +27,7 @@ def generate(
     first = text.index("static uint32_t horizontal(")
     last = text.index(f"void {old}_tensor(", first)
     source += text[first:last]
-    # Only even 32-bit lanes of these intermediates are consumed by mul_epu32.
+    # mul_epu32 consumes only the even 32-bit lanes of these intermediates
     for word in ("even", "odd"):
         source = source.replace(
             f"{p}_mullo_epi32({word},c->negative_inverse)",

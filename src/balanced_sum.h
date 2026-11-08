@@ -1,6 +1,6 @@
 /* Internal binary64 reduction schedule, instantiated with FASTCD_REAL,
- * FASTCD_ZERO and FASTCD_NAME. Independent SIMD lanes never interact.
- * Intentionally no include guard: the scalar and paired types share code. */
+ * FASTCD_ZERO and FASTCD_NAME. Independent SIMD lanes never interact. There is
+ * no include guard, because the scalar and paired types share this code. */
 #include <limits.h>
 
 #ifndef FASTCD_SUM_BLOCK
@@ -17,13 +17,13 @@ typedef struct FASTCD_NAME(BalancedSum) {
     unsigned used;
 } FASTCD_NAME(BalancedSum);
 
-// Initialize bookkeeping only: unused arithmetic slots are never read.
+// Initialize the bookkeeping only, since unused arithmetic slots are never read
 static inline void FASTCD_NAME(sum_init)(FASTCD_NAME(BalancedSum)* sum) {
     sum->blocks = 0;
     sum->used = 0;
 }
 
-// Insert one completed block, merging adjacent equal-sized earlier blocks.
+// Insert one completed block, merging adjacent equal-sized earlier blocks
 static inline void FASTCD_NAME(sum_block)(FASTCD_NAME(BalancedSum)* sum,
         FASTCD_REAL value) {
     size_t occupied = sum->blocks;
@@ -38,7 +38,7 @@ static inline void FASTCD_NAME(sum_block)(FASTCD_NAME(BalancedSum)* sum,
     sum->blocks++;
 }
 
-// Accumulate a fixed small block, then carry its total through a balanced tree.
+// Accumulate a fixed small block, then carry its total through a balanced tree
 static inline void FASTCD_NAME(sum_push)(FASTCD_NAME(BalancedSum)* sum,
         FASTCD_REAL value) {
     if (sum->used == 0) sum->block = value;
@@ -50,13 +50,13 @@ static inline void FASTCD_NAME(sum_push)(FASTCD_NAME(BalancedSum)* sum,
     }
 }
 
-/* Fold rightmost blocks first. This adds m-1 times for m>0, with depth at
- * most B-1 + ceil(log2(ceil(m/B))) + 1. No arithmetic zero is inserted.
- * There are enough levels for every addressable array: a carry past the
- * array would require SIZE_MAX+1 terms (even when B=1). No shifts by a type
- * width occur. Recursion-local bounded arrays add O(log N) machine words
- * per reduction and at most O(log^2 N) live words, within O(N) total storage.
- */
+/* Rightmost blocks fold first, with m-1 additions for m > 0 terms, a depth of
+ * at most B-1 + ceil(log2(ceil(m/B))) + 1, and no arithmetic zero inserted.
+ * The level array covers every addressable array, since a carry past it would
+ * need SIZE_MAX+1 terms even when B = 1, and no shift by a type width occurs.
+ * Recursion-local bounded arrays add O(log N) machine words per reduction and
+ * at most O(log^2 N) live words, within O(N) total storage. */
+// Finish a reduction, folding the partial block and then the occupied levels
 static inline FASTCD_REAL FASTCD_NAME(sum_finish)(
         const FASTCD_NAME(BalancedSum)* sum) {
     FASTCD_REAL result = FASTCD_ZERO;
@@ -76,9 +76,10 @@ static inline FASTCD_REAL FASTCD_NAME(sum_finish)(
     return result;
 }
 
-/* Whole-block ingestion shares the binary counter across synchronized streams.
- * Hot loops form each block directly and call these helpers once per block;
- * the streaming helper above remains useful for irregular internal callers. */
+/* The whole-block helpers below share the binary counter across synchronized
+ * streams. Hot loops form each block directly and call them once per block,
+ * and the streaming helper above serves irregular internal callers. */
+// Keep a function out of line on every supported compiler
 #ifndef FASTCD_NOINLINE
 #if defined(_MSC_VER)
 #define FASTCD_NOINLINE __declspec(noinline)
@@ -107,7 +108,7 @@ typedef struct FASTCD_NAME(BalancedTree3) {
     size_t blocks;
 } FASTCD_NAME(BalancedTree3);
 
-// Merge one completed block of two independent streams with shared bookkeeping.
+// Merge one completed block of two independent streams with shared bookkeeping
 static inline void FASTCD_NAME(sum2_block)(FASTCD_NAME(BalancedTree2)* tree,
         FASTCD_NAME(Sum2) value) {
     size_t occupied = tree->blocks;
@@ -122,7 +123,7 @@ static inline void FASTCD_NAME(sum2_block)(FASTCD_NAME(BalancedTree2)* tree,
     tree->blocks++;
 }
 
-// Merge one completed block of three independent streams with one binary carry.
+// Merge one completed block of three independent streams with one binary carry
 static inline void FASTCD_NAME(sum3_block)(FASTCD_NAME(BalancedTree3)* tree,
         FASTCD_NAME(Sum3) value) {
     size_t occupied = tree->blocks;
@@ -138,7 +139,7 @@ static inline void FASTCD_NAME(sum3_block)(FASTCD_NAME(BalancedTree3)* tree,
     tree->blocks++;
 }
 
-// Complete two trees, folding a partial rightmost block before occupied levels.
+// Complete two trees, folding a partial rightmost block before the occupied levels
 static inline FASTCD_NAME(Sum2) FASTCD_NAME(sum2_finish)(
         const FASTCD_NAME(BalancedTree2)* tree, FASTCD_NAME(Sum2) tail,
         int have_tail) {
@@ -158,7 +159,7 @@ static inline FASTCD_NAME(Sum2) FASTCD_NAME(sum2_finish)(
     return tail;
 }
 
-// Complete three trees with the same rightmost-first schedule as sum_finish.
+// Complete three trees with the same rightmost-first schedule as sum_finish
 static inline FASTCD_NAME(Sum3) FASTCD_NAME(sum3_finish)(
         const FASTCD_NAME(BalancedTree3)* tree, FASTCD_NAME(Sum3) tail,
         int have_tail) {
@@ -179,13 +180,14 @@ static inline FASTCD_NAME(Sum3) FASTCD_NAME(sum3_finish)(
     return tail;
 }
 
-// Reduce long arrays in fixed blocks; recursion and leaf calls keep this frame out.
+// Reduce long arrays in fixed blocks, out of line to keep callers' frames small
 static FASTCD_NOINLINE FASTCD_NAME(Sum3) FASTCD_NAME(sum3_arrays_long)(
         const FASTCD_REAL* first, const FASTCD_REAL* second,
         const FASTCD_REAL* third, size_t count) {
     FASTCD_NAME(BalancedTree3) tree;
     FASTCD_NAME(Sum3) total = {FASTCD_ZERO, FASTCD_ZERO, FASTCD_ZERO};
     tree.blocks = 0;
+    // Fold each block left to right and carry every full block into the tree
     for (size_t base = 0; base < count; base += FASTCD_SUM_BLOCK) {
         size_t length = count - base < FASTCD_SUM_BLOCK ? count - base : FASTCD_SUM_BLOCK;
         total.first = first[base];
@@ -201,7 +203,7 @@ static FASTCD_NOINLINE FASTCD_NAME(Sum3) FASTCD_NAME(sum3_arrays_long)(
     return FASTCD_NAME(sum3_finish)(&tree, total, count % FASTCD_SUM_BLOCK != 0);
 }
 
-// A short reduction is one left-folded block and needs no level array.
+// Reduce three arrays, folding a short reduction as one block without a level array
 static inline FASTCD_NAME(Sum3) FASTCD_NAME(sum3_arrays)(
         const FASTCD_REAL* first, const FASTCD_REAL* second,
         const FASTCD_REAL* third, size_t count) {

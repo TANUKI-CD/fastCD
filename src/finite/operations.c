@@ -1,22 +1,23 @@
 /*
  * Checked coefficient and Cayley--Dickson operations over F_(p^d).
  *
- * One field scalar occupies d canonical residues, constant coefficient
- * first; one CD record occupies N*d words. Addition acts on residues, while
- * products and inverses reduce in the context's actual polynomial basis.
- * Every returned coefficient remains canonical.
+ * A field scalar occupies d canonical residues, constant coefficient first, and
+ * a CD record occupies N*d words. Addition acts on residues, products and
+ * inverses reduce in the context's polynomial basis, and every returned
+ * coefficient is canonical.
  *
- * Multiplication schedules and ISA dispatch live in separate translation
- * units. This layer selects supported algorithms, validates byte spans and
- * scratch, and implements structural formulas without heap allocation.
- * Contexts are immutable values and no operation retains caller storage.
+ * Multiplication schedules and CPU dispatch live in other units. This layer
+ * selects algorithms, validates byte spans and scratch, and implements the
+ * structural formulas without heap allocation. Contexts are immutable values,
+ * and no operation keeps caller storage.
  *
- * CD conjugation fixes F_(p^d). The bilinear pairing and quadratic norm are
- * therefore sum_i x_i*y_i and sum_i x_i^2 in this same coefficient field,
- * independently of the relative field norm to F_p.
+ * CD conjugation fixes F_(p^d), so the bilinear pairing and the quadratic norm
+ * are sum_i x_i*y_i and sum_i x_i^2 in the coefficient field itself, not the
+ * relative field norm to F_p.
  */
 #include "field_internal.h"
 #include "internal.h"
+#include "finite_backend.h"
 #include <string.h>
 
 // Validate an explicit presentation or choose a deterministic irreducible modulus
@@ -31,9 +32,11 @@ FastCDFFStatus fastcd_field_init(
     if (status) return status;
     uint32_t coefficients[FASTCD_FF_MAX_DEGREE + 1] = {0};
     coefficients[d] = 1;
-    // A fixed seed spreads the first candidates without global random state.
-    // Exhaustive base-p enumeration after 4096 attempts guarantees the search
-    // is not confined to that pseudorandom sequence. Only setup pays this cost.
+    /*
+     * A fixed seed spreads the first candidates without global random state,
+     * and after 4096 attempts an exhaustive base-p enumeration reaches every
+     * candidate. Only setup pays this cost.
+     */
     uint64_t state = UINT64_C(0x9e3779b97f4a7c15) ^ p ^ ((uint64_t)d << 32);
     for (size_t attempt = 0;; attempt++) {
         if (attempt < 4096) {
@@ -51,13 +54,13 @@ FastCDFFStatus fastcd_field_init(
                 coefficients[i] = 0;
             }
         }
-        // A nontrivial irreducible polynomial has a nonzero constant term.
+        // A nontrivial irreducible polynomial has a nonzero constant term
         if (!coefficients[0]) continue;
         FastCDField candidate;
         status = fastcd_ff_field_init(&candidate, p, d, coefficients);
         if (status == FASTCD_FF_SUCCESS) {
-            // Publish only a completely validated context; failures never
-            // leave a partially initialized field in the caller's storage.
+            // Publish only a fully validated context, so a failure never leaves
+            // a partially initialized field in the caller's storage
             *out = candidate;
             return status;
         }
@@ -77,7 +80,7 @@ FastCDFFStatus fastcd_field_inv(
     uint32_t nonzero = 0;
     for (size_t j = 0; j < f->degree; j++) nonzero |= x[j];
     if (!nonzero) return FASTCD_FF_ZERO_NORM;
-    /* Little-endian limbs of p^d-2; the order may exceed uint64_t. */
+    // p^d-2 in little-endian 32-bit limbs, since the order may exceed uint64_t
     uint32_t exponent[13] = {1};
     size_t limbs = 1;
     for (size_t j = 0; j < f->degree; j++) {
@@ -89,15 +92,15 @@ FastCDFFStatus fastcd_field_inv(
         }
         if (carry) exponent[limbs++] = (uint32_t)carry;
     }
-    // Subtract two across limbs before scanning the little-endian exponent.
+    // Subtract two across limbs before scanning the little-endian exponent
     uint64_t borrow = 2;
     for (size_t k = 0; k < limbs && borrow; k++) {
         uint64_t old = exponent[k];
         exponent[k] = (uint32_t)(old - borrow);
         borrow = old < borrow;
     }
-    // All products stay in stack temporaries, so out may equal x and a zero
-    // input is rejected before the caller's output is touched.
+    // Products stay in stack temporaries, so out may equal x, and a zero input
+    // was rejected before the caller's output is touched
     uint32_t result[12] = {1}, base[12] = {0};
     memcpy(base, x, f->degree * sizeof(uint32_t));
     for (size_t k = 0; k < limbs; k++) {
@@ -119,7 +122,10 @@ FastCDFFStatus fastcd_mul_with_algorithm_ff(uint32_t* out, const uint32_t* x,
         const uint32_t* y, const FastCDPlanFF* p, FastCDAlgorithm algorithm,
         uint32_t* work, size_t available) {
     if (!p) return FASTCD_FF_NULL_POINTER;
-    if (algorithm == FASTCD_ALGORITHM_AUTO || algorithm == FASTCD_ALGORITHM_QUASILINEAR)
+    // Resolve AUTO first, since the two algorithms validate on different paths
+    if (algorithm == FASTCD_ALGORITHM_AUTO)
+        algorithm = fastcd_ff_auto_algorithm(p->dimension);
+    if (algorithm == FASTCD_ALGORITHM_QUASILINEAR)
         return fastcd_ff_cd_mul(out, x, y, p, work, available);
     if (algorithm != FASTCD_ALGORITHM_DIRECT) return FASTCD_FF_UNSUPPORTED_ALGORITHM;
     if (available < p->workspace_words) return FASTCD_FF_INSUFFICIENT_WORKSPACE;
@@ -127,18 +133,18 @@ FastCDFFStatus fastcd_mul_with_algorithm_ff(uint32_t* out, const uint32_t* x,
             sizeof(*p), work, p->workspace_words * sizeof(uint32_t),
             p->workspace_words * sizeof(uint32_t));
     if (s) return s;
-    fastcd_ff_direct(out, x, y, p, work);
+    fastcd_ff_mul_unchecked(out, x, y, p, FASTCD_ALGORITHM_DIRECT, work);
     return FASTCD_FF_SUCCESS;
 }
 
-// Use the finite default without consulting the original real AUTO tables
+// Multiply with the finite-field AUTO choice; the real AUTO tables do not apply
 FastCDFFStatus fastcd_mul_ff(uint32_t* out, const uint32_t* x, const uint32_t* y,
         const FastCDPlanFF* p, uint32_t* work, size_t length) {
     return fastcd_mul_with_algorithm_ff(
             out, x, y, p, FASTCD_ALGORITHM_AUTO, work, length);
 }
 
-// Query scratch in uint32 words; composite formulas retain two extra CD records
+// Query scratch in uint32 words; composite formulas hold two extra CD records
 FastCDFFStatus fastcd_apply_workspace_size_ff(
         const FastCDPlanFF* p, FastCDOperation op, size_t* length) {
     if (!p || !length) return FASTCD_FF_NULL_POINTER;
@@ -203,15 +209,17 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
     if (available < need) return FASTCD_FF_INSUFFICIENT_WORKSPACE;
     if ((op == FASTCD_OP_BASIS_LEFT || op == FASTCD_OP_BASIS_RIGHT) && index >= n)
         return FASTCD_FF_INVALID_BASIS_INDEX;
-    // Reductions write one field coefficient; scaling reads one on the right.
-    // Every other active operand has the complete N*d-word record extent.
+    // Reductions write one field coefficient and scaling reads one on the right,
+    // while every other active operand spans a complete N*d-word record
     size_t ob = (op == FASTCD_OP_INNER || op == FASTCD_OP_QUADRATIC_NORM)
             ? d * sizeof(uint32_t)
             : bytes;
     size_t yb = (op == FASTCD_OP_SCALE || op == FASTCD_OP_DIVIDE) ? d * sizeof(uint32_t)
                                                                   : bytes;
-    // Permit exact aliases only for formulas whose shared scalars are saved
-    // before stores. Partial aliases and writable plan/scratch aliases fail.
+    /*
+     * Allow exact aliases only for formulas that save their shared scalars
+     * before storing. Partial aliases and writable plan or scratch aliases fail.
+     */
     int alias = op == FASTCD_OP_ADD || op == FASTCD_OP_SUBTRACT ||
             op == FASTCD_OP_NEGATE || op == FASTCD_OP_SCALE || op == FASTCD_OP_DIVIDE ||
             op == FASTCD_OP_CONJUGATE || op == FASTCD_OP_IMAG_PART ||
@@ -239,7 +247,7 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
                                          : fastcd_ff_sub(x[i], y[i], f);
     } else if (op == FASTCD_OP_NEGATE || op == FASTCD_OP_CONJUGATE ||
             op == FASTCD_OP_IMAG_PART) {
-        // Apply the CD involution to whole coefficients, not polynomial powers.
+        // Apply the CD involution to whole coefficients, not polynomial powers
         for (size_t i = 0; i < n; i++) {
             if (op == FASTCD_OP_IMAG_PART && i == 0)
                 memset(out, 0, d * 4);
@@ -249,7 +257,7 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
                 memmove(out + i * d, x + i * d, d * 4);
         }
     } else if (op == FASTCD_OP_SCALE || op == FASTCD_OP_DIVIDE) {
-        // Copy or invert the scalar before modifying any coordinate of x.
+        // Copy or invert the scalar before modifying any coordinate of x
         memcpy(t, y, d * 4);
         if (op == FASTCD_OP_DIVIDE) {
             status = fastcd_field_inv(t, y, f);
@@ -258,12 +266,14 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
         for (size_t i = 0; i < n; i++)
             fastcd_ff_field_mul(out + i * d, x + i * d, t, f);
     } else if (op == FASTCD_OP_INNER || op == FASTCD_OP_QUADRATIC_NORM) {
-        // Stage the complete reduction; its result is in F_(p^d), not F_p.
+        // Stage the complete reduction, whose result lies in F_(p^d), not F_p
         dot(q, x, op == FASTCD_OP_INNER ? y : x, n, f);
         memcpy(out, q, d * 4);
     } else if (op == FASTCD_OP_RECIPROCAL) {
-        // Nonzero isotropic CD elements have Q(x)=0 and are rejected here.
-        // Otherwise conjugate(x)/Q(x) is a two-sided canonical reciprocal.
+        /*
+         * Nonzero isotropic CD elements have Q(x) = 0 and are rejected.
+         * Otherwise conjugate(x)/Q(x) is a two-sided canonical reciprocal.
+         */
         dot(q, x, x, n, f);
         status = fastcd_field_inv(t, q, f);
         if (status) return status;
@@ -272,8 +282,8 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
             if (i) fastcd_field_neg(out + i * d, out + i * d, f);
         }
     } else if (op == FASTCD_OP_SQUARE || op == FASTCD_OP_ANTICOMMUTATOR) {
-        // For x=alpha+X, y=beta+Y, the symmetric part needs only <X,Y>
-        // and alpha*Y+beta*X. Save these shared scalars for in-place squares.
+        // For x = alpha+X and y = beta+Y the symmetric part needs only <X,Y> and
+        // alpha*Y+beta*X, saved first so that squares can run in place
         if (op == FASTCD_OP_SQUARE) y = x;
         memcpy(alpha, x, d * 4);
         memcpy(beta, y, d * 4);
@@ -290,8 +300,10 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
         }
         memcpy(out, t, d * 4);
     } else if (op == FASTCD_OP_IMAG_CROSS || op == FASTCD_OP_COMMUTATOR) {
-        // Subtract the scalar/imaginary terms from xy to leave X cross Y.
-        // The commutator doubles that alternating product in odd characteristic.
+        /*
+         * Subtract the scalar and imaginary terms from xy to leave X cross Y.
+         * The commutator doubles that alternating product in odd characteristic.
+         */
         status = fastcd_mul_with_algorithm_ff(out, x, y, p, algorithm, work, available);
         if (status) return status;
         memset(out, 0, d * 4);
@@ -304,7 +316,7 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
                 fastcd_ff_field_add(out + i * d, out + i * d, out + i * d, f);
         }
     } else if (op == FASTCD_OP_BASIS_LEFT || op == FASTCD_OP_BASIS_RIGHT) {
-        // Reuse the original convention's signed XOR permutation on CD indices.
+        // Reuse the real basis convention's signed XOR permutation on CD indices
         for (size_t i = 0; i < n; i++) {
             FastCDBasisProduct b;
             fastcd_basis_product(&b, n, op == FASTCD_OP_BASIS_LEFT ? index : i,
@@ -315,8 +327,10 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
                 memcpy(out + b.index * d, x + i * d, d * 4);
         }
     } else {
-        // a is reusable intermediate storage; b retains the first fully
-        // parenthesized term. All four products share the remaining scratch.
+        /*
+         * a is reusable intermediate storage, and b holds the first fully
+         * parenthesized term. All four products share the remaining scratch.
+         */
         uint32_t* a = work;
         uint32_t* b = a + words;
         uint32_t* scratch = b + words;
@@ -350,7 +364,7 @@ FastCDFFStatus fastcd_apply_ff(uint32_t* out, const uint32_t* x, const uint32_t*
 
 /* ---------- Strided batches ---------- */
 
-// Validate the batch once and keep dispatch/validation outside its product loop
+// Validate the batch once and keep dispatch and validation out of its product loop
 FastCDFFStatus fastcd_mul_batch_ff(uint32_t* out, size_t os, const uint32_t* x,
         size_t xs, const uint32_t* y, size_t ys, size_t count, const FastCDPlanFF* p,
         FastCDAlgorithm algorithm, uint32_t* work, size_t length) {
@@ -365,8 +379,10 @@ FastCDFFStatus fastcd_mul_batch_ff(uint32_t* out, size_t os, const uint32_t* x,
     if (os < w || (xs && xs < w) || (ys && ys < w)) return FASTCD_FF_INVALID_STRIDE;
     if (!out || !x || !y || !work) return FASTCD_FF_NULL_POINTER;
     if (length < p->workspace_words) return FASTCD_FF_INSUFFICIENT_WORKSPACE;
-    // Strides count uint32 words, with zero input stride denoting broadcast.
-    // Check the final record's extent before multiplying any span by four.
+    /*
+     * Strides count uint32 words, and a zero input stride means broadcast.
+     * Check the final record's extent before multiplying any span by four.
+     */
     size_t limit = SIZE_MAX / sizeof(uint32_t);
     if (w > limit || (count - 1) > (limit - w) / os ||
             (xs && (count - 1) > (limit - w) / xs) ||
@@ -381,7 +397,7 @@ FastCDFFStatus fastcd_mul_batch_ff(uint32_t* out, size_t os, const uint32_t* x,
             fastcd_ff_overlap(work, wb, out, ob) ||
             fastcd_ff_overlap(work, wb, x, xb) || fastcd_ff_overlap(work, wb, y, yb))
         return FASTCD_FF_OVERLAPPING_BUFFERS;
-    // Reject every forbidden input alias before starting the unchecked loop.
+    // Reject every forbidden input alias before starting the unchecked loop
     for (size_t i = 0; i < count; i++)
         if (x + i * xs != y + i * ys &&
                 fastcd_ff_overlap(x + i * xs, w * 4, y + i * ys, w * 4))

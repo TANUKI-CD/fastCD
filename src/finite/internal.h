@@ -6,7 +6,7 @@
 /* Private record interfaces, with lengths in bytes only at the validation
  * boundary. Arithmetic assumes initialized plans and canonical residues. */
 
-// Address differences avoid pointer arithmetic across unrelated allocations.
+// Report whether two byte ranges overlap, comparing addresses as integers
 static inline int fastcd_ff_overlap(
         const void* a, size_t an, const void* b, size_t bn) {
     uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;

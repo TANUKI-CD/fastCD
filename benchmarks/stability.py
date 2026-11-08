@@ -147,7 +147,7 @@ def defining_product(x: list[Fraction], y: list[Fraction]) -> list[Fraction]:
 
 
 def validate_oracle() -> dict[str, Any]:
-    # Quaternion i*j=k, j*k=i, k*i=j and standard doubling octonion triples.
+    # Quaternion i*j=k, j*k=i, k*i=j and standard doubling octonion triples
     known = {(1, 2): (3, 1), (2, 3): (1, 1), (3, 1): (2, 1),
              (1, 4): (5, 1), (2, 4): (6, 1), (3, 4): (7, 1),
              (1, 6): (7, -1), (2, 5): (7, 1)}
@@ -276,7 +276,7 @@ def make_inputs(domain: str, n: int, family: str, seed: int) -> tuple[np.ndarray
             x += scale * normal()
             y += scale * normal()
     elif family in ("isotropic", "near_isotropic"):
-        # Q(x)=1+i**2=0, while the Euclidean norm is sqrt(2).
+        # Q(x)=1+i**2=0, while the Euclidean norm is sqrt(2)
         x.fill(0)
         x[0], x[1] = 1, 1j
         if family == "near_isotropic":
@@ -335,7 +335,7 @@ class Library:
         function.argtypes = [ct.c_void_p, ct.c_size_t, ct.c_void_p, ct.c_size_t, ct.c_void_p, ct.c_size_t,
                              ct.c_size_t, ct.c_size_t, ct.c_int, ct.POINTER(Workspace)]
         function.restype = ct.c_int
-        # Strides count doubles for real records and complex coefficients for complex records.
+        # Strides count doubles for real records and complex coefficients for complex records
         status = function(result.ctypes.data, n, xs.ctypes.data, n, ys.ctypes.data, n, count, n,
                           algorithm, ct.byref(workspace))
         if status:
@@ -377,8 +377,8 @@ def summarize(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         relative = [r["relative"] for r in data if r["relative"] is not None]
         improved = sum(r["improved"] for r in data)
         count = len(data)
-        # Wilson interval is descriptive; samples from deterministic families
-        # need not be exchangeable draws from a stochastic population.
+        # The Wilson interval is descriptive, since samples from deterministic
+        # families need not be exchangeable draws from a stochastic population
         center = (improved + 1.96 ** 2 / 2) / (count + 1.96 ** 2)
         radius = 1.96 / (count + 1.96 ** 2) * math.sqrt(improved * (count - improved) / count + 1.96 ** 2 / 4)
         summaries.append({"domain": domain, "dimension": n, "family": family, "algorithm": algorithm,
@@ -453,7 +453,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                                   "direct": metric(modified.multiply(x, y, 1), reference, x, y, args.precision)}
                     if domain == "real" and n <= 1024:
                         algorithms["cariow_cariowa"] = metric(modified.multiply(x, y, 2), reference, x, y, args.precision)
-                    # Unchanged direct source must produce identical baseline output.
+                    # Both builds share the direct source, so their direct outputs must match
                     assert baseline.multiply(x, y, 1).tobytes() == modified.multiply(x, y, 1).tobytes(), f"direct baseline mismatch: {key}"
                     if scalar_modified:
                         assert scalar_modified.multiply(x, y, 3).tobytes() == modified.multiply(x, y, 3).tobytes(), f"scalar/SIMD mismatch: {key}"

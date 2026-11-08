@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Benchmark direct/quasilinear CD arithmetic over odd finite fields and C.
+"""Benchmark direct and quasilinear CD multiplication over odd finite fields and C.
 
 The default protocol uses 10,000 deterministic pairs, 24 balanced blocks,
 two warmup passes and at least 20 ms per observation. All pairs are verified
 outside timing. Whole-corpus replay, allocation exclusions and statistical
-summaries match the existing real benchmark. No Cariow--Cariowa is measured.
+summaries match the real-coefficient benchmark. Cariow--Cariowa is not measured.
 """
 
 from __future__ import annotations
@@ -135,7 +135,8 @@ def report(path: Path, document: dict[str, Any]) -> None:
         "",
         "Raw observations, corpus hashes, selected backend, exact modulus, "
         "runner/build/source hashes and optional baseline measurements are "
-        "recorded in the adjacent JSON. Finite AUTO remains quasilinear; "
+        "recorded in the adjacent JSON. Finite-field AUTO selects direct for "
+        "N <= 4 and quasilinear otherwise; "
         "these machine-specific measurements do not change the real defaults.",
         "",
     ]

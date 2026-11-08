@@ -6,7 +6,7 @@
 
 /*
  * FASTCD_SHARED and FASTCD_BUILDING_LIBRARY are supplied by the fastCD CMake
- * target.  Static-library users need no import or export annotation.
+ * target. Static-library users need no import or export annotation.
  */
 #if defined(FASTCD_SHARED)
 #  if defined(_WIN32) || defined(__CYGWIN__)
@@ -29,24 +29,24 @@ extern "C" {
 #endif
 
 /*
- * fastCD implements the standard real Cayley--Dickson tower
+ * fastCD implements the standard real Cayley--Dickson tower:
  *
- *     A_0 = R,                 A_n = A_{n-1} x A_{n-1} (ordered pairs),
- *     (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c)).
+ *     A_0 = R,                 A_n = A_{n-1} x A_{n-1} (ordered pairs)
+ *     (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c))
  *
  * An element is a contiguous array of `dimension` real coefficients in the
- * recursive standard basis.  The scalar coefficient is stored at index zero,
- * and every valid dimension is a nonzero power of two.
+ * recursive standard basis, with the scalar coefficient at index zero. Every
+ * valid dimension is a nonzero power of two.
  *
- * All array storage belongs to the caller.  No function retains an input,
- * output, or workspace pointer after returning.  Lengths and strides count
- * `double` elements, not bytes.  Exact in-place aliases are supported only
- * where a declaration says so.  Writable outputs and the queried active
- * prefix of a workspace must otherwise be disjoint from every array.  Two
+ * All array storage belongs to the caller, and no function keeps an input,
+ * output or workspace pointer after returning. Lengths and strides count
+ * `double` elements, not bytes. Exact in-place aliases are supported only
+ * where a declaration says so; otherwise writable outputs and the queried
+ * active prefix of a workspace must be disjoint from every array. Two
  * read-only operands may be the same complete array, and the inputs of a
  * batch may share storage when every pair of same-index records is identical
- * or disjoint; distinct partially overlapping ranges are otherwise rejected.
- * A function returning an error leaves every output value unchanged.
+ * or disjoint. Other partially overlapping ranges are rejected. A function
+ * returning an error leaves every output value unchanged.
  */
 
 /* ---------- Definitions of enums and structs ---------- */
@@ -66,15 +66,14 @@ typedef enum {
 } FastCDStatus;
 
 /*
- * Multiplication algorithms.  DIRECT evaluates the defining doubling
- * recursion with N^2 real multiplications.  CARIOW_CARIOWA uses the
- * transform-and-correction kernels with N(N-1)/2 + 2 multiplications,
- * available through dimension FASTCD_CARIOW_CARIOWA_MAX_DIMENSION and not
- * recommended above 64.  QUASILINEAR uses O(N log N) real
- * arithmetic at every dimension.  AUTO resolves per dimension from two
- * benchmark-derived tables, one for single products and one for batches of
- * at least two products; query them with fastcd_default_algorithm and
- * fastcd_default_batch_algorithm.
+ * Multiplication algorithms. DIRECT evaluates the defining doubling recursion
+ * with N^2 real multiplications. CARIOW_CARIOWA uses the
+ * transform-and-correction kernels with N(N-1)/2 + 2 multiplications, through
+ * dimension FASTCD_CARIOW_CARIOWA_MAX_DIMENSION, and is not recommended above
+ * 64. QUASILINEAR uses O(N log N) real arithmetic at every dimension. AUTO
+ * resolves per dimension from two benchmark-derived tables, one for single
+ * products and one for batches of two or more products, which
+ * fastcd_default_algorithm and fastcd_default_batch_algorithm report.
  */
 typedef enum {
     FASTCD_ALGORITHM_AUTO = 0,
@@ -125,9 +124,9 @@ FASTCD_API FastCDStatus fastcd_level(size_t dimension, size_t* level);
 FASTCD_API FastCDStatus fastcd_default_algorithm(size_t dimension,
         FastCDAlgorithm* algorithm);
 
-// Write the algorithm that FASTCD_ALGORITHM_AUTO selects for a batch of at
-// least two products (fastcd_mul_batch_f64 with count >= 2); it equals the
-// single-product choice wherever the build cannot pair products
+/* The batch choice applies to fastcd_mul_batch_f64 with count >= 2. It equals
+ * the single-product choice wherever the build cannot pair products. */
+// Write the algorithm that FASTCD_ALGORITHM_AUTO selects for a batch
 FASTCD_API FastCDStatus fastcd_default_batch_algorithm(size_t dimension,
         FastCDAlgorithm* algorithm);
 
@@ -194,7 +193,7 @@ FASTCD_API FastCDStatus fastcd_scale_f64(double* out, const double* x,
 /* ---------- Structural operations ---------- */
 
 /*
- * Norm-related operations propagate IEEE NaN and infinity values.  Normalize
+ * Norm-related operations propagate IEEE NaN and infinity values. Normalize
  * and reciprocal return FASTCD_ZERO_NORM for an exactly all-zero finite input.
  */
 
@@ -229,14 +228,14 @@ FASTCD_API FastCDStatus fastcd_reciprocal_f64(double* out, const double* x,
 /* ---------- Cayley--Dickson multiplication ---------- */
 
 /*
- * Set out = xy with the automatically selected algorithm.  The output and the
- * queried active workspace prefix must be disjoint from all active arrays.
- * x and y may be the same complete array.  The workspace may be NULL only
- * when the corresponding workspace query returns zero.  A NaN coordinate in
- * either operand makes every output coordinate NaN, and an infinite
- * coordinate makes every output coordinate non-finite; which of those become
- * NaN rather than infinite depends on the algorithm.
+ * The output and the queried active workspace prefix must be disjoint from all
+ * active arrays, and x and y may be the same complete array. The workspace may
+ * be NULL only when the corresponding workspace query returns zero. A NaN
+ * coordinate in either operand makes every output coordinate NaN, and an
+ * infinite coordinate makes every output coordinate non-finite, with the
+ * algorithm deciding which of those become NaN rather than infinite.
  */
+// Set out = xy with the automatically selected algorithm
 FASTCD_API FastCDStatus fastcd_mul_f64(double* out, const double* x,
         const double* y, size_t dimension,
         const FastCDWorkspaceF64* workspace);
@@ -252,16 +251,16 @@ FASTCD_API FastCDStatus fastcd_square_f64(double* out, const double* x,
         size_t dimension);
 
 /*
- * Multiply count pairs of contiguous elements.  Strides are measured between
- * element starts in doubles.  An input stride of zero broadcasts that input.
- * For count greater than one, nonzero strides must be at least dimension and
- * out_stride must be nonzero.  When count is one, all strides are ignored;
- * when count is zero, only dimension and algorithm are validated and every
- * pointer may be NULL.  The two inputs may share storage, as when one
- * broadcasts a record of the other, provided no pair of same-index records
- * partially overlaps.  One multiplication workspace is reused across the
- * batch.
+ * Strides are measured between element starts in doubles, and an input stride
+ * of zero broadcasts that input. For count greater than one, nonzero strides
+ * must be at least dimension and out_stride must be nonzero. When count is
+ * one all strides are ignored, and when count is zero only dimension and
+ * algorithm are validated and every pointer may be NULL. The two inputs may
+ * share storage, as when one broadcasts a record of the other, provided no
+ * pair of same-index records partially overlaps. One multiplication workspace
+ * is reused across the batch.
  */
+// Multiply count pairs of contiguous elements
 FASTCD_API FastCDStatus fastcd_mul_batch_f64(double* out, size_t out_stride,
         const double* x, size_t x_stride, const double* y, size_t y_stride,
         size_t count, size_t dimension, const FastCDWorkspaceF64* workspace);
@@ -275,10 +274,11 @@ FASTCD_API FastCDStatus fastcd_mul_batch_with_algorithm_f64(double* out,
 /* ---------- Noncommutative and nonassociative products ---------- */
 
 /*
- * Set out = Im(x) cross Im(y), where cross is one half of the commutator on
- * imaginary inputs.  The scalar coefficients of x and y are ignored and the
- * scalar coefficient of out is zero.
+ * The alternating product is one half of the commutator on imaginary inputs.
+ * The scalar coefficients of x and y are ignored, and the scalar coefficient
+ * of out is zero.
  */
+// Set out = Im(x) cross Im(y), the alternating product
 FASTCD_API FastCDStatus fastcd_imag_cross_f64(double* out, const double* x,
         const double* y, size_t dimension,
         const FastCDWorkspaceF64* workspace);

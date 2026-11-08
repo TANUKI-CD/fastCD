@@ -61,8 +61,9 @@ term is returned as is, so signed zeros are preserved.
 
 The generated leaves in `src/generated/` unroll the same tree. The scalar,
 two-lane SIMD, single-product and batched paths add every term in the same
-order, so their results agree bitwise. The octonion leaf, the direct kernels
-and the finite-field kernels contain no sums of growing length. The
+order, so their results agree bitwise. The octonion leaf and the direct kernels
+contain no floating-point sums of growing length, and finite-field arithmetic
+is exact. The
 compile-time option `FASTCD_SUM_BLOCK` sets the block size to 1, 4, 8 or 16;
 the generated leaves always use 8.
 

@@ -1,6 +1,7 @@
-/* Universal small-characteristic CRT, reduced for this caller's polynomial. */
+/* Universal small-characteristic CRT maps, reduced for the field's polynomial. */
 #include "finite_maps.h"
 
+// Scatter up to 32 packed 16-bit values down one column of a map matrix
 static void scatter_map(
         uint32_t matrix[48][12], size_t first, size_t col, size_t count, Word value) {
     Word index = _mm512_setr_epi32(
@@ -15,9 +16,10 @@ static void scatter_map(
     }
 }
 
+// Reduce the universal small-prime CRT maps into the field basis and return the rank
 size_t fastcd_ff_prepare_small(
         uint32_t input[48][12], uint32_t output[48][12], const FastCDField* f) {
-    const CdlSmallMap* maps = &fastcd_ff_small_maps[f->prime == 3 ? 0
+    const FastCDFFSmallMap* maps = &fastcd_ff_small_maps[f->prime == 3 ? 0
                     : f->prime == 5                               ? 1
                                                                   : 2][f->degree - 1];
     uint32_t reduced[25][12];

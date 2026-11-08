@@ -57,9 +57,10 @@ static inline Word difference(Word a,Word b,Word x,Word y,const Context* c) {{
 static inline Word half(Word a,const Context* c) {{return {p}_shuffle_epi8(c->half,a);}}
 static inline Word normalize(Word a,const Context* c) {{return {p}_shuffle_epi8(c->norm,a);}}
 static inline Word scalar(uint32_t a,Word b,const Context* c) {{
-    /* Canonical scalars are below eight. Bound the address even if a caller
-     * violates that precondition or mutates shared storage after validation;
-     * this does not define arithmetic for noncanonical operands. */
+    /* Canonical scalars are below eight, and masking the index keeps the
+     * address in bounds even if a caller breaks that precondition or changes
+     * shared storage after validation, without defining arithmetic for
+     * noncanonical operands. */
     Word row={broadcast("_mm_loadu_si128((const void*)c->rows[a & 7u])")};return {p}_shuffle_epi8(row,b);
 }}
 static Context context(const FastCDPlanFF* p) {{
@@ -157,8 +158,8 @@ static void project(uint32_t* out,const Word* result,size_t size,size_t d,size_t
 
 
 def prime32():
-    # Emit the same validated packing pattern for uint16 scalar planes. The
-    # temporary 32-bit spelling is never compiled and is removed afterwards.
+    # Emit the same validated packing pattern for uint16 scalar planes; the
+    # temporary 32-bit spelling is never compiled and is removed afterwards
     args = (32, 512, "_mm512", ["-mavx512f", "-mavx512bw"])
     simd_source(*args, fast=True, values=True, build=False)
     prime_source(*args, build=False)
@@ -173,7 +174,7 @@ def prime32():
         .replace("UINT32_MAX", "UINT16_MAX")
     )
     nodes = nodes.replace("_epi32", "_epi16")
-    # Gather both descendant signs from two contiguous vectors of child data.
+    # Gather both descendant signs from two contiguous vectors of child data
     for batch in (1, 2, 4, 8, 16):
         begin = nodes.index(f"static void shuffle32_node{batch}(")
         end = nodes.find("\nstatic void ", begin + 1)

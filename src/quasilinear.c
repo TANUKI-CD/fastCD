@@ -7,27 +7,28 @@
  * Quasilinear Cayley--Dickson multiplication.
  *
  * For x = alpha + X and y = beta + Y with imaginary X and Y, the product is
- * reconstructed from the alternating product X x Y and linear terms.  The
- * alternating product is evaluated by a recursion over complex-coefficient
- * alternating products of half the dimension: a real root needs one complex
- * child, and above the base cases a complex node of dimension K needs two children of dimension
- * K/2 plus O(K) work, giving O(N log N) real arithmetic and O(N) scratch.
+ * reconstructed from the alternating product X x Y and linear terms. The
+ * alternating product comes from a recursion over complex-coefficient
+ * alternating products of half the dimension. The one-call root makes one
+ * call to C_(n-1), and above the base cases each call to C_k makes two
+ * recursive calls of dimension K/2 plus O(K) work, giving O(N log N) real
+ * arithmetic and O(N) scratch.
  *
- * The dimension-4 complex base uses a fused nonrecursive bilinear map, and the
- * dimension-8 base uses four sparse three-dimensional cross products.
- * Larger complex nodes use the fused map and two recursive children.
- * Complex nodes through max(8, FASTCD_QL_COMPLEX_LEAF), and complete products
- * through FASTCD_QL_FULL_LEAF, run generated straight-line code.  The
- * dimension-8 mathematical base applies even with an unrolling cutoff of 4.
- * The default cutoffs are retained from earlier benchmarks; docs/benchmark.md
- * identifies the measured source snapshots and arithmetic schedules.
+ * The dimension-4 complex base case is the fused nonrecursive map, and the
+ * dimension-8 base case uses four sparse three-dimensional cross products.
+ * Larger complex calls use the fused map and two recursive calls. Complex
+ * calls through max(8, FASTCD_QL_COMPLEX_LEAF) and complete products through
+ * FASTCD_QL_FULL_LEAF run generated straight-line code, and the dimension-8
+ * base case applies even with an unrolling cutoff of 4. The default cutoffs
+ * come from benchmarks, and docs/benchmark.md identifies the measured source
+ * snapshots and arithmetic schedules.
  *
  * Where the two-lane SIMD type exists, a single product above the full leaf
- * runs quasilinear_simd.h: the top complex node evaluates its two children
- * as the two lanes of the paired kernel, which continues their recursion.
- * The top node performs its own O(K) work two coordinates
- * per instruction, with the same arithmetic schedule per coordinate, so the
- * result is bitwise identical to the scalar recursion and to batches.
+ * runs quasilinear_simd.h, which evaluates the two recursive calls of the top
+ * complex call as the two lanes of the paired kernel. The top call does its
+ * own O(K) work two coordinates per instruction, with the same arithmetic per
+ * coordinate, so the result is bitwise identical to the scalar recursion and
+ * to batches.
  */
 
 #ifndef FASTCD_QL_COMPLEX_LEAF
@@ -77,7 +78,7 @@ void fastcd_quasilinear_mul(double* restrict out, const double* x,
     fastcd_ql_mul_recursive(out, x, y, dimension, workspace);
 }
 
-// Compute the quasilinear imaginary cross product without validation
+// Compute the alternating product with the quasilinear recursion, without validation
 void fastcd_quasilinear_cross(double* restrict out, const double* x,
         const double* y, size_t dimension, double* restrict workspace) {
 #if FASTCD_HAVE_PAIR
@@ -133,7 +134,7 @@ void fastcd_quasilinear_mul_batch(double* restrict out, size_t out_stride,
     }
 }
 
-// Return the scratch length of one complex alternating node
+// Return the scratch length of one call to the complex kernel
 static size_t complex_workspace(size_t dimension) {
     size_t total = 0;
 
@@ -145,15 +146,15 @@ static size_t complex_workspace(size_t dimension) {
 }
 
 #if FASTCD_HAVE_PAIR
-// Return the scratch length of one SIMD complex node: an alignment word, six
-// pair planes of the node, and the paired child's scratch in doubles
+// Return the scratch length of the SIMD top call in doubles: an alignment
+// word, six pair planes, and the scratch of the paired recursive calls
 static size_t simd_complex_workspace(size_t dimension) {
     if (dimension <= 8 || dimension <= FASTCD_QL_COMPLEX_LEAF) return 0;
     return 1 + 6 * dimension + 2 * complex_workspace(dimension >> 1);
 }
 #endif
 
-// Return the scratch length used by the quasilinear product and cross product
+// Return the scratch length used by the quasilinear product and alternating product
 size_t fastcd_quasilinear_workspace(size_t dimension) {
     if (dimension <= FASTCD_QL_FULL_LEAF) return 0;
 #if FASTCD_HAVE_PAIR

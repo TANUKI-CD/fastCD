@@ -1,10 +1,11 @@
-/* Force out-of-line field symbols as well as the new complex/finite API.
- * In shared builds this catches missing export annotations on inline emitters. */
+/* Call the complex and finite-field API with out-of-line field symbols. In
+ * shared builds this catches missing export annotations on inline emitters. */
 #define FASTCD_FF_FIELD_EXTERN_ONLY
 #include "fastcd/finite.h"
 #include "fastcd/complex.h"
 #include <stdlib.h>
 
+// Check field arithmetic, one finite-field product and one complex product
 int main(void) {
     FastCDField f;
     FastCDPlanFF p;
