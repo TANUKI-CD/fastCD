@@ -640,7 +640,8 @@ The complex-coefficient pairing is accumulated in the same way as the
 quasilinear sums. None of these orders changes the operation counts. In the
 quasilinear product and in large Cariow–Cariowa corrections, the balanced
 trees make the rounding depth of long sums grow like `log N` rather than
-`N`.
+`N`; [stability.md](stability.md) measures the resulting accuracy against an
+exact reference.
 
 ### Benchmark tolerance
 
