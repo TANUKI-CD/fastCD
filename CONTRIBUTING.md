@@ -46,7 +46,8 @@ octonion leaf against the independent defining-recursion reference on all
 For changes to floating-point accumulation, keep `tests/test_stability.c`
 passing: it checks the blocked reductions and the bitwise agreement of
 scalar, SIMD, single and batched products. If the order of additions
-changes, rerun the stability study with the drivers in `benchmarks/`.
+changes, rerun the stability study with `benchmarks/stability_study.py` (see
+`docs/stability.md`).
 
 ## Algorithm defaults
 
@@ -60,6 +61,13 @@ descriptions of the defaults in `README.md`, `docs/c-api.md`, and
 
 Never edit the archived results under `benchmark-results/`, including their
 checksum and preservation records.
+
+`python3 tools/check_stability_archives.py` checks each stability study
+against its `SHA256SUMS`, checks that the tables in `docs/stability.md` match
+the newest study, and, when the git history is available, checks that the
+measured commit contains exactly the recorded source files. Add `--full` to
+check the raw files under `raw/` as well; they are not distributed, and this
+mode requires NumPy. Both modes are read-only.
 
 ## Release checks
 

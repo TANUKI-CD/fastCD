@@ -1,0 +1,1749 @@
+{
+  "schema": "fastcd-stability-ties-1",
+  "completed": true,
+  "command": [
+    "/hdd/math/fastCD/build/review-venv/bin/python",
+    "/hdd/math/fastCD/build/stability-work/measured-source/benchmarks/stability_ties.py",
+    "--accuracy",
+    "/hdd/math/fastCD/benchmark-results/stability-20261107/raw/accuracy.json",
+    "--sequential",
+    "/hdd/math/fastCD/build/stability-work/builds/baseline-simd/libfastcd.so.1.2.0",
+    "--balanced",
+    "/hdd/math/fastCD/build/stability-work/builds/balanced-simd/libfastcd.so.1.2.0",
+    "--output",
+    "/hdd/math/fastCD/benchmark-results/stability-20261107/ties.json"
+  ],
+  "method": "exact squared Euclidean errors on a common dyadic scale",
+  "accuracy_sha256": "9deb72e73b2c9d44ba722a00acdb820e089fe55a7330cb856e96581192f9771c",
+  "recorded_ties": 7788,
+  "identical_outputs": 7554,
+  "equal_exact_errors": 7573,
+  "balanced_smaller": 152,
+  "sequential_smaller": 63,
+  "unresolved_by_family": {
+    "near_zero_divisor_40": 115,
+    "near_zero_divisor_52": 100
+  },
+  "records": [
+    {
+      "key": "real_16_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 5591007491821698134,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 6317257586047024648,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 3154454800614592840,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_4",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 15716103061046550020,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 1326842414794073929,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 9992693952900888926,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 6850648544961589224,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_11",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 13530829749373518475,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_12",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 12382894814319613110,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_14",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 288859240111909249,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_16",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 4273500022011108405,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_17",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 8380132582159965952,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_18",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 7803782045003718908,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_19",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 8906464001840662464,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_20",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 11580364142603824922,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_21",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 15835766804913866745,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_22",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 6372099787505982569,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_23",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 12686563991260249892,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_24",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 6909287528578910576,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_25",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 3647204266636386977,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_27",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 10744138028643073114,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_30",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 3151482359811441285,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_40_31",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "seed": 5440849327760530898,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 10790751619799978608,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 11705278057970207730,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 11787344814827855827,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 4866694587442962011,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_8",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 8517389249636691293,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_22",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 12619199701094734694,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_28",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 15225019601900420657,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_30",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 14509356536348377494,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_16_near_zero_divisor_52_31",
+      "domain": "real",
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "seed": 2802911817386948899,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_0",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 2267880703295207476,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 3216920750795426566,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 2884821485337573675,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 1370022465760321500,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 1523221852083252641,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 15501453097944276431,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 18439654487995164547,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_8",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 15818069819973576826,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_9",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 10083995327164129145,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_10",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 10434953387690400810,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_11",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 8480273093951960742,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_12",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 2129273820238312103,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_15",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 5024112027715389349,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_16",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 7168833202664594196,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_17",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 12296074620052162675,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_18",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 3518519258773754534,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_19",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 17475643790316261273,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_20",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 10482480586498979889,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_22",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 16445068059991228696,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_23",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 10421706054488813390,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_24",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 14036095361270854344,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_25",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 13430726808775738643,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_26",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 2588591419393139077,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_27",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 11461670415970432778,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_28",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 17169811087534693848,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_29",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 13766068665639244427,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_30",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 1912049827408220014,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_40_31",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "seed": 15264362101051355599,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_0",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 10063936864377639349,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 15810840130948649885,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 9277595721300328162,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 18233219921516621954,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 6131276427302463279,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_5",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 13908781849947508438,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_6",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 13338502118188234438,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_7",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 15550703505746478474,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_9",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 1614231648384354874,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_10",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 16068602859383230854,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_13",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 7523296491253198859,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_14",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 13806105730467744699,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_15",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 11036138324584263270,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_16",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 17234561803428211193,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_18",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 9891699193120326492,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_19",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 16544084036984204779,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_21",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 14826091124331248899,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_22",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 4478881930590242703,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_23",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 10298395059318371336,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_24",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 2733935414832324268,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_25",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 15020366032218010671,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_26",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 6773217031892450541,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_27",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 4484264558346583614,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_28",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 4675675219204422873,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_29",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 2847299853772071546,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_30",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 8232862956317334744,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_32_near_zero_divisor_52_31",
+      "domain": "real",
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "seed": 10713350998553820764,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_0",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 8417940781937132445,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 12071734980396258730,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 2063672631503127356,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 11041897054410266386,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_4",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 10400920258563474325,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 14609065653745985725,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 8556934387146776527,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 12736598504983021934,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_8",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 8013135951202249759,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_9",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 14008019961797279387,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_10",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 16068122832593611979,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_11",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 7474709676689094536,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_12",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 4613071238181376664,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_13",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 804445510521272814,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_14",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 232531187237073108,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_40_15",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "seed": 6927293845375606474,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_0",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 1513998191406299963,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 14756847276058636733,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 8661524963197191458,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 289030224949366704,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 15738164865199950178,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_5",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 5576854670162888437,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_6",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 2458451619112384721,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_7",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 12140725725561562667,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_8",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 5931192191752836770,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_9",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 2710631721703865573,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_10",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 15995003448544597626,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_11",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 4857259581376060900,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_12",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 6675834829366063228,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_13",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 15128799546186526800,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_14",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 7007331095668591007,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_64_near_zero_divisor_52_15",
+      "domain": "real",
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "seed": 3570312072079627688,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_0",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 5651025171724099328,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 18015589531554616942,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 6658244974137501740,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 8781808431212333643,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_4",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 13038813183532634424,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 4425648127950914426,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 15239991641589407295,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 14130126513138546371,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_8",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 9578047385216312502,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_9",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 7842969423004373853,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_10",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 11047957821988768155,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_11",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 13285248474352632119,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_12",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 7250829864732778377,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_13",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 13756553993381474500,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_14",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 10387941811325105328,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_40_15",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "seed": 12559718625009846993,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_0",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 5462130612941990422,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 6050019209776898442,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 16675824855330589165,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 3686610823054356266,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 5662345043220766773,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_5",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 14430281896988509105,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_6",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 11558630218150232275,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_7",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 341271025482731943,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_8",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 516978949291703786,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_9",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 5108455440536019550,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_10",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 12562490704414380173,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_11",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 8179484202687731446,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_12",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 8792617071267783515,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_13",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 10593351916185721026,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_14",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 4719819450736544091,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_128_near_zero_divisor_52_15",
+      "domain": "real",
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "seed": 6451527076896503909,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_0",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 9233599410649207724,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 13456144444169366586,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 9105689315314661944,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 11226424343676837600,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_4",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 10267412870809500719,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 6101848956134714099,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 2849029443189241348,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_256_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "seed": 8269503870209888320,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_0",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 2264960461529452906,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 11346521482902323038,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 3370026813669954186,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 10885750912046191945,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 11126173972219979604,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_5",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 12485960021937795162,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_6",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 7422635519714745577,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_256_near_zero_divisor_52_7",
+      "domain": "real",
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "seed": 12593507887292917658,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_0",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 7565197757385104612,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 838691701279415203,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 7651673981310648425,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 14916594017289464559,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_4",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 2291653193316403950,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 6542910199698345151,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 2061730558806796634,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "seed": 8077277865064448667,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_0",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 5965338823415349063,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 14198569542617295414,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 10001197679095719632,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 14205255426398442461,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 1979390536383809674,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_5",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 9559399860328884831,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_6",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 2053314182171441190,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_512_near_zero_divisor_52_7",
+      "domain": "real",
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "seed": 10093659468348150714,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_0",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 14979403593031232684,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 523961735867461494,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 2429356848976501919,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 4588239301354513791,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_4",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 9789551119820826335,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 11009332153873558488,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 3576229442608875739,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "seed": 13051600642961017954,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_0",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 16907944247184256712,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 14480130382893930764,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 16333397320226203518,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 16571288377861078750,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 15645312985818933529,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_5",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 6962998279183387727,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_6",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 6036879297819702585,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_1024_near_zero_divisor_52_7",
+      "domain": "real",
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "seed": 10835761870698566627,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_0",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 12559316626499236452,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_1",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 11149789444794472716,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_2",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 1366191130132454487,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_3",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 17852470138254095082,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_4",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 10905993537918122828,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_5",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 12590579391643683186,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_6",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 1576480933194331021,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_40_7",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_40",
+      "seed": 12168445715032279007,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_0",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 14857627548883609129,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_1",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 17466000484502831340,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_2",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 2595907031386286211,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_3",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 12387961433530080337,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_4",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 7063117931987612254,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_5",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 12585011787312833192,
+      "smaller_error": "balanced"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_6",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 9284027027010404466,
+      "smaller_error": "sequential"
+    },
+    {
+      "key": "real_2048_near_zero_divisor_52_7",
+      "domain": "real",
+      "dimension": 2048,
+      "family": "near_zero_divisor_52",
+      "seed": 4844187933817301443,
+      "smaller_error": "balanced"
+    }
+  ]
+}

@@ -6,6 +6,8 @@ fastCD is a lean C kernel for Cayley–Dickson multiplication over real and comp
 
 Besides the quasilinear algorithm, fastCD includes direct Cayley–Dickson multiplication and the algorithm of [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09). All three are available for real coefficients, while complex and finite-field coefficients use direct and quasilinear. Quasilinear has the best asymptotic complexity of the three, but it is not the fastest at every low dimension, so the default algorithm for each dimension was chosen from single-core benchmarks of single and batched products. Over the real numbers, direct or Cariow–Cariowa is the default at dimensions 8 and 16; see [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md).
 
+In an exact-reference accuracy study, the median floating-point error of the quasilinear product on pooled Gaussian and uniform inputs is within a factor of two of direct multiplication at every tested dimension; see [Numerical stability](#numerical-stability).
+
 The canonical source repository is
 [git.tanuki-cd.com/algebraity/fastCD](https://git.tanuki-cd.com/algebraity/fastCD).
 
@@ -206,6 +208,19 @@ FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C libr
 | F_(13^12) | 59962 / 125842 (2.1x) | 42495 / 906465 (21.4x) | 96463 / 5290183 (54.9x) | 359604 / 27450258 (76.4x) |
 | F_(2147483647^12) | 15464 / 242336 (15.7x) | 28443 / 1677399 (59.1x) | 102107 / 9797402 (96.2x) | 457545 / 51368227 (112x) |
 
+## Numerical stability
+
+Every floating-point sum inside the quasilinear product whose length grows with the dimension is accumulated in blocks of eight with a balanced tree between blocks, and above dimension 256 the Cariow–Cariowa correction sums are combined by a balanced tree. Accuracy was measured against an exact reference on 13,584 operand pairs from 21 real and 19 complex input families. The error of a computed product `fl(xy)` is reported as `eta = ||fl(xy) - xy||_2 / (u ||x||_2 ||y||_2)`, with `u = 2^-53` the binary64 unit roundoff. On pooled Gaussian and uniform inputs, the median `eta` of the quasilinear product is within a factor of two of direct multiplication at every tested dimension:
+
+| N | 16 | 64 | 256 | 512 | 1024 | 2048 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| quasilinear over R | 1.46 | 2.05 | 2.41 | 2.58 | 2.73 | 2.91 |
+| direct over R | 1.26 | 1.50 | 1.62 | 1.71 | 1.74 | 1.80 |
+| quasilinear over C | 1.71 | 2.22 | 2.50 | 2.68 | | |
+| direct over C | 1.11 | 1.28 | 1.44 | 1.52 | | |
+
+The largest error observed anywhere in the corpus is 3.7 over R and 4.1 over C (direct: 2.9 and 2.2; sequential accumulation on the same corpus: 78 and 18). These figures describe the measured corpus, not a worst case. From dimension 64 up, balanced accumulation costs at most 6% more time on default real products, and 5–13% on complex products and on builds without the explicit SIMD kernels. The method, the input families and the archived summaries and charts are described in [Numerical stability](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/stability.md). The raw operands and observations are kept on the author's machine and are not included in Git or the source distributions; reruns on another NumPy version can draw different random inputs.
+
 ## Documentation
 
 - [C quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-c.md) and [C API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/c-api.md)
@@ -213,6 +228,7 @@ FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C libr
   [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md)
 - [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
 - [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md)
+- [Numerical stability](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/stability.md)
 
 ## License and Attribution
 

@@ -12,6 +12,11 @@ Two further protocols cover complex and finite-field coefficients and an
 optional comparison with an external arithmetic library; see
 [Selecting a protocol](#selecting-a-protocol).
 
+The [stability study](stability.md) uses the same native timing drivers to
+compare the balanced and sequential accumulation schedules on one host and
+measures accuracy against an exact reference; its data are in
+`benchmark-results/stability-20261107/`.
+
 ## Archived results
 
 The README tables come from the run archived in
@@ -77,7 +82,9 @@ a dimension.
 
 Above dimension 256 the Cariow–Cariowa kernel combines the block totals of
 each correction sum with a balanced tree (see
-[Accumulation order](mathematics.md#accumulation-order)).
+[Accumulation order](mathematics.md#accumulation-order)); the
+[stability study](stability.md) measures the accuracy and cost of this
+order.
 
 Two build options change what is measured. `FASTCD_DISABLE_SIMD=1` removes
 the explicit SIMD kernels but not the compiler's own vectorization; add

@@ -10,8 +10,16 @@ All notable changes to fastCD are recorded in this file. The project follows
 ### Added
 
 - Drivers for an exact-reference accuracy study and paired timings
-  (`benchmarks/stability*.py`), and the C regression test
-  `tests/test_stability.c`.
+  (`benchmarks/stability*.py`), run end to end by
+  `benchmarks/stability_study.py`; the C regression test
+  `tests/test_stability.c`; and the study in
+  `benchmark-results/stability-20261107/`, which `docs/stability.md`
+  summarizes.
+- `tools/check_stability_archives.py`, a read-only check of the published
+  study files against their recorded hashes, of the tables in
+  `docs/stability.md` against the study, and of the measured commit's source
+  against the recorded source. With `--full` it also checks the raw data,
+  which is not distributed.
 
 ### Changed
 
