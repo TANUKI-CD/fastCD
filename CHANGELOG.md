@@ -36,11 +36,13 @@ All notable changes to fastCD are recorded in this file. The project follows
   dimension 4. Finite-field direct multiplication uses the packed field
   arithmetic of the quasilinear kernels from dimension 16 on.
 - For real coefficients, AUTO selects direct multiplication for single
-  products at dimension 4, which was faster in the 2026-11-08 T440 run;
-  batches at dimension 4 use quasilinear.
+  products at dimension 4; batches at dimension 4 still use quasilinear.
 - The finite-field and FLINT benchmark runners time each block at its own
   stack offset, spread over a 4 KB page, so that the observations of a cell
   do not share one stack placement.
+- The benchmark runners are built with branch padding where the compiler
+  supports it, so that timing loops do not depend on 32-byte code placement
+  on Skylake-family processors. The library is built as before.
 
 ## [1.2.0] - 2026-11-04
 

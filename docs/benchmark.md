@@ -126,6 +126,13 @@ use `--build-metadata` to select that record. After each dimension the driver
 saves the results so far beside the output as `<name>.partial.json`, and
 removes that file when the run completes.
 
+Where the compiler supports it, CMake builds the three runners, but not the
+library, with branch padding (`-mbranches-within-32B-boundaries`), so that no
+branch in a timing loop straddles a 32-byte boundary. On Skylake-family
+processors such a branch runs markedly slower (Intel's JCC erratum), and an
+unrelated edit to a runner could otherwise move a loop onto a boundary and
+change its timings. The build record lists the option as `runner_options`.
+
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `--dimensions` | `2,...,1024` | comma-separated powers of two to time |

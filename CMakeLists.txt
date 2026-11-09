@@ -246,6 +246,27 @@ if(FASTCD_BUILD_BENCHMARK)
         endif()
         fastcd_configure_target(fastcd_flint_benchmark)
     endif()
+    # Keep branches in the runners' timing loops from straddling 32-byte
+    # boundaries, which slows them on Skylake-family processors (Intel's JCC
+    # erratum). Only the runners get the padding; the library is built as it
+    # ships.
+    include(CheckCCompilerFlag)
+    set(fastcd_runner_options "")
+    check_c_compiler_flag(-mbranches-within-32B-boundaries FASTCD_HAVE_BRANCH_PADDING)
+    if(FASTCD_HAVE_BRANCH_PADDING)
+        set(fastcd_runner_options -mbranches-within-32B-boundaries)
+    else()
+        check_c_compiler_flag(-Wa,-mbranches-within-32B-boundaries
+            FASTCD_HAVE_ASSEMBLER_BRANCH_PADDING)
+        if(FASTCD_HAVE_ASSEMBLER_BRANCH_PADDING)
+            set(fastcd_runner_options -Wa,-mbranches-within-32B-boundaries)
+        endif()
+    endif()
+    foreach(runner IN ITEMS fastcd_benchmark fastcd_domains_benchmark fastcd_flint_benchmark)
+        if(TARGET ${runner} AND fastcd_runner_options)
+            target_compile_options(${runner} PRIVATE ${fastcd_runner_options})
+        endif()
+    endforeach()
     # Record the source contents and effective library options beside the runner.
     file(GLOB_RECURSE fastcd_benchmark_sources CONFIGURE_DEPENDS
         src/*.c src/*.h include/*.h tests/reference_cd.* benchmarks/*.c benchmarks/*.h
@@ -278,6 +299,7 @@ if(FASTCD_BUILD_BENCHMARK)
         "$<$<CONFIG:MinSizeRel>:${CMAKE_C_FLAGS_MINSIZEREL}>\n"
         "options=$<JOIN:$<TARGET_PROPERTY:fastcd,COMPILE_OPTIONS>, >\n"
         "definitions=$<JOIN:$<TARGET_PROPERTY:fastcd,COMPILE_DEFINITIONS>, >\n"
+        "runner_options=${fastcd_runner_options}\n"
         "source_options:\n${fastcd_source_options}"
         "source_sha256:\n${fastcd_source_hashes}")
     string(SHA256 fastcd_build_id
