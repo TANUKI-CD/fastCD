@@ -26,26 +26,30 @@ typedef struct {
 } Context;
 
 // Add packed residues
-static inline __attribute__((unused)) Word add(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word add(
+        Word a, Word b, const Context* c) {
     Word t = _mm256_sub_epi32(_mm256_add_epi32(a, b), c->prime);
     return _mm256_add_epi32(t, _mm256_and_si256(_mm256_srai_epi32(t, 31), c->prime));
 }
 
 // Subtract packed residues
-static inline __attribute__((unused)) Word sub(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word sub(
+        Word a, Word b, const Context* c) {
     Word t = _mm256_sub_epi32(a, b);
     return _mm256_add_epi32(t, _mm256_and_si256(_mm256_srai_epi32(t, 31), c->prime));
 }
 
 // Halve packed residues in odd characteristic
-static inline __attribute__((unused)) Word half(Word a, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word half(
+        Word a, const Context* c) {
     Word odd = _mm256_sub_epi32(
             _mm256_setzero_si256(), _mm256_and_si256(a, _mm256_set1_epi32(1)));
     return _mm256_srli_epi32(_mm256_add_epi32(a, _mm256_and_si256(odd, c->prime)), 1);
 }
 
 // Multiply packed residues in this backend's encoding
-static inline __attribute__((unused)) Word multiply(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word multiply(
+        Word a, Word b, const Context* c) {
     Word even = _mm256_mul_epu32(a, b);
     Word odd = _mm256_mul_epu32(_mm256_srli_epi64(a, 32), _mm256_srli_epi64(b, 32));
     Word me = _mm256_mul_epu32(even, c->negative_inverse);
@@ -61,12 +65,13 @@ static inline __attribute__((unused)) Word multiply(Word a, Word b, const Contex
 }
 
 // Halve or normalize packed residues, as the schedule requests
-static inline __attribute__((unused)) Word scale(Word a, int kind, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word scale(
+        Word a, int kind, const Context* c) {
     return kind == 0 ? half(a, c) : multiply(a, c->normalization, c);
 }
 
 // Compute a*b - x*y on packed residues with one reduction
-static inline __attribute__((unused)) Word difference(
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word difference(
         Word a, Word b, Word x, Word y, const Context* c) {
     Word pc = _mm256_sub_epi32(c->prime, x);
     Word even = _mm256_add_epi64(_mm256_mul_epu32(a, b), _mm256_mul_epu32(pc, y));
@@ -86,7 +91,7 @@ static inline __attribute__((unused)) Word difference(
 }
 
 // Multiply packed residues by a constant with its precomputed quotient
-static inline __attribute__((unused)) Word fixed(
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word fixed(
         Word a, Word b, Word quotient, const Context* c) {
     Word even = _mm256_srli_epi64(_mm256_mul_epu32(a, quotient), 32);
     Word odd =
@@ -1157,8 +1162,8 @@ void fastcd_ff_mont8_prime_tensor(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-2 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store2(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store2(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 4 * sizeof(uint32_t));
@@ -1376,8 +1381,8 @@ static void fastcd_ff_extension8_d2(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-3 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store3(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store3(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 2 * sizeof(uint32_t));
@@ -1595,8 +1600,8 @@ static void fastcd_ff_extension8_d3(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-4 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store4(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store4(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 8 * sizeof(uint32_t));
@@ -1814,8 +1819,8 @@ static void fastcd_ff_extension8_d4(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-5 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store5(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store5(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 2 * sizeof(uint32_t));
@@ -2033,8 +2038,8 @@ static void fastcd_ff_extension8_d5(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-6 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store6(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store6(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 4 * sizeof(uint32_t));
@@ -2252,8 +2257,8 @@ static void fastcd_ff_extension8_d6(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-7 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store7(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store7(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 2 * sizeof(uint32_t));
@@ -2471,8 +2476,8 @@ static void fastcd_ff_extension8_d7(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-8 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store8(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store8(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 8 * sizeof(uint32_t));
@@ -2690,8 +2695,8 @@ static void fastcd_ff_extension8_d8(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-9 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store9(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store9(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 2 * sizeof(uint32_t));
@@ -2909,8 +2914,8 @@ static void fastcd_ff_extension8_d9(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-10 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store10(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store10(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 4 * sizeof(uint32_t));
@@ -3128,8 +3133,8 @@ static void fastcd_ff_extension8_d10(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-11 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store11(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store11(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 2 * sizeof(uint32_t));
@@ -3347,8 +3352,8 @@ static void fastcd_ff_extension8_d11(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Store the lanes that hold one degree-12 result
-static inline __attribute__((unused)) void fastcd_ff_extension8_store12(
-        uint32_t* restrict out, Word value) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void
+fastcd_ff_extension8_store12(uint32_t* restrict out, Word value) {
     uint32_t words[8];
     _mm256_storeu_si256((void*)words, value);
     memcpy(out, words, 8 * sizeof(uint32_t));
@@ -3607,12 +3612,14 @@ void fastcd_ff_extension8_tensor(uint32_t* o, const uint32_t* a, const uint32_t*
 }
 
 // Load one vector of packed coefficients
-static inline __attribute__((unused)) Word direct_load(const uint32_t* a) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word direct_load(
+        const uint32_t* a) {
     return _mm256_loadu_si256((const void*)a);
 }
 
 // Store one vector of packed coefficients
-static inline __attribute__((unused)) void direct_store(uint32_t* a, Word v) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void direct_store(
+        uint32_t* a, Word v) {
     _mm256_storeu_si256((void*)a, v);
 }
 

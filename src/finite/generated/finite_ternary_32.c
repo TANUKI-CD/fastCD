@@ -41,17 +41,17 @@ static inline __attribute__((unused)) __attribute__((always_inline)) Coef sa(
 }
 
 // Negate a residue modulo 3
-static inline __attribute__((unused)) Coef sn(Coef a) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef sn(Coef a) {
     return (Coef){a.two, a.one};
 }
 
 // Subtract residues modulo 3
-static inline __attribute__((unused)) Coef ss(Coef a, Coef b) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef ss(Coef a, Coef b) {
     return sa(a, sn(b));
 }
 
 // Multiply residues modulo 3
-static inline __attribute__((unused)) Coef sm(Coef a, Coef b) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef sm(Coef a, Coef b) {
     return (Coef){(a.one & b.one) | (a.two & b.two), (a.one & b.two) | (a.two & b.one)};
 }
 
@@ -128,12 +128,13 @@ static inline __attribute__((unused)) __attribute__((always_inline)) void st(
 }
 
 // Broadcast one coefficient to every lane
-static inline __attribute__((unused)) Word broadcast(Coef a) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word broadcast(Coef a) {
     return (Word){_mm512_set1_epi32((int)a.one), _mm512_set1_epi32((int)a.two)};
 }
 
 // Keep the lanes selected by a mask
-static inline __attribute__((unused)) Word mask(Word a, __m512i m) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word mask(
+        Word a, __m512i m) {
     return (Word){_mm512_and_si512(a.one, m), _mm512_and_si512(a.two, m)};
 }
 
@@ -1268,12 +1269,14 @@ void fastcd_ff_ternary32_tensor(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Load one vector of packed coefficients
-static inline __attribute__((unused)) Word direct_load(const Coef* a) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word direct_load(
+        const Coef* a) {
     return ld(a);
 }
 
 // Store one vector of packed coefficients
-static inline __attribute__((unused)) void direct_store(Coef* a, Word v) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void direct_store(
+        Coef* a, Word v) {
     st(a, v);
 }
 

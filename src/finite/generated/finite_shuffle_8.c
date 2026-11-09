@@ -113,28 +113,32 @@ static const uint8_t small_products[8][8][16] = {
 static const uint8_t high_factor[8] = {0, 0, 0, 1, 0, 1, 4, 2};
 
 // Add packed residues
-static inline __attribute__((unused)) Word add(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word add(
+        Word a, Word b, const Context* c) {
     return _mm_shuffle_epi8(c->lo, _mm_add_epi16(a, b));
 }
 
 // Subtract packed residues
-static inline __attribute__((unused)) Word sub(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word sub(
+        Word a, Word b, const Context* c) {
     return _mm_shuffle_epi8(c->lo, _mm_sub_epi16(_mm_add_epi16(a, c->prime), b));
 }
 
 // Reduce packed values to canonical residues with lookup tables
-static inline __attribute__((unused)) Word reduce(Word a, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word reduce(
+        Word a, const Context* c) {
     return add(_mm_shuffle_epi8(c->lo, a),
             _mm_shuffle_epi8(c->hi, _mm_srli_epi16(a, 4)), c);
 }
 
 // Multiply packed residues in this backend's encoding
-static inline __attribute__((unused)) Word multiply(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word multiply(
+        Word a, Word b, const Context* c) {
     return reduce(_mm_mullo_epi16(a, b), c);
 }
 
 // Compute a*b - x*y on packed residues with one reduction
-static inline __attribute__((unused)) Word difference(
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word difference(
         Word a, Word b, Word x, Word y, const Context* c) {
     return reduce(_mm_sub_epi16(_mm_add_epi16(_mm_mullo_epi16(a, b), c->square),
                           _mm_mullo_epi16(x, y)),
@@ -142,17 +146,19 @@ static inline __attribute__((unused)) Word difference(
 }
 
 // Halve packed residues in odd characteristic
-static inline __attribute__((unused)) Word half(Word a, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word half(
+        Word a, const Context* c) {
     return _mm_shuffle_epi8(c->half, a);
 }
 
 // Multiply packed residues by the normalization factor
-static inline __attribute__((unused)) Word normalize(Word a, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word normalize(
+        Word a, const Context* c) {
     return _mm_shuffle_epi8(c->norm, a);
 }
 
 // Multiply packed residues by a canonical scalar
-static inline __attribute__((unused)) Word scalar(
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word scalar(
         uint32_t a, Word b, const Context* c) {
     /* Canonical scalars are below eight, and masking the index keeps the
      * address in bounds even if a caller breaks that precondition or changes

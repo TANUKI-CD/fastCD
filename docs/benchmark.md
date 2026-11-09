@@ -20,8 +20,8 @@ measures accuracy against an exact reference; its data are in
 ## Archived results
 
 The README tables come from the run archived in
-[`benchmark-results/t440-20261104/`](../benchmark-results/t440-20261104/README.md),
-measured on 2026-11-04 from the v1.2.0 source on one logical CPU of an
+[`benchmark-results/t440-20261109/`](../benchmark-results/t440-20261109/README.md),
+measured on 2026-11-09 from commit `78228a7` on one logical CPU of an
 Intel Xeon Gold 6148 in a Dell PowerEdge T440. `real.json` and `real.md`
 hold the real-coefficient run with the default protocol below. `domains.*`
 hold the complex and finite-field run, and `flint.*` the comparison with
@@ -45,9 +45,9 @@ verified mean, or reports a tie when the 95% interval of the paired
 per-block ratio between the two lowest means contains one.
 
 The automatic choices follow this run: single products use direct at
-dimensions 8 and 16 and quasilinear otherwise; batches use direct at 8,
-Cariow–Cariowa at 16 and quasilinear otherwise. Dimension-4 single products
-are a statistical tie between quasilinear and direct, and quasilinear is
+dimensions 4, 8 and 16 and quasilinear otherwise; batches use direct at 8,
+Cariow–Cariowa at 16 and quasilinear otherwise. Dimension-2 single products
+are a statistical tie between direct and quasilinear, and quasilinear is
 chosen. The fraction of a confidence interval below one is not a probability
 that one algorithm is faster.
 
@@ -276,6 +276,14 @@ each call builds to split extension-field products into prime-field
 products, so the results measure the shipped implementations rather than
 coefficient operation counts alone.
 
+Each cell runs in one runner process, so its confidence interval describes
+variation between the timing blocks of that process, not between processes
+or runs. Placement in physical memory, which affects cache behavior once a
+cell no longer fits in the per-core L2 cache, is fixed for the life of a
+process. In repeated runs on the archive's host, individual cells from
+dimension 64 upward differed by up to 17%, and direct/quasilinear ratios by
+up to 8%; small differences between cells should be read with this in mind.
+
 `benchmarks/domains.py` can also be run directly with the same options.
 For complex coefficients, `--fields 0:2 --baseline` additionally times a
 quasilinear implementation that splits each complex product into three
@@ -374,10 +382,11 @@ field-specific maps that each fastCD call builds, layout differences and
 buffer validation, so they do not isolate the scalar multiply's
 contribution. Neither comparison
 establishes a universal speedup or covers every representation FLINT
-offers.
+offers. As in the finite-field protocol, each cell runs in one process, and
+its interval does not include variation between processes or runs.
 
 The archived comparison in
-[`benchmark-results/t440-20261104/`](../benchmark-results/t440-20261104/README.md)
+[`benchmark-results/t440-20261109/`](../benchmark-results/t440-20261109/README.md)
 (`flint.md`) covers the nine default fields plus F_(3^12), F_(13^12) and
 F_(2147483647^12) with 1,000 pairs per cell, and the README tables summarize
 it. The run-time notes for the finite-field protocol apply here too: the

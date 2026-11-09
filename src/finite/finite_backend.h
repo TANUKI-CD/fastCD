@@ -10,6 +10,15 @@
 #define FASTCD_FF_ALWAYS_INLINE
 #define FASTCD_FF_UNUSED
 #endif
+/* Optimized builds inline the small vector helpers of the packed backends on
+ * their own. Unoptimized builds would call them, passing vector structs by
+ * value on the stack, which crashed a GCC 15 AddressSanitizer build, so there
+ * the helpers are forced inline. */
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(__OPTIMIZE__)
+#define FASTCD_FF_HELPER_INLINE __attribute__((always_inline))
+#else
+#define FASTCD_FF_HELPER_INLINE
+#endif
 
 /* Packed backends. Public buffers hold canonical polynomial-basis uint32_t
  * coefficients and need only 4-byte alignment. */
