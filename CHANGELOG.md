@@ -32,9 +32,15 @@ All notable changes to fastCD are recorded in this file. The project follows
   pairing can round differently from 1.2.0, as can Cariow–Cariowa results at
   dimensions 512 and 1024. Direct and finite-field results, the public API,
   workspace sizes and the published arithmetic counts are unchanged.
-- Over finite fields, AUTO selects direct multiplication up to dimension 4,
-  and direct multiplication uses the packed field arithmetic of the
-  quasilinear kernels from dimension 16 on.
+- Over C and finite fields, AUTO selects direct multiplication up to
+  dimension 4. Finite-field direct multiplication uses the packed field
+  arithmetic of the quasilinear kernels from dimension 16 on.
+- For real coefficients, AUTO selects direct multiplication for single
+  products at dimension 4, which was faster in the 2026-11-08 T440 run;
+  batches at dimension 4 use quasilinear.
+- The finite-field and FLINT benchmark runners time each block at its own
+  stack offset, spread over a 4 KB page, so that the observations of a cell
+  do not share one stack placement.
 
 ## [1.2.0] - 2026-11-04
 

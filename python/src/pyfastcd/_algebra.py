@@ -301,9 +301,9 @@ class Algebra:
         """str: Algorithm that ``"auto"`` selects for a single product.
 
         One of ``"direct"``, ``"cariow_cariowa"``, or ``"quasilinear"``; the
-        real selection depends only on dimension. Complex parents select
-        quasilinear; finite-field parents select direct for ``dimension <= 4``
-        and quasilinear otherwise.  Products of two
+        real selection depends only on dimension. Complex and finite-field
+        parents select direct for ``dimension <= 4`` and quasilinear
+        otherwise.  Products of two
         :class:`Element` objects, and batches containing exactly one record,
         use this algorithm, so passing the name explicitly to
         :meth:`multiply` reproduces ``x * y`` exactly for elements.  Batches

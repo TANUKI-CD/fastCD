@@ -228,7 +228,11 @@ selects two coefficient fields and three CD dimensions.
 
 The protocol uses 10,000 deterministic pairs per field and dimension, 24
 rotated blocks, two warmup passes and a 20 ms minimum observation. Each
-algorithm and mode calibrates whole-corpus passes independently. `--modes
+algorithm and mode calibrates whole-corpus passes independently. All blocks
+of a cell run in one process, and each block runs at its own stack offset,
+spread evenly in 16-byte steps over a 4 KB page. Some finite-field kernels
+run markedly slower at a few stack positions, and one position shared by
+the whole process would shift every observation of a cell together. `--modes
 batch` or `--modes single` restricts the measurement; the block count must
 be a multiple of the number of algorithm/mode tasks, four by default and
 two with one mode. Native calls are timed, and Python object construction
@@ -343,7 +347,8 @@ routines is included. FLINT is restricted to one thread.
 Each observation replays the full fixed corpus with a common calibrated
 pass count, so that even the faster implementation reaches the target, and
 the two implementations alternate their first/second positions across the
-24 paired blocks. Wall-clock timings are primary; thread CPU times are
+24 paired blocks. Each block runs at its own stack offset, as in the
+finite-field protocol. Wall-clock timings are primary; thread CPU times are
 retained when available. An independent schoolbook polynomial
 implementation checks every pair before timing and every final timed output
 afterwards; mismatches, missing observations or changed build files prevent

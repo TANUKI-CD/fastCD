@@ -200,8 +200,8 @@ A release may change:
 `FASTCD_ALGORITHM_AUTO` chooses from two tables, set from the single-core
 benchmark reported in the README:
 
-- Single products use direct at `N = 8, 16` and quasilinear at every other
-  dimension. This table also applies to batches of one product and to the
+- Single products use direct at `N = 4, 8, 16` and quasilinear at every
+  other dimension. This table also applies to batches of one product and to the
   products inside `fastcd_associator_f64` and the two operator commutators.
 - Batches of two or more products use direct at `N = 8`, Cariow–Cariowa at
   `N = 16`, and quasilinear at every other dimension. Builds without the
@@ -521,8 +521,8 @@ A canonical residue is an integer in `0, ..., p - 1`.
 
 The functions accept `FASTCD_ALGORITHM_AUTO`, `FASTCD_ALGORITHM_DIRECT` and
 `FASTCD_ALGORITHM_QUASILINEAR`. `AUTO` does not use the real tables: over C
-it selects quasilinear at every dimension, and over finite fields it selects
-direct for `N <= 4` and quasilinear otherwise. Cariow–Cariowa returns
+and over finite fields it selects direct for `N <= 4` and quasilinear
+otherwise. Cariow–Cariowa returns
 `FASTCD_UNSUPPORTED_ALGORITHM` (complex) or
 `FASTCD_FF_UNSUPPORTED_ALGORITHM` (finite).
 

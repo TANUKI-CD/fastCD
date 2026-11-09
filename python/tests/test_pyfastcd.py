@@ -1582,7 +1582,10 @@ class MultiplicationAlgorithmTests(FastCDTestCase):
                 self.assertIsInstance(batch_name, str)
                 self.assertIn(name, CONCRETE_ALGORITHM_NAMES)
                 self.assertIn(batch_name, CONCRETE_ALGORITHM_NAMES)
-                if dimension == 4 or dimension >= 64:
+                if dimension == 4:
+                    self.assertEqual(name, "direct")
+                    self.assertEqual(batch_name, "quasilinear")
+                elif dimension >= 64:
                     self.assertEqual(name, "quasilinear")
                     self.assertEqual(batch_name, "quasilinear")
                 self.assertIn(name, _supported_algorithms(dimension))

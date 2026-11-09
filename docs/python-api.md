@@ -129,8 +129,8 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   operands, or a batch of one record. For real coefficients this is the
   choice of the C library's `fastcd_default_algorithm` (see
   [Automatic algorithm selection](mathematics.md#automatic-algorithm-selection)).
-  Over C it is `"quasilinear"`; over finite fields it is `"direct"` for
-  `N <= 4` and `"quasilinear"` otherwise.
+  Over C and finite fields it is `"direct"` for `N <= 4` and
+  `"quasilinear"` otherwise.
 
 - `default_batch_algorithm: str`
 

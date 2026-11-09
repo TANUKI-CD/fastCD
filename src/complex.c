@@ -20,6 +20,7 @@
  * never used as the CD involution.
  */
 #include "fastcd/complex.h"
+#include "finite_backend.h"
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
@@ -183,9 +184,10 @@ static void direct(C* out, const C* x, const C* y, size_t n, C* work) {
     for (size_t i = 0; i < h; i++) out[h + i] = add(out[h + i], product[i]);
 }
 
-// Evaluate a validated product, where AUTO uses the quasilinear recursion
+// Evaluate a validated product, resolving AUTO by the rule shared with finite fields
 static void product(
         C* out, const C* x, const C* y, size_t n, FastCDAlgorithm alg, double* work) {
+    if (alg == FASTCD_ALGORITHM_AUTO) alg = fastcd_domain_auto_algorithm(n);
     if (alg == FASTCD_ALGORITHM_DIRECT) {
         direct(out, x, y, n, (C*)work);
         return;

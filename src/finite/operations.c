@@ -124,7 +124,7 @@ FastCDFFStatus fastcd_mul_with_algorithm_ff(uint32_t* out, const uint32_t* x,
     if (!p) return FASTCD_FF_NULL_POINTER;
     // Resolve AUTO first, since the two algorithms validate on different paths
     if (algorithm == FASTCD_ALGORITHM_AUTO)
-        algorithm = fastcd_ff_auto_algorithm(p->dimension);
+        algorithm = fastcd_domain_auto_algorithm(p->dimension);
     if (algorithm == FASTCD_ALGORITHM_QUASILINEAR)
         return fastcd_ff_cd_mul(out, x, y, p, work, available);
     if (algorithm != FASTCD_ALGORITHM_DIRECT) return FASTCD_FF_UNSUPPORTED_ALGORITHM;

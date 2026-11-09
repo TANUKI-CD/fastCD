@@ -95,7 +95,7 @@ void fastcd_ff_mul_unchecked(uint32_t* out, const uint32_t* x, const uint32_t* y
         const FastCDPlanFF* plan, FastCDAlgorithm algorithm, uint32_t* workspace) {
     // Resolve AUTO from the dimension
     if (algorithm == FASTCD_ALGORITHM_AUTO)
-        algorithm = fastcd_ff_auto_algorithm(plan->dimension);
+        algorithm = fastcd_domain_auto_algorithm(plan->dimension);
     if (algorithm == FASTCD_ALGORITHM_DIRECT) {
         /* Packed backends run the defining recursion on their own coefficient
          * encodings. The scalar recursion covers every other case. */

@@ -57,9 +57,9 @@ two inputs may be the same array.
 
 `fastcd_mul_f64` uses `FASTCD_ALGORITHM_AUTO`, which picks an algorithm by
 dimension from the single-core benchmark reported in the README: direct at
-dimensions 8 and 16 and quasilinear elsewhere. Batches of two or more
-products use Cariow–Cariowa at dimension 16 instead, because they evaluate
-two products per SIMD instruction. You can check these choices or select
+dimensions 4, 8 and 16 and quasilinear elsewhere. Batches of two or more
+products use quasilinear at dimension 4 and Cariow–Cariowa at dimension 16
+instead, because they evaluate two products per SIMD instruction. You can check these choices or select
 an algorithm yourself. An explicitly selected algorithm needs the workspace
 reported for that algorithm:
 

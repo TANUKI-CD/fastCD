@@ -68,9 +68,9 @@ FASTCD_FF_PRIVATE FastCDFFBackend fastcd_ff_finite_select(
 FASTCD_FF_PRIVATE int fastcd_ff_finite_execute(uint32_t*, const uint32_t*,
         const uint32_t*, const FastCDPlanFF*, uint32_t*, FastCDFFSchedule);
 
-// Choose the finite-field AUTO algorithm: direct through dimension 4,
-// quasilinear above it
-static inline FastCDAlgorithm fastcd_ff_auto_algorithm(size_t dimension) {
+// Choose the AUTO algorithm over C and finite fields: direct through
+// dimension 4, quasilinear above it
+static inline FastCDAlgorithm fastcd_domain_auto_algorithm(size_t dimension) {
     return dimension <= 4 ? FASTCD_ALGORITHM_DIRECT : FASTCD_ALGORITHM_QUASILINEAR;
 }
 
