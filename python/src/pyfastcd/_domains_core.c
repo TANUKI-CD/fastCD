@@ -496,8 +496,7 @@ static PyObject* default_algorithm(PyObject* module, PyObject* cap) {
     (void)module;
     Domain* c = PyCapsule_GetPointer(cap, "pyfastcd.domain");
     if (!c) return NULL;
-    FastCDAlgorithm algorithm =
-            c->finite ? fastcd_ff_auto_algorithm(c->n) : FASTCD_ALGORITHM_QUASILINEAR;
+    FastCDAlgorithm algorithm = fastcd_domain_auto_algorithm(c->n);
     return PyUnicode_FromString(fastcd_algorithm_string(algorithm));
 }
 

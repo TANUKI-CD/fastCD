@@ -3,6 +3,7 @@
 #endif
 
 #include "flint_schedule.h"
+#include "stack_offset.h"
 #include <errno.h>
 #include <inttypes.h>
 #include <math.h>
@@ -286,6 +287,24 @@ static uint64_t thread_ns(void) {
     return 0;
 }
 
+// One timed observation: a backend's calibrated corpus passes and their timings
+typedef struct {
+    FlintTask* task;
+    int flint;
+    size_t passes;
+    uint64_t elapsed, cpu;
+} Observation;
+
+// Time an observation's corpus passes in wall-clock and thread CPU time
+static int observe(void* context) {
+    Observation* o = context;
+    uint64_t start = now_ns(), cpu_start = thread_ns();
+    int ok = replay(o->task, o->flint, o->passes);
+    o->cpu = thread_ns() - cpu_start;
+    o->elapsed = now_ns() - start;
+    return ok;
+}
+
 /* Both backends use the common pass count, so paired observations contain
  * exactly the same products. */
 // Increase the pass count until even the faster backend reaches the target
@@ -474,21 +493,23 @@ int main(int argc, char** argv) {
            "\"observations\":[",
             t.native_work_words * sizeof(uint32_t), t.work_count);
     // Alternate the first backend across paired blocks to balance positions,
-    // and check every final output after its timer before accepting a sample
+    // give each block its own stack offset, and check every final output
+    // after its timer before accepting a sample
     for (size_t block = 0; block < blocks && ok; block++)
         for (size_t order = 0; order < 2 && ok; order++) {
             int b = (int)((block + order + (order_seed & 1u)) & 1u);
-            uint64_t start = now_ns(), cpu_start = thread_ns();
-            ok = replay(&t, b, passes);
-            uint64_t cpu = thread_ns() - cpu_start, elapsed = now_ns() - start;
-            ok = ok && elapsed && check_output(&t, b, &checksum);
+            size_t offset = fastcd_block_stack_offset(block, blocks);
+            Observation o = {&t, b, passes, 0, 0};
+            ok = fastcd_at_stack_offset(offset, observe, &o);
+            ok = ok && o.elapsed && check_output(&t, b, &checksum);
             if (!ok) break;
             printf("%s{\"block\":%zu,\"order\":%zu,\"backend\":\"%s\","
                    "\"elapsed_ns\":%" PRIu64 ",\"thread_cpu_ns\":%" PRIu64
                    ",\"passes\":%zu,\"operations\":%zu,\"verified_pairs\":%zu,"
-                   "\"checksum\":\"%016" PRIx64 "\"}",
+                   "\"stack_offset\":%zu,\"checksum\":\"%016" PRIx64 "\"}",
                     block || order ? "," : "", block, order, b ? "flint" : "fastcd",
-                    elapsed, cpu, passes, passes * trials, trials, checksum);
+                    o.elapsed, o.cpu, passes, passes * trials, trials, offset,
+                    checksum);
             fflush(stdout);
         }
     if (ok)

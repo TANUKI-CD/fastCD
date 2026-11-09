@@ -234,7 +234,8 @@ def report(path: Path, document: dict[str, Any]) -> None:
         "",
         f"FLINT {metadata['flint_runtime_version']}; one arithmetic thread; "
         f"{document['configuration']['trials']:,} pairs per cell; "
-        f"{document['configuration']['blocks']} paired blocks; "
+        f"{document['configuration']['blocks']} paired blocks "
+        "at separate stack offsets; "
         f"{document['configuration']['warmup']} warmup passes; "
         f"{document['configuration']['min_time_ms']:g} ms calibration target; {document['cpu']}.",
         "",

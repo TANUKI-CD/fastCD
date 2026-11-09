@@ -2,6 +2,7 @@
 #include "fastcd/complex.h"
 #include "fastcd/finite.h"
 #include "finite_backend.h"
+#include "stack_offset.h"
 #include <errno.h>
 #include <float.h>
 #include <inttypes.h>
@@ -20,7 +21,8 @@
 /* Complex and finite-field multiplication benchmark runner. Allocation, field
  * setup, corpus I/O and oracle verification all happen outside timing, and
  * each timed observation replays whole corpus passes. Each block rotates every
- * algorithm and mode task to balance their positions. */
+ * algorithm and mode task to balance their positions and runs at its own
+ * stack offset (see stack_offset.h). */
 typedef struct {
     uint32_t p, d;
     size_t n, trials, words, bytes, length;
@@ -127,6 +129,24 @@ static int run(Task* t, int alg) {
                     (FastCDComplexF64*)t->y + i * t->n, t->n, a,
                     &t->complex_work) != FASTCD_SUCCESS)
             return 0;
+    return 1;
+}
+
+// One timed observation: a task's calibrated corpus passes and their elapsed time
+typedef struct {
+    Task* task;
+    int algorithm;
+    size_t passes;
+    uint64_t elapsed;
+} Observation;
+
+// Time an observation's corpus passes, returning zero if any call fails
+static int observe(void* context) {
+    Observation* o = context;
+    uint64_t start = now_ns();
+    for (size_t r = 0; r < o->passes; r++)
+        if (!run(o->task, o->algorithm)) return 0;
+    o->elapsed = now_ns() - start;
     return 1;
 }
 
@@ -406,27 +426,27 @@ int main(int argc, char** argv) {
     printf("],\"backend\":\"%s\",\"default_algorithm\":\"%s\","
            "\"warmup\":%zu,\"min_time_ns\":%" PRIu64 ",\"observations\":[",
             t.p ? "finite_shared_dispatch" : "complex_quasilinear",
-            fastcd_algorithm_string(
-                    t.p ? fastcd_ff_auto_algorithm(t.n) : FASTCD_ALGORITHM_QUASILINEAR),
-            warmup, minimum);
+            fastcd_algorithm_string(fastcd_domain_auto_algorithm(t.n)), warmup,
+            minimum);
     const char* names[3] = {"direct", "quasilinear", "three_real"};
-    // Rotate task positions between blocks, with serialization, checksums and
-    // flushing after each timer and never inside measured product passes
+    // Rotate task positions between blocks and give each block its own stack
+    // offset, with serialization, checksums and flushing after each timer and
+    // never inside measured product passes
     for (size_t block = 0; block < blocks; block++)
         for (int k = 0; k < tasks; k++) {
             int task = (int)((block + (size_t)k) % (size_t)tasks);
             int a = both ? task / 2 : task;
             t.single = both ? task % 2 : selected_mode;
-            uint64_t start = now_ns();
-            for (size_t r = 0; r < passes[task]; r++)
-                if (!run(&t, a)) return EXIT_FAILURE;
-            uint64_t elapsed = now_ns() - start;
+            size_t offset = fastcd_block_stack_offset(block, blocks);
+            Observation o = {&t, a, passes[task], 0};
+            if (!fastcd_at_stack_offset(offset, observe, &o)) return EXIT_FAILURE;
             printf("%s{\"block\":%zu,\"algorithm\":\"%s\",\"mode\":\"%s\",\"elapsed_"
                    "ns\":%" PRIu64 ",\"passes\":%zu,"
-                   "\"operations\":%zu,\"checksum\":\"%016" PRIx64 "\"}",
+                   "\"operations\":%zu,\"stack_offset\":%zu,\"checksum\":\"%016" PRIx64
+                   "\"}",
                     block || k ? "," : "", block, names[a],
-                    t.single ? "single" : "batch", elapsed, passes[task],
-                    passes[task] * t.trials, checksum(&t));
+                    t.single ? "single" : "batch", o.elapsed, passes[task],
+                    passes[task] * t.trials, offset, checksum(&t));
             fflush(stdout);
         }
     puts("]}");

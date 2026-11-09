@@ -550,7 +550,8 @@ because the paired SIMD kernels change the ranking below dimension 32:
 
 | N | Single products | Batches |
 | ---: | --- | --- |
-| 2, 4 | quasilinear | quasilinear |
+| 2 | quasilinear | quasilinear |
+| 4 | direct | quasilinear |
 | 8 | direct | direct |
 | 16 | direct | Cariow–Cariowa |
 | 32 and above | quasilinear | quasilinear |
