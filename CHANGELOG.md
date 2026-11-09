@@ -20,6 +20,8 @@ All notable changes to fastCD are recorded in this file. The project follows
   `docs/stability.md` against the study, and of the measured commit's source
   against the recorded source. With `--full` it also checks the raw data,
   which is not distributed.
+- The benchmark run of 2026-11-09 in `benchmark-results/t440-20261109/`,
+  which the README tables and `docs/benchmark.md` report.
 
 ### Changed
 
@@ -43,6 +45,14 @@ All notable changes to fastCD are recorded in this file. The project follows
 - The benchmark runners are built with branch padding where the compiler
   supports it, so that timing loops do not depend on 32-byte code placement
   on Skylake-family processors. The library is built as before.
+
+### Fixed
+
+- Finite-field operations in the Python package rejected NumPy `uint32`
+  arrays on Windows, where NumPy exports them with the buffer format `L`.
+- Unoptimized builds of the packed finite-field kernels could crash under
+  AddressSanitizer: their small vector helpers are now forced inline when
+  optimization is off. Optimized builds compile to the same machine code.
 
 ## [1.2.0] - 2026-11-04
 

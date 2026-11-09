@@ -91,7 +91,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--trials", type=int, default=10000,
                         help="multiplication pairs per dimension")
     parser.add_argument("--blocks", type=int, default=24,
-                        help="subprocess blocks; each yields one observation per task "
+                        help="timing blocks; each yields one observation per task "
                              "(multiples of 12 keep the task order fully balanced)")
     parser.add_argument("--modes", default=",".join(MODES),
                         help="comma-separated subset of batch,single")

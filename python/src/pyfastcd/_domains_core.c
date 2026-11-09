@@ -181,8 +181,10 @@ static int get_view(Py_buffer* v, PyObject* obj, Domain* c, int scalar, int outp
     const char* fmt = v->format;
     if (fmt && (*fmt == '@' || *fmt == '=')) fmt++;
     size_t item = c->finite ? 4 : 16;
-    if (v->itemsize != (Py_ssize_t)item || !fmt ||
-            strcmp(fmt, c->finite ? "I" : "Zd") || v->ndim < 0) {
+    // NumPy exports uint32 as "L" where long has 32 bits, as on Windows
+    int known = fmt &&
+            (c->finite ? !strcmp(fmt, "I") || !strcmp(fmt, "L") : !strcmp(fmt, "Zd"));
+    if (v->itemsize != (Py_ssize_t)item || !known || v->ndim < 0) {
         PyErr_SetString(PyExc_TypeError, "incompatible native coefficient dtype");
         return -1;
     }

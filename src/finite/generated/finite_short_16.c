@@ -28,26 +28,30 @@ typedef struct {
 } Context;
 
 // Add packed residues
-static inline __attribute__((unused)) Word add(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word add(
+        Word a, Word b, const Context* c) {
     Word t = _mm256_sub_epi16(_mm256_add_epi16(a, b), c->prime);
     return _mm256_add_epi16(t, _mm256_and_si256(_mm256_srai_epi16(t, 15), c->prime));
 }
 
 // Subtract packed residues
-static inline __attribute__((unused)) Word sub(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word sub(
+        Word a, Word b, const Context* c) {
     Word t = _mm256_sub_epi16(a, b);
     return _mm256_add_epi16(t, _mm256_and_si256(_mm256_srai_epi16(t, 15), c->prime));
 }
 
 // Halve packed residues in odd characteristic
-static inline __attribute__((unused)) Word half(Word a, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word half(
+        Word a, const Context* c) {
     Word odd = _mm256_sub_epi16(
             _mm256_setzero_si256(), _mm256_and_si256(a, _mm256_set1_epi16(1)));
     return _mm256_srli_epi16(_mm256_add_epi16(a, _mm256_and_si256(odd, c->prime)), 1);
 }
 
 // Multiply packed residues in this backend's encoding
-static inline __attribute__((unused)) Word multiply(Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word multiply(
+        Word a, Word b, const Context* c) {
 
     Word t = _mm256_mullo_epi16(a, b);
     Word q = _mm256_mulhi_epu16(t, c->inverse);
@@ -57,7 +61,7 @@ static inline __attribute__((unused)) Word multiply(Word a, Word b, const Contex
 }
 
 // Multiply packed residues by a constant with its precomputed quotient
-static inline __attribute__((unused)) Word fixed(
+static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word fixed(
         Word a, Word b, Word quotient, const Context* c) {
     Word q = _mm256_mulhi_epu16(a, quotient);
     Word t = _mm256_sub_epi16(
