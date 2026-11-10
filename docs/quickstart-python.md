@@ -90,8 +90,9 @@ p3 = O.multiply(x, y, algorithm="quasilinear", out=out)
 ```
 
 The accepted names are `"auto"`, `"direct"`, `"cariow_cariowa"`, and
-`"quasilinear"`. Asking for an algorithm that does not support the dimension
-raises a `ValueError`.
+`"quasilinear"`; `"cariow_cariowa"` is available only for real
+coefficients. Asking for an algorithm that is unavailable for the field or
+the dimension raises a `ValueError`.
 
 ## Basis and operator actions
 

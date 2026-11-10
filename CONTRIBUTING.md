@@ -137,7 +137,9 @@ composite operations, zero-norm checks, and a reduction test that avoids
 `python -m mypy python/tests/typing_domains.py` checks the inferred
 coefficient and result types, and `tools/check_v110_compat.py` compares
 the installed package against a separately installed v1.1.0 to confirm
-backward compatibility.
+backward compatibility: every result must match exactly, except that
+floating-point values may differ by rounding and `"auto"` may select a
+different algorithm.
 
 `benchmarks/benchmark.py` runs the real-coefficient experiment by default.
 `--protocol domains` measures direct and quasilinear over C and finite

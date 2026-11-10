@@ -1,7 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any, Generic, NoReturn, SupportsIndex, final, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    NoReturn,
+    SupportsIndex,
+    TypeAlias,
+    final,
+    overload,
+)
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,13 +27,17 @@ _D = TypeVar("_D", bound=np.generic, default=np.float64)
 _S = TypeVar("_S", default=float)
 _P = TypeVar("_P", default=Algebra)
 _H = TypeVar("_H", bound=tuple[int, ...], default=tuple[int])
+_FieldArray: TypeAlias = (
+    "ElementArray[np.uint32, Any, Any, FiniteField, tuple[int, ...]]"
+)
 
 @final
 class Element(Generic[_D, _S, _P, _H]):
-    """An immutable real Cayley--Dickson element."""
+    """An immutable Cayley--Dickson element or coefficient-field scalar."""
 
     def __new__(cls, _forbidden: NoReturn, /) -> NoReturn: ...
     def __hash__(self) -> int: ...
+    def __buffer__(self, flags: int, /) -> memoryview: ...
     @property
     def algebra(self) -> _P: ...
     @property
@@ -96,12 +109,23 @@ class Element(Generic[_D, _S, _P, _H]):
     ) -> Element[_D, _S, _P, _H]: ...
     @overload
     def __mul__(
-        self, other: ElementArray[_D, _S, Any, Any, _H], /
+        self, other: ElementArray[_D, _S, Any, Any, _H] | _FieldArray, /
     ) -> ElementArray[_D, _S, Any, Any, _H]: ...
+    @overload
     def __rmul__(
         self, other: _RealScalar | complex | Element[Any, Any, FiniteField, Any], /
     ) -> Element[_D, _S, _P, _H]: ...
+    @overload
+    def __rmul__(self, other: _FieldArray, /) -> ElementArray[_D, _S, Any, Any, _H]: ...
+    @overload
     def __truediv__(
+        self, other: _RealScalar | complex | Element[Any, Any, FiniteField, Any], /
+    ) -> Element[_D, _S, _P, _H]: ...
+    @overload
+    def __truediv__(
+        self, other: _FieldArray, /
+    ) -> ElementArray[_D, _S, Any, Any, _H]: ...
+    def __rtruediv__(
         self, other: _RealScalar | complex | Element[Any, Any, FiniteField, Any], /
     ) -> Element[_D, _S, _P, _H]: ...
     def __pow__(

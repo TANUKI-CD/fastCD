@@ -10,7 +10,9 @@ linkage guards.
 - Link the CMake target `fastcd::fastcd`, or use `-lfastcd -lm` when linking
   by hand.
 - Shared-library consumers built without CMake define `FASTCD_SHARED`.
-  Only the library build defines `FASTCD_BUILDING_LIBRARY`.
+  Only the library build defines `FASTCD_BUILDING_LIBRARY`. Together they
+  set `FASTCD_API`, the export and import attribute on every public
+  function.
 
 ---
 
@@ -23,13 +25,14 @@ typedef enum {
     FASTCD_INVALID_LEVEL,          /* 2^level does not fit size_t */
     FASTCD_INVALID_BASIS_INDEX,    /* index >= dimension */
     FASTCD_INSUFFICIENT_WORKSPACE, /* non-null scratch shorter than required */
-    FASTCD_ZERO_NORM,              /* normalize/reciprocal of exact zero */
+    FASTCD_ZERO_NORM,              /* division by zero in normalize,
+                                      reciprocal or divide */
     FASTCD_OVERLAPPING_BUFFERS,    /* aliasing contract violated */
     FASTCD_INVALID_STRIDE,         /* batch stride smaller than dimension */
     FASTCD_SIZE_OVERFLOW,          /* an extent does not fit size_t */
     FASTCD_NULL_POINTER,           /* required pointer is null */
-    FASTCD_UNSUPPORTED_ALGORITHM   /* unknown algorithm, or Cariow–Cariowa
-                                      above dimension 1024 */
+    FASTCD_UNSUPPORTED_ALGORITHM   /* unknown algorithm or operation, or an
+                                      algorithm unavailable for the call */
 } FastCDStatus;
 
 typedef enum {
@@ -119,9 +122,10 @@ dimensions:
 
 These paired kernels copy each pair of operands into an interleaved layout
 in a fixed 40 KiB stack buffer, so caller storage needs no extra alignment.
-When a batch has an odd number of products, the last one uses the scalar
-kernel. At other dimensions, and with other compilers or targets, batches
-use the scalar kernels and the caller's workspace.
+When a batch has an odd number of products, the last one is computed as a
+single product. At other dimensions, and with other compilers or targets,
+batches compute one product at a time with the single-product kernels and
+the caller's workspace.
 
 On the same targets, a single quasilinear product above dimension 16 places
 the two recursive calls of `C_(n-1)` (see
@@ -164,7 +168,7 @@ A release may change:
 
 - `const char* fastcd_version_string(void)`
 
-  Return the version string of the linked library, such as `"1.2.0"`.
+  Return the version string of the linked library, such as `"1.3.0"`.
 
 - `const char* fastcd_status_string(FastCDStatus status)`
 
@@ -191,7 +195,8 @@ A release may change:
 
 - `FastCDStatus fastcd_level(size_t dimension, size_t* level)`
 
-  Write `log2(dimension)` to `level`.
+  Write `log2(dimension)` to `level`. Return `FASTCD_INVALID_DIMENSION` if
+  `dimension` is zero or not a power of two.
 
 ---
 
@@ -543,8 +548,11 @@ otherwise. Cariow–Cariowa returns
 The functions check these rules before writing anything and report a
 violation with `FASTCD_OVERLAPPING_BUFFERS` or
 `FASTCD_FF_OVERLAPPING_BUFFERS`. A partial overlap between `x` and `y` is
-rejected the same way. The third operand `z` of the composite operations is
-not checked against `x` or `y`.
+rejected the same way. Over C, the third operand `z` of the composite
+operations is not checked against `x` or `y`. Over finite fields, each
+product inside a composite operation checks its own two factors, so `z` must
+be the same record as `y` or disjoint from it in the associator, and the
+same as or disjoint from both `x` and `y` in the operator commutators.
 
 **Preconditions the library does not check**
 
@@ -589,8 +597,12 @@ composite operations, `z` is the third operand:
 Operand pointers that an operation does not use may be null, and
 `basis_index` is read only by the two basis operations. The `algorithm`
 argument selects how records are multiplied in multiplication, the
-alternating product, the commutator and the composite operations; the other
-operations do not multiply records.
+alternating product, the commutator and the composite operations. Every
+operation checks it, so Cariow–Cariowa or an unknown value is rejected even
+by operations that do not multiply records. An operation outside
+`FastCDOperation` returns `FASTCD_UNSUPPORTED_ALGORITHM` or
+`FASTCD_FF_UNSUPPORTED_ALGORITHM`, and `FASTCD_OP_DIVIDE` by a zero
+coefficient returns `FASTCD_ZERO_NORM` or `FASTCD_FF_ZERO_NORM`.
 
 ### Quadratic norm
 
@@ -714,6 +726,10 @@ as immutable.
   skips the primality and irreducibility checks. Use it only for parameters
   you have already validated.
 
+Invalid parameters return `FASTCD_FF_INVALID_FIELD`, and
+`fastcd_ff_field_init` returns `FASTCD_FF_NULL_POINTER` for `degree > 1`
+without a `modulus`.
+
 Neither the trusted constructor nor the scalar operations below are
 available from Python.
 
@@ -725,7 +741,7 @@ FastCDFFStatus fastcd_ff_plan_init(FastCDPlanFF* plan,
 FastCDFFStatus fastcd_ff_cd_workspace_size(const FastCDPlanFF* plan,
         size_t* words);
 FastCDFFStatus fastcd_apply_workspace_size_ff(const FastCDPlanFF* plan,
-        FastCDOperation operation, size_t* words);
+        FastCDOperation operation, size_t* workspace_words);
 ```
 
 A `FastCDPlanFF` fixes the Cayley–Dickson level over one field.
@@ -764,7 +780,7 @@ void fastcd_ff_field_mul(uint32_t* out, const uint32_t* x,
 void fastcd_field_neg(uint32_t* out, const uint32_t* x, const FastCDField* field);
 FastCDFFStatus fastcd_field_inv(uint32_t* out, const uint32_t* x,
         const FastCDField* field);
-uint32_t fastcd_ff_prime_mul(uint32_t x, uint32_t y, const FastCDField* field);
+uint32_t fastcd_ff_prime_mul(uint32_t a, uint32_t b, const FastCDField* field);
 uint32_t fastcd_ff_field_reduce64(uint64_t x, const FastCDField* field);
 ```
 
@@ -787,7 +803,8 @@ are inline functions in the header. For `degree > 1`, `fastcd_ff_field_mul`
 calls the exported `fastcd_ff_field_mul_extension`, which applications should
 not call directly. Define `FASTCD_FF_FIELD_EXTERN_ONLY` before including
 `<fastcd/finite.h>` to call exported out-of-line versions of all three
-instead.
+instead. The header defines `FASTCD_FF_HAVE_INLINE_FIELD_API` to 1 so that
+code can test for these inline functions.
 
 #### Cayley–Dickson operations
 
@@ -838,3 +855,5 @@ declaration order, are `FASTCD_FF_SUCCESS`, `FASTCD_FF_INVALID_LEVEL`,
 `FASTCD_FF_SIZE_OVERFLOW`, `FASTCD_FF_NULL_POINTER`,
 `FASTCD_FF_UNSUPPORTED_ALGORITHM`, `FASTCD_FF_ZERO_NORM`,
 `FASTCD_FF_INVALID_BASIS_INDEX`, and `FASTCD_FF_INVALID_STRIDE`.
+`FASTCD_FF_INVALID_LEVEL` is not currently returned: a level whose
+dimension does not fit `size_t` returns `FASTCD_FF_SIZE_OVERFLOW`.

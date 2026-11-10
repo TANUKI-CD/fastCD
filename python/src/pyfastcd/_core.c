@@ -2046,7 +2046,7 @@ PyDoc_STRVAR(pyfastcd_element_associator_doc,
 "TypeError\n"
 "    If either operand is not an Element.\n"
 "ValueError\n"
-"    If an element has a different dimension.\n\n"
+"    If an element has a different parent.\n\n"
 "Notes\n"
 "-----\n"
 "The displayed parenthesization is part of the numerical contract once\n"

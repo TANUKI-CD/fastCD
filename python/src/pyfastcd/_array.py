@@ -595,7 +595,7 @@ class ElementArray:
         Returns
         -------
         numpy.ndarray
-            Coefficients of shape ``batch_shape + (dimension,)``.  The
+            Coefficients of shape ``batch_shape + coefficient_shape``.  The
             zero-copy result keeps the source strides and writeability.
 
         Raises

@@ -546,7 +546,7 @@ kernels.
 For real coefficients, `fastcd_mul_f64` and ordinary Python multiplication
 choose the algorithm by dimension, following the single-core benchmark
 reported in the README. Single products and batches have separate tables,
-because the paired SIMD kernels change the ranking below dimension 32:
+because the two modes rank the algorithms differently below dimension 32:
 
 | N | Single products | Batches |
 | ---: | --- | --- |
@@ -677,4 +677,4 @@ implementation, and every complex product against a long-double evaluation
 of the doubling formula with a norm-scaled tolerance. An optional protocol
 compares the finite-field arithmetic with FLINT (Fast Library for Number
 Theory), an independent exact-arithmetic C library; see the
-[benchmark guide](benchmark.md#comparing-finite-field-arithmetic-with-flint).
+[benchmark guide](benchmark.md#comparison-with-flint).

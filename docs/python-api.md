@@ -36,8 +36,10 @@ finite-field coefficients are always selected explicitly.
 
 **Parent.** Every element and array belongs to a *parent*: the `Algebra` that
 created it, or the `FiniteField` of a coefficient-field scalar. `x.algebra`
-returns it. Operations combine only objects with the same parent, and
-nothing converts between parents implicitly.
+returns it. Operations combine only objects with the same parent, with one
+exception: over a finite field, scalars and scalar arrays of the coefficient
+field can scale and divide elements and arrays of the algebra. Nothing
+converts between parents implicitly.
 
 **Record.** A *record* is the coefficient storage of one Cayley–Dickson
 element. Its shape is the parent's `coefficient_shape`: `N` coefficients,
@@ -58,8 +60,9 @@ Below, `A` is an algebra, `N = A.dimension`, `x`, `y`, and `z` are elements,
   Construct one element from a single record, inferring `N` from its
   length, which must be a positive power of two. The input is an ordered
   sequence or array, not an iterator, with the shape given in the selector
-  table. An `Element` argument is copied and keeps its parent unless
-  selectors are given. An invalid shape or length raises `ValueError`; for a
+  table. An `Element` argument is copied and keeps its parent; selectors,
+  if given, must describe that parent, and other selectors raise
+  `ValueError`. An invalid shape or length raises `ValueError`; for a
   real parent, complex, object-valued, or nonnumeric arrays raise
   `TypeError`.
 
@@ -171,9 +174,10 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
 
   Return `e_index`. Raise `IndexError` if the index is outside `range(N)`.
 
-- `basis_product(i, j) -> BasisProduct`
+- `basis_product(left_index, right_index) -> BasisProduct`
 
-  Return the `BasisProduct` describing `e_i e_j`.
+  Return the `BasisProduct` describing `e_i e_j`, where `i` is `left_index`
+  and `j` is `right_index`.
 
 - `array(values) -> ElementArray`
 
@@ -226,7 +230,8 @@ A method that accepts `out=` returns:
 
 `out` must have exactly the broadcast result shape and the parent's dtype.
 Its storage must be writable, aligned, and C-contiguous, and must not
-overlap any input.
+overlap any input. A wrong dtype raises `TypeError` for a real parent and
+`ValueError` for complex and finite-field parents.
 
 ---
 
@@ -472,8 +477,9 @@ field `F`; every other result has the receiver's parent.
 ### Operators
 
 Operators accept elements and arrays with the same parent, and
-coefficient-field scalars. Results are new objects, and arrays broadcast
-their leading axes.
+coefficient-field scalars; over a finite field, an array of field scalars can
+also scale or divide. Results are new objects, and arrays broadcast their
+leading axes.
 
 - `+x`, `-x`
 
@@ -528,7 +534,8 @@ their leading axes.
     such as `str`, `complex`, `None`, and `list`, `==` gives `False` and
     `!=` gives `True`.
   - Through NumPy, comparison with an unsupported operand, such as a
-    nonscalar ndarray or a complex NumPy scalar, raises `TypeError`.
+    nonscalar ndarray or, over R and finite fields, a complex NumPy scalar,
+    raises `TypeError`.
   - Comparison with a scalar can raise that scalar's own exceptions; for
     example, comparing with `Decimal("sNaN")` raises
     `decimal.InvalidOperation` when that decimal trap is enabled.
@@ -576,12 +583,15 @@ their leading axes.
 - **Copying.** Numeric input that cannot be shared is converted and copied,
   unless `copy=False` forbids it. When finite-field coefficients are copied,
   integers are reduced modulo `char` before being stored as `uint32`.
-- **Checks.** Before writing any output, every operation checks again that
-  finite-field storage holds canonical residues.
+- **Checks.** Before writing any output, every arithmetic operation checks
+  again that finite-field storage holds canonical residues. Comparison,
+  indexing and copying do not: `==` compares the stored words, and copies
+  reduce them modulo `char`.
 - **Overlap.** Inputs are read-only and may share storage, as in
   `X[:-1] * X[1:]` or `X * X[:1]`, as long as each pair of corresponding
-  elements is either identical or disjoint. Partially overlapping elements
-  raise `ValueError`.
+  elements is either identical or disjoint. Native operations reject
+  partially overlapping elements with `ValueError`; real array addition,
+  subtraction, and equality are performed by NumPy and accept them.
 
 ### NumPy interfaces
 
@@ -589,7 +599,8 @@ their leading axes.
 - `ElementArray.__array__` returns a view unless a dtype change or
   `copy=True` requires a copy.
 - Both classes support `np.add`, `np.subtract`, `np.multiply`,
-  `np.true_divide` by a real scalar, `np.power` with an integer exponent,
+  `np.true_divide` by a coefficient scalar (or, over a finite field, an
+  array of field scalars), `np.power` with an integer exponent,
   `np.negative`, `np.positive`, `np.square`, `np.conjugate`,
   `np.absolute`, `np.equal`, and `np.not_equal`. Only `np.multiply` accepts
   `out=`; with an ndarray `out` it returns that ndarray, whereas
@@ -599,7 +610,9 @@ their leading axes.
 - Functions that are not ufuncs, such as `np.mean` and `np.stack`, read the
   coefficients through `__array__` or the buffer and follow ordinary NumPy
   semantics: `np.mean(x)` returns a NumPy scalar when every axis is reduced,
-  and `np.stack` returns a plain ndarray.
+  and `np.stack` returns a plain ndarray. Reductions that NumPy implements
+  as ufunc methods, such as `np.sum`, `np.prod` and `np.max`, raise
+  `TypeError`; apply them to `.coefficients`.
 
 ### DLPack interfaces
 
@@ -627,7 +640,8 @@ storage.
 
 - `TypeError`
 
-  An unsupported operand or dtype, an invalid index type for an element or
+  An unsupported operand or dtype (a wrong `out` dtype over C or a finite
+  field raises `ValueError` instead), an invalid index type for an element or
   basis index (array indexing follows NumPy and raises `IndexError`),
   direct class construction, a non-`bool` copy flag, or a non-string
   algorithm name.
@@ -660,9 +674,9 @@ storage.
 
 Native operations do not raise on NaN, infinity, or overflow. NumPy's error
 settings apply to the coordinate operations that NumPy itself performs on
-`ElementArray` operands: addition, subtraction, scaling, scalar division,
-and equality. `Element` arithmetic is native and never raises on these
-conditions.
+real `ElementArray` operands: addition, subtraction, scaling, scalar
+division, and equality. Complex and finite-field arrays and all `Element`
+arithmetic are native and never raise on these conditions.
 
 ---
 

@@ -112,8 +112,8 @@ if(NOT MSVC)
     target_link_libraries(fastcd PUBLIC m)
 endif()
 
-# Only these translation units contain optional ISA instructions. Portable
-# builds and the existing real kernels retain their original compiler flags.
+# Only these translation units are compiled with optional ISA flags. Portable
+# builds and the real-coefficient kernels use the default compiler flags.
 option(FASTCD_ENABLE_FINITE_SIMD "Runtime-dispatched finite x86 kernels" ON)
 set(FASTCD_HAVE_FINITE_SIMD OFF)
 if(FASTCD_ENABLE_FINITE_SIMD AND NOT FASTCD_TUNING_DEFINITIONS MATCHES "FASTCD_DISABLE_SIMD=1"

@@ -1,6 +1,6 @@
 ![fastCD](https://git.tanuki-cd.com/algebraity/fastCD/raw/branch/main/assets/fastCD.png)
 
-# fastCD - v1.2.0
+# fastCD - v1.3.0
 
 fastCD is a lean C kernel for Cayley–Dickson multiplication over real and complex numbers and finite fields, with a NumPy-compatible Python extension, written for researchers and engineers in need of faster Cayley–Dickson multiplication. The key advantage of fastCD is that it implements a **new O(N log N) algorithm** which, to the author's knowledge, has never been presented before. See the [accompanying paper](https://arxiv.org/abs/2609.11588) for more information on the mathematical foundations and rigorous derivation of correctness and time complexity. fastCD may not be completely suitable for every application, but it is licensed under the [MIT License](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/LICENSE) so that it may be improved upon and adapted to the user's needs completely, with no questions asked.
 
@@ -113,7 +113,7 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 All timings below were measured on 2026-11-09 on a Dell PowerEdge T440 with an Intel Xeon Gold 6148, using one logical CPU per run, GCC 16.2.1 and Linux 7.2.11. The host is shared, and no governor, turbo, or SMT settings were changed.
 
-Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every product of every operand pair was checked against an independent implementation before timing.
+Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every product of every operand pair was also checked against an independent implementation.
 
 The measured source is commit `78228a7`, built from a clean checkout; the archived build records list the SHA-256 of every measured source file. The raw observations, environment, commands, and build records are archived in [benchmark-results/t440-20261109/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261109/), and the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) describes the protocol and how to rerun it.
 

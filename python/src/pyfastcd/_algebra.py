@@ -15,7 +15,6 @@ import numpy as np
 
 from . import _core
 from ._core import Element
-from ._typing import _RealScalar
 from ._validation import (
     COMPLEX_SCALAR_MESSAGE,
     DIFFERENT_ALGEBRA_MESSAGE,
@@ -406,7 +405,7 @@ class Algebra:
                 raise TypeError("coefficient arrays must contain real numeric values")
         return _core._element(self, self.dimension, value)
 
-    def scalar(self, value: _RealScalar) -> Element:
+    def scalar(self, value: Any) -> Element:
         """Return ``value`` embedded in the scalar coordinate.
 
         Parameters
@@ -968,8 +967,8 @@ def cd_element(
         One complete record with a nonempty power-of-two number of CD
         coefficients. Default real and explicit complex/prime-field inputs
         have shape ``(N,)``; finite extensions have shape ``(N, deg)``.
-        An Element argument is copied and keeps its parent unless
-        coefficient selectors are supplied.
+        An Element argument is copied and keeps its parent; selectors, if
+        supplied, must describe that parent.
     char, deg, field : optional
         Coefficient selectors with the same contract as :class:`Algebra`.
         Omitting them selects real coefficients.

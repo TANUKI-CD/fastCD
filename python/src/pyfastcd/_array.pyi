@@ -112,13 +112,19 @@ class ElementArray(Generic[_D, _S, _R, _P, _H]):
         | ElementArray[_D, _S, _R, _P, _H]
         | _RealScalar
         | complex
-        | _FieldScalar,
+        | _FieldScalar
+        | _FieldArray,
     ) -> ElementArray[_D, _S, _R, _P, _H]: ...
     def __rmul__(
-        self, other: Element[_D, _S, _P, _H] | _RealScalar | complex | _FieldScalar
+        self,
+        other: Element[_D, _S, _P, _H]
+        | _RealScalar
+        | complex
+        | _FieldScalar
+        | _FieldArray,
     ) -> ElementArray[_D, _S, _R, _P, _H]: ...
     def __truediv__(
-        self, other: _RealScalar | complex | _FieldScalar
+        self, other: _RealScalar | complex | _FieldScalar | _FieldArray
     ) -> ElementArray[_D, _S, _R, _P, _H]: ...
     def __pow__(
         self, exponent: SupportsIndex, modulus: None = None

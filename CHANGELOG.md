@@ -5,7 +5,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
-## [Unreleased]
+## [1.3.0] - 2026-11-10
 
 ### Added
 
@@ -22,6 +22,9 @@ All notable changes to fastCD are recorded in this file. The project follows
   which is not distributed.
 - The benchmark run of 2026-11-09 in `benchmark-results/t440-20261109/`,
   which the README tables and `docs/benchmark.md` report.
+- `tools/check_cariow_counts.py`, which checks the Cariow–Cariowa operation
+  counts in `docs/mathematics.md` through dimension 1024, and a CI job that
+  runs it.
 
 ### Changed
 
@@ -29,11 +32,13 @@ All notable changes to fastCD are recorded in this file. The project follows
   in blocks of eight with a balanced tree between blocks: in the quasilinear
   kernels, in the complex-coefficient pairing shared by quadratic norms,
   squares, anticommutators and reciprocals, and in the Cariow–Cariowa
-  correction sums above dimension 256. From dimension 16 upward,
-  quasilinear products and the complex-coefficient operations that use the
-  pairing can round differently from 1.2.0, as can Cariow–Cariowa results at
-  dimensions 512 and 1024. Direct and finite-field results, the public API,
-  workspace sizes and the published arithmetic counts are unchanged.
+  correction sums above dimension 256. Real quasilinear products from
+  dimension 16 upward, complex quasilinear products from dimension 4
+  upward, and the complex-coefficient operations that use the pairing from
+  dimension 16 upward can round differently from 1.2.0, as can
+  Cariow–Cariowa results at dimensions 512 and 1024. Direct and
+  finite-field results, the public API, workspace sizes and the published
+  arithmetic counts are unchanged.
 - Over C and finite fields, AUTO selects direct multiplication up to
   dimension 4. Finite-field direct multiplication uses the packed field
   arithmetic of the quasilinear kernels from dimension 16 on.
@@ -41,12 +46,17 @@ All notable changes to fastCD are recorded in this file. The project follows
   products at dimension 4. Batches at dimension 4 still use quasilinear
   where the two-lane SIMD kernels are built; other builds follow the
   single-product choice for batches, as before.
-- The finite-field and FLINT benchmark runners time each block at its own
-  stack offset, spread over a 4 KB page, so that the observations of a cell
-  do not share one stack placement.
+- The benchmark runners for finite fields and for the comparison with FLINT
+  (Fast Library for Number Theory), an independent exact-arithmetic C
+  library, time each block at its own stack offset, spread over a 4 KB page,
+  so that the observations of a cell do not share one stack placement.
 - The benchmark runners are built with branch padding where the compiler
   supports it, so that timing loops do not depend on 32-byte code placement
   on Skylake-family processors. The library is built as before.
+- `tools/check_v110_compat.py` accepts the two differences that the
+  compatibility rules permit: floating-point results that differ by
+  rounding, and a different `"auto"` choice. Every other result must still
+  match v1.1.0 exactly.
 
 ### Fixed
 

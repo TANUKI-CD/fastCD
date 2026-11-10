@@ -5,27 +5,26 @@
 In the quasilinear product, every floating-point sum whose length grows with
 the dimension adds its terms in blocks of eight and combines the block totals
 with a balanced tree. Above dimension 256, the Cariow–Cariowa correction sums
-combine their block totals the same way. The rounding depth of a sum is the
-largest number of additions that any one term passes through on its way to
-the total: `m - 1` for a sequential sum of `m` terms, and at most
-`8 + ceil(log2(ceil(m / 8)))` with balanced accumulation.
+combine their block totals the same way. The number of additions that any one
+term passes through on its way to the total then grows logarithmically with
+the length of the sum instead of linearly.
 
-Errors below are measured in units of `u ||x|| ||y||`, where `u = 2^-53` is
-the unit roundoff of binary64 and the norms are Euclidean (see
-[Error measures](#error-measures)). On 13,584 stored operand pairs, compared
-with an exact reference:
+A study measured the effect on 13,584 cases against an exact reference. It
+compared three methods on the same stored operands: quasilinear
+multiplication with sequential accumulation (S), quasilinear multiplication
+with balanced accumulation (B), and direct multiplication (D). Errors are in
+units of `u ||x|| ||y||`, where `u = 2^-53` is the unit roundoff of binary64
+and the norms are Euclidean (see [Error measures](#error-measures)). The
+results describe the measured corpus; they are not bounds.
 
-- On dense inputs (Gaussian and uniform coordinates), the median error of
-  quasilinear multiplication is within a factor of two of direct
-  multiplication at every tested dimension.
-- The largest error anywhere in the corpus is 3.7 over R and 4.1 over C.
-  Direct multiplication gives 2.9 and 2.2, and sequential accumulation gave
-  78 and 18 on the same inputs.
-- From dimension 64 up, balanced accumulation costs at most 6% on default
-  real products, and 5–13% on complex products and on builds without the
-  explicit SIMD kernels.
-
-These figures describe the measured corpus. They are not bounds.
+- On dense inputs (Gaussian and uniform coordinates), the median error of B
+  is within a factor of two of that of D at every tested dimension.
+- The largest error of B anywhere in the corpus is 3.7 over R and 4.1 over
+  C. The largest errors of D are 2.9 and 2.2, and those of S are 78 and 18.
+- From dimension 64 up, balanced accumulation makes real products at most
+  6% slower with the default SIMD kernels and 9–13% slower without them.
+  Complex products are 5–11% slower, about as much as the timing noise
+  between the two builds.
 
 ## Balanced accumulation
 
@@ -45,8 +44,11 @@ contains four kinds of sum whose length grows with the dimension:
 Here `K = 2^k` is the dimension of the call to `C_k`, and each term of the
 first two sums is one difference `s_i v_i - t_i u_i`. Over C, quadratic
 norms, squares, anticommutators and reciprocals use the complex-coefficient
-pairing and therefore the same accumulation. Over R, `inner`, the norms, the
-square and the anticommutator use sequential sums.
+pairing, so they are balanced as well. Over R, `fastcd_inner_f64`, the norm
+functions, `fastcd_square_f64` and `fastcd_anticommutator_f64` use
+sequential sums. The [octonion leaf](mathematics.md#the-octonion-leaf) and
+the direct kernels contain no floating-point sums of growing length, and
+finite-field arithmetic is exact, so none of them is affected.
 
 ### The summation tree
 
@@ -55,37 +57,40 @@ eight. Each finished block total is combined with the earlier totals like a
 binary counter: whenever two totals cover the same number of blocks, they
 are added. When the terms run out, the remaining totals are added from the
 smallest up, together with the last, partial block. A sum of `m` terms uses
-`m - 1` additions, as a sequential sum does, and its rounding depth is at
-most `8 + ceil(log2(ceil(m / 8)))`. An empty sum is zero and a single
-term is returned as is, so signed zeros are preserved.
+`m - 1` additions, as a sequential sum does. Its rounding depth, the largest
+number of additions that any one term passes through on its way to the
+total, is at most `8 + ceil(log2(ceil(m / 8)))`, against `m - 1` for a
+sequential sum. An empty sum is zero and a single term is returned as is,
+so signed zeros are preserved.
 
 The generated leaves in `src/generated/` unroll the same tree. The scalar,
 two-lane SIMD, single-product and batched paths add every term in the same
-order, so their results agree bitwise. The octonion leaf and the direct kernels
-contain no floating-point sums of growing length, and finite-field arithmetic
-is exact. The
-compile-time option `FASTCD_SUM_BLOCK` sets the block size to 1, 4, 8 or 16;
-the generated leaves always use 8.
+order, so their results agree bit for bit. The compile-time option
+`FASTCD_SUM_BLOCK`, used to time other block sizes (see [Cost](#cost)), sets
+the block size to 1, 4, 8 or 16; the generated leaves always use 8.
 
 ### Cariow–Cariowa correction sums
 
 Cariow–Cariowa computes each output coordinate as an entry of a
-Walsh–Hadamard convolution minus twice a correction sum of `N/2 - 1`
-selected products. From dimension 128 on, each correction sum is split into
-blocks of 256 indices, and within a block the terms go to four interleaved
-partial sums that are combined pairwise. Up to dimension 256 there is only
-one block. Above 256, a balanced tree combines the block totals, so the
-rounding depth of a correction sum is a constant plus `log2(N / 256)`
-instead of growing in proportion to `N`.
+Walsh–Hadamard convolution minus twice a correction sum of at most
+`N/2 - 1` selected products. From dimension 128 on, where the table-driven kernel
+runs, a correction sum is divided into blocks of 256 indices. Within a
+block, the terms go to four interleaved partial sums, which are combined
+pairwise at the end of the block. Through dimension 256 a correction sum
+fits in one block. Above 256, a balanced tree combines the block totals, so
+the rounding depth of a correction sum is a constant plus `log2(N / 256)`
+instead of growing in proportion to `N`. In the sequential build every
+correction sum is a single block, whose four partial sums run over all of
+its terms.
 
 ### Effect on results
 
-Changing the order of additions changes rounding. Compared with sequential
-accumulation, quasilinear results from dimension 16 up, complex-coefficient
-results, and Cariow–Cariowa results at dimensions 512 and 1024 can differ in
-the last bits. Direct and finite-field results are the same under both. The
-operation counts and workspace sizes are those given in
-[mathematics.md](mathematics.md).
+Balanced accumulation changes only the order of additions, so the operation
+counts and workspace sizes in [mathematics.md](mathematics.md) apply to both
+kinds of accumulation. Rounding can differ: quasilinear results from
+dimension 16 up, complex-coefficient results, and Cariow–Cariowa results at
+dimensions 512 and 1024 can round differently from sequential accumulation.
+Direct and finite-field results are identical under both.
 
 ## How accuracy was measured
 
@@ -122,8 +127,9 @@ undefined for such products, so `eta` is the main measure in the tables.
 
 ### Corpus
 
-The corpus has 13,584 paired cases (6,976 real and 6,608 complex) on 12,572
-distinct operand pairs, drawn from 21 real and 19 complex families:
+A case is one operand pair at one dimension, multiplied by S, B and D. The
+corpus has 13,584 cases, 6,976 real and 6,608 complex, drawn from 21 real
+and 19 complex families:
 
 - **Dense:** unit-norm Gaussian and uniform coordinates, and exactly
   representable Rademacher coordinates.
@@ -141,22 +147,29 @@ distinct operand pairs, drawn from 21 real and 19 complex families:
   `2^-40`.
 
 Real dimensions run from 2 to 2048 and complex dimensions from 2 to 512,
-with 512 dense pairs per dimension through 32 and fewer above. Seeds derive
+with 512 dense cases per dimension through 32 and fewer above. Seeds derive
 from `numpy.random.SeedSequence(20261105, ...)`, and every operand pair is
-stored with the raw results of the study. Some constructed families repeat identical
-operands across seeds, so their counts overstate their diversity, and groups
-with fewer than 100 samples have unreliable tails.
+stored with the raw results of the study. Some constructed families produce
+the same operands for different seeds, so the 13,584 cases contain 12,572
+distinct operand pairs, and the case counts of those families overstate
+their variety.
 
 ### Builds
 
-Accuracy and timings were measured with GCC 16.2.1 on Linux, using
-`-O3 -DNDEBUG`, `-fno-fast-math -ffp-contract=off`, warnings as errors and
-the default leaf cutoffs, on an Intel Xeon Gold 6148.
+The study compared two builds: the sequential build at commit `982b9da` and
+the balanced build at commit `ffaaf9f`. Both were compiled with GCC 16.2.1
+on Linux, with `-O3 -DNDEBUG`, `-fno-fast-math -ffp-contract=off`, warnings
+as errors and the default leaf cutoffs, and run on an Intel Xeon Gold 6148.
+The quasilinear, Cariow–Cariowa and direct kernels of fastCD 1.3.0 are those
+of the balanced build.
 
 ## Accuracy
 
+### Quasilinear multiplication
+
 The tables below are generated from the archived results by
-`benchmarks/stability_report.py`.
+`benchmarks/stability_report.py`. The full profile is the complete study, as
+opposed to the short smoke profile used to test the tooling.
 
 <!-- BEGIN STABILITY ACCURACY -->
 
@@ -276,52 +289,63 @@ The archived CSV summary also gives, for every family, the count, the median, me
 
 <!-- END STABILITY ACCURACY -->
 
-The medians on dense inputs change little; the differences appear in
-structured inputs. In the long-sum cancellation family at dimension 512,
-`eta` falls from 16.0 with sequential accumulation to 1.08 with balanced
-accumulation over R (direct: 2.87), and from 16.0 to 1.16 over C (direct:
-1.39). For repeated blocks over R it falls from 6.7 to 1.9.
+On dense inputs the medians barely move; balanced accumulation matters most
+where long sums cancel or repeat. In the long-sum cancellation family at
+dimension 512, the median `eta` falls from 16.0 with sequential accumulation
+to 1.08 with balanced accumulation over R, where direct multiplication gives
+2.87, and from 16.0 to 1.16 over C, where it gives 1.39. For repeated blocks
+over R it falls from 6.7 to 1.9.
 
-Reordering a sum cannot improve every input. Pooling the dense cases from
-dimension 32 up, balanced accumulation is more accurate in 66% of real and
-73% of complex cases, and less accurate in 27% of each. The largest
-increases in `eta` are from 0.60 to 1.83, for a real dimension-16 input with
-`y = -x + 2^-40 noise`, and from 0.30 to 1.45, for a complex dimension-4
-near-isotropic input. In both cases the error in the non-scalar coordinates
-is the same under both schedules; only the error in the scalar coordinate
-grows.
+No reordering of a sum is more accurate on every input. Pooling the dense
+cases from dimension 32 up, B is more accurate than S in 66% of real and
+73% of complex cases and less accurate in 27% of each. The largest
+increases in `eta` are from 0.60 to 1.83, for a real dimension-16 input
+with `y = -x + 2^-40 noise`, and from 0.30 to 1.45, for a complex
+dimension-4 near-isotropic input. In both, only the error of the scalar
+coordinate grows; the other coordinates are equally accurate with either
+kind of accumulation.
 
-Of the 7,788 cases recorded as ties, 7,573 have exactly equal errors. The
-other 215 are near-zero-divisor cases whose exact squared errors differ by
-less than the precision of the stored results: 152 favor balanced
-accumulation and 63 favor sequential accumulation.
+The tables count a case as tied when B and S have the same stored error. Of
+the 7,788 tied cases, 7,573 have exactly equal errors. The other 215 are
+near-zero-divisor cases whose errors differ by less than the precision of
+the stored values; by their exact squared errors, 152 favor balanced and 63
+favor sequential accumulation.
 
-Near a zero divisor the relative error can be large for every algorithm. At
-perturbation `2^-52` and dimension 512, both quasilinear schedules give a
-relative error of about 0.64, with `eta` about 1.27 and `chi` about
-`4.5e15`, while direct multiplication is nearly exact on these sparse
-inputs. Since `E_rel = u eta chi`, the relative error is large wherever
-`chi` is.
+Near a zero divisor the relative error can be large for every method, since
+`E_rel = u eta chi` and `chi` is large there. At perturbation `2^-52` and
+dimension 512, S and B both have a relative error of about 0.64, with `eta`
+about 1.27 and `chi` about `4.5e15`, while D is nearly exact on these sparse
+inputs.
 
-For Cariow–Cariowa, balanced correction sums affect only dimensions 512 and
-1024. On the 6,808 real cases that Cariow–Cariowa supports, 265 improve, 23
-worsen and 6,520 tie, after ties in the stored errors are resolved with
-exact squared errors. Every dense case at 512 and 1024 improves. At 1024
-the median relative error falls from `6.2e-16` to `4.3e-16` and the median
-`eta` from 5.59 to 3.80, and the largest `eta` over all Cariow–Cariowa
-cases falls from 183 to 80. The largest increase is a repeated-block input
-at 512, from 35.3 to 41.4.
+### Cariow–Cariowa
+
+Balanced correction sums change Cariow–Cariowa results only at dimensions
+512 and 1024. Of the 6,808 real cases that Cariow–Cariowa supports, 265 are
+more accurate with balanced correction sums, 23 are less accurate and 6,520
+are tied, where ties in the stored errors are decided by exact squared
+errors. Every dense case at 512 and 1024 is more accurate. At 1024 the
+median relative error falls from `6.2e-16` to `4.3e-16` and the median
+`eta` from 5.59 to 3.80, and the largest `eta` among all Cariow–Cariowa
+cases falls from 183 to 80. The largest increase is for a repeated-block
+input at 512, from 35.3 to 41.4. The archived `cc-accuracy-summary.json`
+holds the details.
 
 ## Cost
 
-`benchmarks/stability_speed.py` timed the sequential and balanced builds on
-the same corpus and host with the native benchmark drivers. In each of
-twelve paired blocks on one logical CPU, both builds time the same products;
-the order of the two builds alternates between blocks. Each observation has
-two warmup passes and a 20 ms calibration target, and the drivers verify
-every timed product. The scalar rows are builds without the explicit SIMD
-kernels.
-`benchmarks/stability_speed_report.py` generates the table.
+`benchmarks/stability_speed.py` timed both builds with the native benchmark
+runners on separate timing corpora of uniform random operands, on one
+logical CPU, in twelve paired blocks.
+In each block both builds time the same products, and which build goes
+first alternates from block to block. Each observation has two warmup passes
+and a 20 ms calibration target, and every timed product is verified.
+
+In the table, generated by `benchmarks/stability_speed_report.py`, the
+`simd` rows use the default build and the `scalar` rows a build without the
+explicit SIMD kernels. The balanced/sequential ratio and the direct control
+are medians of the twelve per-block ratios. The direct control divides the
+direct time in the balanced build by the direct time in the sequential
+build. The direct code is the same in both, so the control shows how much
+two builds of the same code differ in time on this host.
 
 <!-- BEGIN STABILITY SPEED PERFORMANCE -->
 
@@ -360,27 +384,29 @@ Paired timings on one host: 12 blocks pinned to CPU 18. Times are medians in ns 
 
 <!-- END STABILITY SPEED PERFORMANCE -->
 
-For default real products, balanced accumulation costs 5.9% (single) and
-3.5% (batch) at dimension 64, 1.0% and 3.1% at 256, and 1.5% and 5.0% at
-1024. Without the explicit SIMD kernels, real products cost 9–13% more from
-dimension 64 up. Complex products cost 5–9% more at 64 and 6–11% more at
-256. These are medians of paired ratios. The direct control varies by up to
-6% between the builds for real products, so differences of a few percent are
-within the noise of a shared host. In the complex rows the control itself is
-1.06 to 1.11, about the size of the measured overhead. With balanced
-accumulation, quasilinear multiplication is about 19 times faster than direct
-multiplication at dimension 1024.
+For real products the direct control lies between 0.96 and 1.06, so
+differences of a few percent are noise between builds. From dimension 64
+up, balanced accumulation costs at most 6% on the default build, within
+that range, and a consistent 9–13% on builds without the SIMD kernels,
+outside it. For complex products the cost, 5–11% from dimension 64 up, is
+about the size of the complex control, 1.06 to 1.11, so this study cannot
+separate it from the difference between builds. Even with balanced
+accumulation, quasilinear multiplication is about 19 times faster than
+direct multiplication at dimension 1024.
 
-For Cariow–Cariowa, the paired ratio of balanced correction sums to
-single-block correction sums is 1.03 (single) and 1.11 (batch) at dimension
-512, and 1.03 and 1.00 at 1024, on the default build; without the explicit
-SIMD kernels it is 1.02 to 1.08. The 95% interval of the single-product
-ratio at 1024 is `[0.959, 1.069]`.
+Cariow–Cariowa was timed the same way, with balanced correction sums against
+the single-block correction sums of the sequential build; the archived
+`cc-speed-tables.md` holds the table. Its direct control lies between 0.95
+and 1.05. Only two ratios exceed that range: batches at dimension 512 on the
+default build, which are 11% slower with balanced correction sums, and
+single products at 512 without the SIMD kernels, which are 8% slower. The
+other ratios at 512 and 1024 lie between 1.00 and 1.05.
 
-Block sizes 4, 8 and 16 were timed with the same drivers. A block size of 4
-was up to 9% slower than 8, and no group was measurably faster; 16 was up to
-7% faster on some real products and up to 3% slower on others, and 1–7%
-slower on complex products. The default is 8.
+Blocks of 4, 8 and 16 were timed with the same runners
+(`benchmarks/stability_block_size.py`; archived in `block-size-tables.md`).
+Blocks of 4 were up to 9% slower than blocks of 8 and never measurably
+faster. Blocks of 16 were up to 7% faster on some real products but up to
+3% slower on others and 1–7% slower on complex products. The default is 8.
 
 ## Tests and checks
 
@@ -390,15 +416,16 @@ slower on complex products. The default is 8.
   three sums together. It then checks real and complex single products and
   odd-length strided batches at dimensions 2 through 512 against a
   signed-XOR oracle on exact dyadic inputs, with workspace canaries, minimum
-  and short workspaces, and forbidden aliasing.
+  and short workspaces, and forbidden aliasing. CI runs it with GCC and
+  Clang on Linux, Clang on macOS and MSVC on Windows.
 - `tools/check_quasilinear_counts.py` confirms the operation counts in
   [mathematics.md](mathematics.md#operation-counts) through dimension 1024.
-- The study compares scalar, SIMD, single and batched quasilinear products
-  bit for bit on all 13,584 pairs (40,752 comparisons), and the same four
-  forms of Cariow–Cariowa products on all 6,808 real pairs through dimension
-  1024 (20,424 comparisons), with no mismatches. The accuracy study also
-  checks that the two builds give bit-for-bit identical direct products on
-  every pair.
+- The study compared the scalar, SIMD, single-product and batched forms of
+  quasilinear multiplication bit for bit in all 13,584 cases (40,752
+  comparisons), and the same four forms of Cariow–Cariowa in all 6,808 real
+  cases through dimension 1024 (20,424 comparisons), with no mismatches. It
+  also checked that the two builds give bit-for-bit identical direct
+  products in every case.
 
 ## Limitations
 
@@ -410,9 +437,8 @@ slower on complex products. The default is 8.
 - Composite operations (associators, operator commutators, reciprocals)
   multiply already-rounded intermediates and were not measured; the product
   results above do not describe them.
-- Accuracy and timings were measured only with GCC on Linux. CI also builds
-  and tests the library with Clang. MSVC builds, which use `/fp:precise` and
-  the same C11 source, have not been run.
+- Accuracy and timings were measured only with GCC on Linux. Other compilers
+  run the regression test in CI but were not part of the study.
 - Bitwise agreement across versions or across compilers is not promised.
 
 ## Archives and reproduction
@@ -421,7 +447,7 @@ The study is in
 [`benchmark-results/stability-20261107/`](../benchmark-results/stability-20261107/README.md),
 whose README lists every file. Its published files are in the repository and
 the source distributions: summaries, tables, charts, build records, and
-`key-figures.json`, which holds every figure quoted on this page. Raw
+`key-figures.json`, which holds the key figures quoted on this page. Raw
 per-case results, stored operands, timing observations and logs are under
 `raw/`; they stay on the machine that ran the study and are not distributed.
 `SHA256SUMS` lists both.
