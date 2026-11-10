@@ -238,11 +238,13 @@ if(FASTCD_BUILD_BENCHMARK)
             ${PROJECT_SOURCE_DIR}/src/finite)
         target_include_directories(fastcd_flint_benchmark SYSTEM PRIVATE
             ${FASTCD_FLINT_INCLUDE_DIR})
-        target_link_libraries(fastcd_flint_benchmark PRIVATE fastcd::fastcd)
+        # Link the library found above even when pkg-config succeeds: some
+        # flint.pc files (Ubuntu 24.04's FLINT 3.0.1) list only -lgmp -lmpfr
+        # and omit -lflint, so pkg-config contributes just the dependencies.
+        target_link_libraries(fastcd_flint_benchmark PRIVATE
+            fastcd::fastcd ${FASTCD_FLINT_LIBRARY})
         if(TARGET PkgConfig::FLINT)
             target_link_libraries(fastcd_flint_benchmark PRIVATE PkgConfig::FLINT)
-        else()
-            target_link_libraries(fastcd_flint_benchmark PRIVATE ${FASTCD_FLINT_LIBRARY})
         endif()
         fastcd_configure_target(fastcd_flint_benchmark)
     endif()
