@@ -119,6 +119,15 @@ BUILD_TESTING = false
 FASTCD_BUILD_BENCHMARK = false
 FASTCD_BUILD_PYTHON = true
 
+# Wheels for the release workflow. Free-threaded builds are skipped because the
+# extension modules do not declare free-threading support, and CPython 3.15
+# because CI does not test it yet.
+[tool.cibuildwheel]
+archs = ["auto64"]
+skip = ["cp31?t-*", "cp315-*"]
+test-requires = ["pytest>=8"]
+test-command = "python -m pytest -q {project}/python/tests"
+
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers"
 testpaths = ["python/tests", "benchmarks"]

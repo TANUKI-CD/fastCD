@@ -5,6 +5,18 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
+## [Unreleased]
+
+### Fixed
+
+- The generated real quasilinear kernels added a literal zero once at
+  dimension 2 and twice at dimension 4, so they executed 3 and 13 additions
+  where `docs/mathematics.md` counts 2 and 12. The generator no longer emits
+  these operations. A real quasilinear product at dimension 2 or 4 can now
+  return `-0.0` in a coordinate where it returned `0.0`; no other result
+  changes. `tools/check_quasilinear_counts.py` now fails on any operation
+  with a fixed zero operand instead of treating it as free.
+
 ## [1.3.0] - 2026-11-10
 
 ### Added

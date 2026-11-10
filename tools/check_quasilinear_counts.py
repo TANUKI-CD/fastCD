@@ -3,8 +3,10 @@
 
 Requires a C++ compiler only for this development check. The library remains
 C11. Operator instrumentation distinguishes input-dependent products from
-fixed scalings; known-zero operations and sign changes are free, as in the
-paper. These are arithmetic counts, not machine-instruction counts.
+fixed scalings; sign changes are free, as in the paper. The paper omits
+known-zero terms, so an operation with a fixed zero operand is an error: a
+compiler must keep 0.0 + t under IEEE semantics. These are arithmetic counts,
+not machine-instruction counts.
 """
 
 from __future__ import annotations
@@ -27,19 +29,17 @@ struct Number {
     bool fixed;
     Number(double v = 0.0, bool f = true) : value(v), fixed(f) {}
 };
-static unsigned long long products, additions, scalings;
+static unsigned long long products, additions, scalings, zero_operands;
 static Number operator-(Number a) { return Number(-a.value, a.fixed); }
 static Number operator+(Number a, Number b) {
     if (a.fixed && b.fixed) return Number(a.value + b.value);
-    if (a.fixed && a.value == 0.0) return b;
-    if (b.fixed && b.value == 0.0) return a;
+    if ((a.fixed && a.value == 0.0) || (b.fixed && b.value == 0.0)) ++zero_operands;
     ++additions;
     return Number(a.value + b.value, false);
 }
 static Number operator-(Number a, Number b) {
     if (a.fixed && b.fixed) return Number(a.value - b.value);
-    if (b.fixed && b.value == 0.0) return a;
-    if (a.fixed && a.value == 0.0) return -b;
+    if ((a.fixed && a.value == 0.0) || (b.fixed && b.value == 0.0)) ++zero_operands;
     ++additions;
     return Number(a.value - b.value, false);
 }
@@ -47,7 +47,7 @@ static Number operator*(Number a, Number b) {
     if (a.fixed && b.fixed) return Number(a.value * b.value);
     if (a.fixed || b.fixed) {
         double constant = a.fixed ? a.value : b.value;
-        if (constant == 0.0) return Number(0.0);
+        if (constant == 0.0) ++zero_operands;
         if (constant != 1.0 && constant != -1.0) ++scalings;
     } else {
         ++products;
@@ -66,8 +66,9 @@ static Number operator*(Number a, Number b) {
 
 static void report(const char* kind, size_t n) {
     std::printf("{\"kind\":\"%s\",\"dimension\":%zu,"
-        "\"M\":%llu,\"A\":%llu,\"S\":%llu,\"T\":%llu}\n",
-        kind, n, products, additions, scalings, products + additions + scalings);
+        "\"M\":%llu,\"A\":%llu,\"S\":%llu,\"T\":%llu,\"zero_operands\":%llu}\n",
+        kind, n, products, additions, scalings, products + additions + scalings,
+        zero_operands);
 }
 int main() {
     for (size_t n = 1; n <= 1024; n *= 2) {
@@ -76,10 +77,10 @@ int main() {
             x[i] = Number(0.25, false); y[i] = Number(0.5, false);
             xi[i] = Number(0.125, false); yi[i] = Number(-0.25, false);
         }
-        products = additions = scalings = 0;
+        products = additions = scalings = zero_operands = 0;
         measured_ql_mul_recursive(out.data(), x.data(), y.data(), n, scratch.data());
         report("full", n);
-        products = additions = scalings = 0;
+        products = additions = scalings = zero_operands = 0;
         measured_complex_cross(out.data(), oi.data(), x.data(), xi.data(),
             y.data(), yi.data(), n, scratch.data());
         report("complex", n);
@@ -121,12 +122,13 @@ def main() -> None:
     for row in rows:
         actual = tuple(row[key] for key in ("M", "A", "S"))
         assert actual == expected(row["kind"], row["dimension"]), row
+        assert row["zero_operands"] == 0, row
     files = ("src/balanced_sum.h", "src/quasilinear_impl.h",
              "src/generated/quasilinear_kernels.h",
              "tools/generate_kernels.py", "tools/check_quasilinear_counts.py")
     document = {
         "status": "ok", "method": "operator-instrumented scalar C++ instantiation",
-        "convention": "paper arithmetic; fixed-zero operations and signs excluded",
+        "convention": "paper arithmetic; signs excluded, fixed-zero operands rejected",
         "compiler": compiler, "counts": rows,
         "source_sha256": {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                           for name in files},

@@ -85,6 +85,10 @@ def cc_masks(dimension: int) -> list[int]:
 # ---------------------------------------------------------------------------
 # Straight-line emitter with symbolic memory
 # ---------------------------------------------------------------------------
+# The symbolic value of a coordinate that is known to vanish
+ZERO = "0.0"
+
+
 class Emitter:
     """Record straight-line operations; emit only those reaching an output."""
 
@@ -102,9 +106,17 @@ class Emitter:
         return self._new(f"{a} {o} {b}")
 
     def add(self, a: str, b: str) -> str:
+        # A known zero is not added: 0.0 + t is not an identity for t = -0.0,
+        # so the compiler would have to keep the operation
+        if ZERO in (a, b):
+            return b if a == ZERO else a
         return self.op(a, "+", b)
 
     def sub(self, a: str, b: str) -> str:
+        if b == ZERO:
+            return a
+        if a == ZERO:
+            return self.neg(b)
         return self.op(a, "-", b)
 
     def mul(self, a: str, b: str) -> str:
@@ -192,7 +204,7 @@ def balanced_sum(e: Emitter, terms: list[str]) -> str:
         blocks += 1
     for level in sorted(levels):
         tail = levels[level] if tail is None else e.add(levels[level], tail)
-    return "0.0" if tail is None else tail
+    return ZERO if tail is None else tail
 
 
 def octonion_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
@@ -256,8 +268,8 @@ def octonion_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
                half(add(e1, e2)), h,
                times_i(sub(half(u), b1)), times_i(half(sub(d1, d2))),
                times_i(half(sub(e1, e2)))]
-    wr(o_r, 0, "0.0")
-    wr(o_i, 0, "0.0")
+    wr(o_r, 0, ZERO)
+    wr(o_i, 0, ZERO)
     for i, value in enumerate(outputs, 1):
         wr(o_r, i, value[0])
         wr(o_i, i, value[1])
@@ -267,8 +279,8 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
                   y_r: Ptr, y_i: Ptr, dim: int, ws: Ptr) -> None:
     if dim <= 2:
         for i in range(dim):
-            wr(o_r, i, "0.0")
-            wr(o_i, i, "0.0")
+            wr(o_r, i, ZERO)
+            wr(o_i, i, ZERO)
         return
     if dim == 8:
         octonion_cross(e, o_r, o_i, x_r, x_i, y_r, y_i)
@@ -280,7 +292,7 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
     gamma = (rd(x_r, half), rd(x_i, half))
     delta = (rd(y_r, half), rd(y_i, half))
     for p in (txr, txi, tyr, tyi):
-        wr(p, 0, "0.0")
+        wr(p, 0, ZERO)
     for i in range(1, half):
         wr(txr, i, e.sub(rd(x_r, i), rd(x_i, half + i)))
         wr(txi, i, e.add(rd(x_i, i), rd(x_r, half + i)))
@@ -337,8 +349,8 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
         wr(o_i, i, first[1])
         wr(o_r, half + i, second[0])
         wr(o_i, half + i, second[1])
-    wr(o_r, 0, "0.0")
-    wr(o_i, 0, "0.0")
+    wr(o_r, 0, ZERO)
+    wr(o_i, 0, ZERO)
     scalar = recover(*(balanced_sum(e, terms) for terms in scalars))
     wr(o_r, half, scalar[0])
     wr(o_i, half, scalar[1])
@@ -347,9 +359,9 @@ def complex_cross(e: Emitter, o_r: Ptr, o_i: Ptr, x_r: Ptr, x_i: Ptr,
 def quasilinear_cross(e: Emitter, out: Ptr, x: Ptr, y: Ptr, dim: int,
                       ws: Ptr) -> None:
     if dim <= 2:
-        wr(out, 0, "0.0")
+        wr(out, 0, ZERO)
         if dim == 2:
-            wr(out, 1, "0.0")
+            wr(out, 1, ZERO)
         return
     half = dim >> 1
     gamma = rd(x, half)
@@ -367,7 +379,7 @@ def quasilinear_cross(e: Emitter, out: Ptr, x: Ptr, y: Ptr, dim: int,
         second = e.sub(second, rd(out, half + i))
         wr(out, i, first)
         wr(out, half + i, second)
-    wr(out, 0, "0.0")
+    wr(out, 0, ZERO)
     wr(out, half, balanced_sum(e, scalar_terms))
 
 
