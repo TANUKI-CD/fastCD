@@ -2,15 +2,15 @@
 #include "pair.h"
 
 /*
- * Direct multiplication: the defining Cayley--Dickson doubling recursion
+ * Direct multiplication by the defining Cayley--Dickson doubling recursion
  *
  *     (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c)),
  *
- * evaluated with four half-dimensional products per level and N^2 real
- * multiplications in total.  Products of dimension at most
- * FASTCD_DIRECT_LEAF are generated straight-line code with hardcoded basis
- * signs; above that, one level of the recursion uses N scratch doubles for
- * one conjugated operand and one partial product.
+ * with four half-dimensional products per level and N^2 real multiplications
+ * in total. Products up to dimension FASTCD_DIRECT_LEAF are generated
+ * straight-line code with hardcoded basis signs. Above that, a recursion level
+ * of dimension n uses n scratch doubles for one conjugated operand and one
+ * partial product.
  */
 
 #ifndef FASTCD_DIRECT_LEAF
@@ -62,7 +62,8 @@ static __attribute__((noinline)) void direct_pair_batch(
 }
 #endif
 
-// Keep the scalar loop's register allocation independent of SIMD dispatch
+// Multiply a validated batch with the scalar kernels, out of line in SIMD
+// builds so the loop's register allocation stays independent of SIMD dispatch
 #if FASTCD_HAVE_PAIR
 __attribute__((noinline))
 #endif
@@ -74,6 +75,7 @@ static void direct_scalar_batch(double* restrict out, size_t out_stride,
         kernel(out + i * out_stride, x + i * x_stride, y + i * y_stride); \
     } \
     return
+    // Generated leaves through the leaf cutoff
     switch (dimension) {
         case 1: FASTCD_DIRECT_BATCH(fastcd_direct_mul_1);
         case 2: FASTCD_DIRECT_BATCH(fastcd_direct_mul_2);
@@ -88,6 +90,7 @@ static void direct_scalar_batch(double* restrict out, size_t out_stride,
         default: break;
     }
 #undef FASTCD_DIRECT_BATCH
+    // Recursive products above the leaf cutoff
     for (size_t i = 0; i < count; i++) {
         fastcd_direct_recursive(out + i * out_stride, x + i * x_stride,
                 y + i * y_stride, dimension, workspace);
@@ -99,6 +102,7 @@ void fastcd_direct_mul_batch(double* restrict out, size_t out_stride,
         const double* x, size_t x_stride, const double* y, size_t y_stride,
         size_t count, size_t dimension, double* restrict workspace) {
 #if FASTCD_HAVE_PAIR
+    // Paired SIMD kernels from dimension 64 up to the pairing limit
     if (count >= 2 && dimension >= 64
             && dimension <= FASTCD_PAIR_MAX_DIMENSION) {
         direct_pair_batch(out, out_stride, x, x_stride, y, y_stride, count,

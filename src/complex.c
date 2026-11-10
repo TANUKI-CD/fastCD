@@ -1,27 +1,26 @@
 /*
  * Standard Cayley--Dickson arithmetic with complex coefficients.
  *
- * The CD involution fixes each complex coefficient; it negates only the
- * non-scalar CD coordinates. Consequently the quadratic form and pairing
- * are bilinear, not Hermitian: Q(x) = sum_i x_i^2 can vanish for x != 0.
+ * The CD involution fixes each complex coefficient and negates only the
+ * non-scalar CD coordinates. The quadratic form and pairing are therefore
+ * bilinear, not Hermitian, and Q(x) = sum_i x_i^2 can vanish for x != 0.
  *
- * Direct multiplication uses the defining four-product recursion. The
- * quasilinear path instantiates the original real path's complex alternating
- * recursion, including its 243-operation complex octonion leaf, and then
- * restores the scalar/imaginary terms of the complete product.
+ * Direct multiplication uses the defining four-product recursion. Quasilinear
+ * multiplication runs the complex alternating recursion of the real kernels,
+ * including the 243-operation complex octonion leaf, and then adds the scalar
+ * and imaginary terms of the full product.
  *
  * Public coefficients are interleaved {real, imag} pairs. The alternating
- * kernel uses separate planes, so packing, outputs, and recursive scratch
- * all live in caller-provided workspace. No original real kernel is changed.
+ * kernel uses separate planes, so packing, outputs and recursive scratch all
+ * live in caller-provided workspace.
  *
- * The auxiliary alternating recursion has two complex children. For the
- * original real-input path they can be conjugate partners, allowing one
- * child at the root; arbitrary complex coefficients do not have that
- * symmetry. Here both children run through the existing complex template.
- * Its auxiliary iota and CD basis units are separate from coefficient-level
- * complex conjugation, which this implementation never uses as the CD star.
+ * The recursion identifies iota with the coefficient i, and every call makes
+ * both recursive calls, because the one-call root needs real halves. The CD
+ * basis units and iota are separate from coefficient conjugation, which is
+ * never used as the CD involution.
  */
 #include "fastcd/complex.h"
+#include "finite_backend.h"
 #include <math.h>
 #include <stdint.h>
 #include <string.h>
@@ -48,7 +47,7 @@
 #endif
 
 // Keep coefficient arithmetic in two explicit doubles, matching public
-// storage without depending on a compiler-specific C complex-number ABI.
+// storage without depending on a compiler-specific C complex-number ABI
 typedef FastCDComplexF64 C;
 
 /* ---------- Complex coefficient arithmetic ---------- */
@@ -82,9 +81,10 @@ static int zero(C a) {
     return a.real == 0.0 && a.imag == 0.0;
 }
 
-/* Scale by the larger component before forming the squared denominator.
- * The caller rejects zero first; a.real^2 + a.imag^2 could overflow even
- * when the reciprocal itself is representable. */
+/* Scale by the larger component before forming the squared denominator,
+ * since a.real^2 + a.imag^2 could overflow when the reciprocal is
+ * representable. The caller rejects zero first. */
+// Invert one nonzero complex coefficient
 static C inverse(C a) {
     C r;
     if (fabs(a.real) >= fabs(a.imag)) {
@@ -105,18 +105,53 @@ static int overlap(const void* a, size_t an, const void* b, size_t bn) {
     return an && bn && (x <= y ? y - x < an : x - y < bn);
 }
 
+/* Kept out of line so that small dots and leaf-only products keep a small
+ * stack frame. */
+// Sum x_i y_i over a range with blocked balanced accumulation, without conjugation
+static FASTCD_NOINLINE C dot_blocks(const C* x, const C* y, size_t begin, size_t n) {
+    c128_BalancedTree2 tree;
+    c128_Sum2 total = {0, 0};
+    tree.blocks = 0;
+    for (size_t base = begin; base < n; base += FASTCD_SUM_BLOCK) {
+        size_t count = n - base < FASTCD_SUM_BLOCK ? n - base : FASTCD_SUM_BLOCK;
+        C first = mul(x[base], y[base]);
+        total.first = first.real;
+        total.second = first.imag;
+        for (size_t i = base + 1; i < base + count; i++) {
+            C term = mul(x[i], y[i]);
+            total.first = total.first + term.real;
+            total.second = total.second + term.imag;
+        }
+        if (count == FASTCD_SUM_BLOCK) c128_sum2_block(&tree, total);
+    }
+    total = c128_sum2_finish(&tree, total, (n - begin) % FASTCD_SUM_BLOCK != 0);
+    C result = {total.first, total.second};
+    return result;
+}
+
+// Sum x_i y_i over a range, folding a short range as one block without tree storage
+static C dot_range(const C* x, const C* y, size_t begin, size_t n) {
+    if (n - begin > FASTCD_SUM_BLOCK) return dot_blocks(x, y, begin, n);
+    C result = {0, 0};
+    if (begin == n) return result;
+    result = mul(x[begin], y[begin]);
+    for (size_t i = begin + 1; i < n; i++) result = add(result, mul(x[i], y[i]));
+    return result;
+}
+
 /* ---------- Defining and quasilinear products ---------- */
 
-/* Evaluate (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c)).
- * This is the same ordered recursion as the original real direct kernel;
- * every conjugation here fixes the complex coefficient field. */
+/* (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c)), in the same order
+ * as the real direct kernel, with every conjugation fixing the complex
+ * coefficients. */
+// Evaluate the defining recursion with complex coefficient arithmetic
 static void direct(C* out, const C* x, const C* y, size_t n, C* work) {
     if (n <= 4) {
-        // Through quaternions, the cyclic orientation gives every basis sign.
-        // Initialize from x[0] y[k] to avoid a redundant add to zero.
-        // XOR identifies the unique partner j for each output k. Products
-        // with j=0 are positive; equal nonzero units square to -1; the
-        // remaining sign follows e1*e2=e3 and its cyclic permutations.
+        /* Through quaternions the cyclic orientation gives every basis sign.
+         * Each sum starts from x[0] y[k], with no initial zero, and XOR gives
+         * the unique partner j of each output k. Products with j = 0 are
+         * positive, equal nonzero units square to -1, and the other signs
+         * follow e1 e2 = e3 and its cyclic permutations. */
         for (size_t k = 0; k < n; k++) {
             C sum = mul(x[0], y[k]);
             for (size_t i = 1; i < n; i++) {
@@ -130,18 +165,18 @@ static void direct(C* out, const C* x, const C* y, size_t n, C* work) {
         return;
     }
     size_t h = n / 2;
-    // Two half-size temporaries precede the shared child workspace.
-    // The four products run sequentially, so none needs separate child scratch.
+    // Two half-size temporaries precede the scratch of the recursive calls,
+    // which run in sequence and share it
     C* temp = work;
     C* product = temp + h;
     C* child = product + h;
-    // Lower half: ac - conjugate(d)b. Keep the multiplication order intact.
+    // Lower half: ac - conjugate(d)b, keeping the multiplication order
     direct(out, x, y, h, child);
     temp[0] = y[h];
     for (size_t i = 1; i < h; i++) temp[i] = neg(y[h + i]);
     direct(product, temp, x + h, h, child);
     for (size_t i = 0; i < h; i++) out[i] = sub(out[i], product[i]);
-    // Upper half: da + b conjugate(c), reusing the same two temporaries.
+    // Upper half: da + b conjugate(c), reusing the two temporaries
     direct(out + h, y + h, x, h, child);
     temp[0] = y[0];
     for (size_t i = 1; i < h; i++) temp[i] = neg(y[i]);
@@ -149,15 +184,16 @@ static void direct(C* out, const C* x, const C* y, size_t n, C* work) {
     for (size_t i = 0; i < h; i++) out[h + i] = add(out[h + i], product[i]);
 }
 
-// Evaluate a validated product; AUTO uses the complex alternating recursion
+// Evaluate a validated product, resolving AUTO by the rule shared with finite fields
 static void product(
         C* out, const C* x, const C* y, size_t n, FastCDAlgorithm alg, double* work) {
+    if (alg == FASTCD_ALGORITHM_AUTO) alg = fastcd_domain_auto_algorithm(n);
     if (alg == FASTCD_ALGORITHM_DIRECT) {
         direct(out, x, y, n, (C*)work);
         return;
     }
-    // Four packed input planes, two result planes, then the original
-    // complex_cross scratch. Coordinate zero of the cross input is ignored.
+    // Four packed input planes, two result planes, then the complex_cross
+    // scratch, with coordinate zero of each input ignored
     double* xr = work;
     double* xi = xr + n;
     double* yr = xi + n;
@@ -171,16 +207,19 @@ static void product(
         yi[i] = y[i].imag;
     }
     c128_complex_cross(rr, ri, xr, xi, yr, yi, n, ri + n);
-    // rr[0],ri[0] are the zero scalar of an alternating product. Assign the
-    // complete product's scalar below instead of treating it as another
-    // imaginary coordinate. Both output planes are consumed before returning.
-    // For x = alpha + X and y = beta + Y, restore alpha Y + beta X
-    // and scalar alpha beta - <X,Y> around the alternating product X cross Y.
+    /* rr[0] and ri[0] hold the zero scalar of the alternating product, and the
+     * full product's scalar is assigned below. For x = alpha + X and
+     * y = beta + Y, add alpha Y + beta X and the scalar alpha beta - <X,Y> to
+     * the alternating product X cross Y. Both result planes are read before
+     * returning. */
     C q = mul(x[0], y[0]);
     for (size_t i = 1; i < n; i++) {
         C cross = {rr[i], ri[i]};
         out[i] = add(cross, add(mul(x[0], y[i]), mul(y[0], x[i])));
-        q = sub(q, mul(x[i], y[i]));
+    }
+    if (n > 1) {
+        C pairing = dot_range(x, y, 1, n);
+        q = sub(q, pairing);
     }
     out[0] = q;
 }
@@ -194,10 +233,10 @@ FastCDStatus fastcd_workspace_size_c128(size_t n, FastCDOperation op, size_t* le
     if (op < FASTCD_OP_MULTIPLY || op > FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR)
         return FASTCD_UNSUPPORTED_ALGORITHM;
     if (n > (SIZE_MAX / sizeof(double) - 64) / 14) return FASTCD_SIZE_OVERFLOW;
-    // A product reserves six N-sized planes plus at most four N-sized
-    // recursion planes. Composites retain two additional complex CD records.
-    // The extra 64 doubles cover small-leaf temporaries conservatively.
-    // Lengths count doubles even though each public coefficient occupies two.
+    /* A product reserves six N-sized planes plus at most four N-sized
+     * recursion planes, and composites add two complex CD records. The extra
+     * 64 doubles cover small-leaf temporaries with a margin. Lengths count
+     * doubles, while each public coefficient occupies two. */
     int composite = op == FASTCD_OP_ASSOCIATOR ||
             op == FASTCD_OP_LEFT_OPERATOR_COMMUTATOR ||
             op == FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR;
@@ -210,9 +249,7 @@ FastCDStatus fastcd_workspace_size_c128(size_t n, FastCDOperation op, size_t* le
 
 // Accumulate the coefficient-bilinear pairing; no scalar is conjugated
 static C dot(const C* x, const C* y, size_t n) {
-    C result = {0, 0};
-    for (size_t i = 0; i < n; i++) result = add(result, mul(x[i], y[i]));
-    return result;
+    return dot_range(x, y, 0, n);
 }
 
 // Validate the entire call before writing output, then apply one record operation
@@ -241,21 +278,21 @@ FastCDStatus fastcd_apply_c128(C* out, const C* x, const C* y, const C* z, size_
     if (need && w->length < need) return FASTCD_INSUFFICIENT_WORKSPACE;
     if ((op == FASTCD_OP_BASIS_LEFT || op == FASTCD_OP_BASIS_RIGHT) && index >= n)
         return FASTCD_INVALID_BASIS_INDEX;
-    // Reductions write one scalar; scale/divide read one scalar on the right.
-    // Other inputs and outputs occupy a complete N-coefficient CD record.
+    /* Reductions write one scalar, and scale and divide read one scalar from
+     * y. Other inputs and outputs occupy complete N-coefficient CD records. */
     size_t bytes = n * sizeof(C),
            ob = (op == FASTCD_OP_INNER || op == FASTCD_OP_QUADRATIC_NORM) ? sizeof(C)
                                                                           : bytes;
     size_t yb = (op == FASTCD_OP_SCALE || op == FASTCD_OP_DIVIDE) ? sizeof(C) : bytes;
-    // Coordinatewise formulas, reciprocal, and square permit exact aliases;
-    // shared scalars are saved before stores. Products require disjoint output.
+    // Coordinatewise formulas, reciprocal and square allow exact aliases and
+    // save shared scalars before storing, while products need a disjoint output
     int alias = op == FASTCD_OP_ADD || op == FASTCD_OP_SUBTRACT ||
             op == FASTCD_OP_NEGATE || op == FASTCD_OP_SCALE || op == FASTCD_OP_DIVIDE ||
             op == FASTCD_OP_CONJUGATE || op == FASTCD_OP_IMAG_PART ||
             op == FASTCD_OP_RECIPROCAL || op == FASTCD_OP_SQUARE;
     double* work = need ? w->data : NULL;
-    // Only the active scratch prefix participates in overlap checks, matching
-    // the original real API when callers supply a larger workspace allocation.
+    // Only the active scratch prefix takes part in overlap checks, as in the
+    // real API, when callers supply a larger workspace
     if ((overlap(out, ob, x, bytes) && !(alias && out == x)) ||
             (binary && overlap(out, ob, y, yb) &&
                     !((op == FASTCD_OP_ADD || op == FASTCD_OP_SUBTRACT) && out == y)) ||
@@ -284,7 +321,7 @@ FastCDStatus fastcd_apply_c128(C* out, const C* x, const C* y, const C* z, size_
                         : x[i];
         }
     } else if (op == FASTCD_OP_SCALE || op == FASTCD_OP_DIVIDE) {
-        // Copy the scalar and reject a zero divisor before the first store.
+        // Copy the scalar and reject a zero divisor before the first store
         t = y[0];
         if (op == FASTCD_OP_DIVIDE) {
             if (zero(t)) return FASTCD_ZERO_NORM;
@@ -294,15 +331,15 @@ FastCDStatus fastcd_apply_c128(C* out, const C* x, const C* y, const C* z, size_
     } else if (op == FASTCD_OP_INNER || op == FASTCD_OP_QUADRATIC_NORM)
         out[0] = dot(x, op == FASTCD_OP_INNER ? y : x, n);
     else if (op == FASTCD_OP_RECIPROCAL) {
-        // Q(x), rather than x != 0, controls existence of this reciprocal.
-        // Computing Q and its inverse first also makes out == x safe.
+        /* Q(x), not x != 0, decides whether this reciprocal exists. Computing Q
+         * and its inverse first also makes out == x safe. */
         q = dot(x, x, n);
         if (zero(q)) return FASTCD_ZERO_NORM;
         t = inverse(q);
         for (size_t i = 0; i < n; i++) out[i] = mul(i ? neg(x[i]) : x[i], t);
     } else if (op == FASTCD_OP_SQUARE || op == FASTCD_OP_ANTICOMMUTATOR) {
-        // Use scalar/imaginary decomposition to avoid a full product.
-        // Preserve alpha, beta and the pairing before any in-place stores.
+        // Use the scalar-imaginary decomposition, saving alpha, beta and the
+        // pairing before any in-place store
         if (op == FASTCD_OP_SQUARE) y = x;
         alpha = x[0];
         beta = y[0];
@@ -314,7 +351,7 @@ FastCDStatus fastcd_apply_c128(C* out, const C* x, const C* y, const C* z, size_
         }
         out[0] = q;
     } else if (op == FASTCD_OP_IMAG_CROSS || op == FASTCD_OP_COMMUTATOR) {
-        // Remove the scalar/imaginary reconstruction terms; [x,y] = 2 X cross Y.
+        // Remove the scalar and imaginary terms, since [x,y] = 2 X cross Y
         product(out, x, y, n, alg, work);
         C a = {0, 0};
         out[0] = a;
@@ -323,7 +360,7 @@ FastCDStatus fastcd_apply_c128(C* out, const C* x, const C* y, const C* z, size_
             out[i] = op == FASTCD_OP_COMMUTATOR ? add(t, t) : t;
         }
     } else if (op == FASTCD_OP_BASIS_LEFT || op == FASTCD_OP_BASIS_RIGHT) {
-        // A basis product is a signed permutation of complete coefficients.
+        // A basis product is a signed permutation of complete coefficients
         for (size_t i = 0; i < n; i++) {
             FastCDBasisProduct b;
             fastcd_basis_product(&b, n, op == FASTCD_OP_BASIS_LEFT ? index : i,
@@ -331,14 +368,14 @@ FastCDStatus fastcd_apply_c128(C* out, const C* x, const C* y, const C* z, size_
             out[b.index] = b.sign < 0 ? neg(x[i]) : x[i];
         }
     } else {
-        // Retain the first parenthesized result in b, build the second in out,
-        // and reuse a plus the same product scratch for every intermediate.
+        // Keep the first parenthesized result in b, build the second in out,
+        // and reuse a with the same product scratch for every intermediate
         C* a = (C*)work;
         C* b = a + n;
         double* scratch = (double*)(b + n);
-        // For associators preserve (xy)z separately from x(yz). Operator
-        // commutators likewise retain their exact left/right parentheses;
-        // higher CD algebras do not permit reassociation of these terms.
+        // Associators keep (xy)z separate from x(yz), and the operator
+        // commutators keep their exact parentheses, because higher CD
+        // algebras do not allow these terms to be reassociated
         if (op == FASTCD_OP_ASSOCIATOR) {
             product(a, x, y, n, alg, scratch);
             product(b, a, z, n, alg, scratch);
@@ -393,8 +430,9 @@ FastCDStatus fastcd_mul_batch_c128(C* out, size_t os, const C* x, size_t xs, con
     if (os < n || (xs && xs < n) || (ys && ys < n)) return FASTCD_INVALID_STRIDE;
     if (!out || !x || !y || !w || !w->data) return FASTCD_NULL_POINTER;
     if (w->length < need) return FASTCD_INSUFFICIENT_WORKSPACE;
-    // Strides count complex coefficients. Zero input strides broadcast;
-    // compute byte spans only after proving the final record fits size_t.
+    /* Strides count complex coefficients, and a zero input stride broadcasts.
+     * Byte spans are computed only after the final record is known to fit
+     * size_t. */
     size_t limit = SIZE_MAX / sizeof(C);
     if (n > limit || count - 1 > (limit - n) / os ||
             (xs && count - 1 > (limit - n) / xs) ||
@@ -407,7 +445,7 @@ FastCDStatus fastcd_mul_batch_c128(C* out, size_t os, const C* x, size_t xs, con
             overlap(w->data, need * 8, out, ob) || overlap(w->data, need * 8, x, xb) ||
             overlap(w->data, need * 8, y, yb))
         return FASTCD_OVERLAPPING_BUFFERS;
-    // Detect all rejected input overlaps before any result is written.
+    // Detect every rejected input overlap before any result is written
     for (size_t i = 0; i < count; i++)
         if (x + i * xs != y + i * ys &&
                 overlap(x + i * xs, n * sizeof(C), y + i * ys, n * sizeof(C)))

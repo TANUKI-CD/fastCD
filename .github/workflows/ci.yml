@@ -1,9 +1,11 @@
-# Runs on the GitHub mirror; the canonical repository is git.tanuki-cd.com.
+# Runs on the canonical repository at git.tanuki-cd.com (Forgejo Actions) and
+# on its GitHub mirror. The *-hosted jobs need GitHub's macOS, Windows and ARM
+# runners, so they run only on GitHub and are skipped on Forgejo.
 name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, stability]
     tags: ["v*"]
   pull_request:
 
@@ -16,9 +18,33 @@ jobs:
       matrix:
         include:
           - { os: ubuntu-latest, cc: gcc, config: Release, extra: "" }
+          - { os: ubuntu-latest, cc: gcc, config: Release, extra: "-DBUILD_SHARED_LIBS=ON" }
           - { os: ubuntu-latest, cc: gcc, config: Debug, extra: "-DFASTCD_ENABLE_SANITIZERS=ON" }
           - { os: ubuntu-latest, cc: clang, config: Release, extra: "-DFASTCD_ENABLE_SANITIZERS=ON" }
           - { os: ubuntu-latest, cc: gcc, config: Release, extra: "-DFASTCD_TUNING_DEFINITIONS=FASTCD_DISABLE_SIMD=1" }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+          -DFASTCD_WARNINGS_AS_ERRORS=ON ${{ matrix.extra }}
+        env:
+          CC: ${{ matrix.cc != 'cl' && matrix.cc || '' }}
+      - name: Build
+        run: cmake --build build --parallel --config ${{ matrix.config }}
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -C ${{ matrix.config }}
+
+  # Same steps as c-library. A job-level `if` cannot read `matrix`, so the
+  # entries that need GitHub-hosted runners live in their own job.
+  c-library-hosted:
+    name: C (${{ matrix.os }}, ${{ matrix.cc }}, ${{ matrix.config }})
+    if: github.server_url == 'https://github.com'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - { os: ubuntu-24.04-arm, cc: gcc, config: Release, extra: "" }
           - { os: macos-latest, cc: clang, config: Release, extra: "" }
           - { os: windows-latest, cc: cl, config: Release, extra: "" }
@@ -35,6 +61,31 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure -C ${{ matrix.config }}
 
+  flint-benchmark:
+    name: Optional FLINT comparison (shared library)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install FLINT development files and Python test tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libflint-dev pkg-config
+          python -m pip install numpy pytest
+      - name: Configure and build all benchmark protocols
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+            -DFASTCD_BUILD_FLINT_BENCHMARK=ON -DFASTCD_WARNINGS_AS_ERRORS=ON
+          cmake --build build --parallel
+      - name: Check arithmetic and benchmark protocols
+        run: |
+          ctest --test-dir build --output-on-failure
+          python -m pytest -q benchmarks
+        env:
+          FASTCD_DOMAINS_RUNNER: ${{ github.workspace }}/build/fastcd_domains_benchmark
+          FASTCD_FLINT_RUNNER: ${{ github.workspace }}/build/fastcd_flint_benchmark
+
   generated-kernels:
     name: Generated kernels are up to date
     runs-on: ubuntu-latest
@@ -44,8 +95,24 @@ jobs:
         with: { python-version: "3.12" }
       - run: python3 tools/generate_kernels.py src/generated
       - run: git diff --exit-code -- src/generated
+      - run: python -m pip install clang-format==18.1.8
+      - run: python3 tools/finite/generate_fields.py
+      - run: python3 tools/finite/generate_finite_backends.py
+      - run: git diff --exit-code -- src/finite/generated src/finite/finite_maps.h src/finite/finite_value.h src/finite/direct_value.h
       - name: Check quasilinear arithmetic counts
         run: python3 tools/check_quasilinear_counts.py
+      - name: Check Cariow-Cariowa arithmetic counts
+        run: python3 tools/check_cariow_counts.py
+
+  stability-archives:
+    name: Stability studies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }  # the checker reads the measured commit
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python tools/check_stability_archives.py
 
   distributions:
     name: Source distribution and installed wheel
@@ -67,17 +134,31 @@ jobs:
         run: |
           python - <<'PY'
           import os
+          import subprocess
           import tarfile
           from pathlib import Path
 
           release = Path(os.environ["RELEASE_DIR"])
           with tarfile.open(next((release / "dist").glob("*.tar.gz"))) as archive:
               prefix = archive.getnames()[0].split("/", 1)[0]
-              for path in Path("benchmark-results").rglob("*"):
-                  if path.is_file():
-                      bundled = archive.extractfile(f"{prefix}/{path.as_posix()}")
-                      assert bundled is not None, path
-                      assert bundled.read() == path.read_bytes(), path
+              # Compare exactly the published archive files, even when local
+              # raw study data happens to be available in the checkout.
+              paths = subprocess.check_output([
+                  "git", "ls-files", "--cached", "--others", "--exclude-standard",
+                  "-z", "--", "benchmark-results",
+              ]).decode().split("\0")
+              published = {name for name in paths if name}
+              for name in published:
+                  path = Path(name)
+                  bundled = archive.extractfile(f"{prefix}/{path.as_posix()}")
+                  assert bundled is not None, path
+                  assert bundled.read() == path.read_bytes(), path
+              # Nothing else under benchmark-results, such as raw study data, may ship.
+              bundled_results = {
+                  member.name.split("/", 1)[1] for member in archive.getmembers()
+                  if member.isfile() and member.name.startswith(f"{prefix}/benchmark-results/")
+              }
+              assert bundled_results == published, sorted(bundled_results ^ published)
               archive.extractall(release / "source", filter="data")
           with Path(os.environ["GITHUB_ENV"]).open("a") as output:
               output.write(f"RELEASE_SOURCE={release / 'source' / prefix}\n")
@@ -87,6 +168,7 @@ jobs:
         run: |
           python -m pip install --no-deps "$RELEASE_DIR"/dist/*.whl
           cd "$RELEASE_SOURCE" || exit 1
+          python tools/check_stability_archives.py
           python -m pytest -q
 
   python:
@@ -99,8 +181,6 @@ jobs:
           - { os: ubuntu-latest, python: "3.10", numpy: "numpy==1.26.*" }
           - { os: ubuntu-latest, python: "3.12", numpy: "numpy" }
           - { os: ubuntu-latest, python: "3.14", numpy: "numpy" }
-          - { os: macos-latest, python: "3.13", numpy: "numpy" }
-          - { os: windows-latest, python: "3.12", numpy: "numpy" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -117,4 +197,28 @@ jobs:
         run: |
           python -m pip install mypy ruff
           python -m mypy
+          python -m mypy python/tests/typing_domains.py
           python -m ruff check python benchmarks tools
+
+  # Same install and test steps as python, gated like c-library-hosted.
+  python-hosted:
+    name: Python ${{ matrix.python }} / ${{ matrix.numpy }} (${{ matrix.os }})
+    if: github.server_url == 'https://github.com'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, python: "3.13", numpy: "numpy" }
+          - { os: windows-latest, python: "3.12", numpy: "numpy" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}" }
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "${{ matrix.numpy }}" pytest
+          python -m pip install .
+      - name: Test
+        run: python -m pytest -q

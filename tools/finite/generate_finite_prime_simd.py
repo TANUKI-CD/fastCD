@@ -22,7 +22,7 @@ def append(lanes, bits, prefix, flags, build=True):
 
     z = f"{p}_setzero_si{bits}()"
     source = []
-    # Child lanes occupy the low branch bits; adjacent groups are coordinates.
+    # Child lanes occupy the low branch bits, and adjacent groups are coordinates
     for batch in [1 << k for k in reversed(range(lanes.bit_length()))]:
         func = f"{name}_node{batch}"
         signature = f"""static void {func}(uint32_t* restrict real,uint32_t* restrict imag,
@@ -93,9 +93,9 @@ def append(lanes, bits, prefix, flags, build=True):
             f"            vr={p}_and_si{bits}(vr,mask);vi={p}_and_si{bits}(vi,mask);",
             f"            sr={p}_and_si{bits}(sr,mask);si={p}_and_si{bits}(si,mask);",
             f"            tr={p}_and_si{bits}(tr,mask);ti={p}_and_si{bits}(ti,mask);}}",
-            f"        {name}_ValueLocal a={name}_vlocal(ur,vr,sr,tr,gp,dp,ctx);",
-            f"        {name}_ValueLocal b={name}_vlocal(ui,vi,si,ti,gq,dq,ctx);",
-            f"        {name}_ValueLocal c={name}_vlocal(add(ur,ui,ctx),add(vr,vi,ctx),add(sr,si,ctx),add(tr,ti,ctx),gw,dw,ctx);",
+            f"        {name}_ValueNonrecursive a={name}_vnonrecursive(ur,vr,sr,tr,gp,dp,ctx);",
+            f"        {name}_ValueNonrecursive b={name}_vnonrecursive(ui,vi,si,ti,gq,dq,ctx);",
+            f"        {name}_ValueNonrecursive c={name}_vnonrecursive(add(ur,ui,ctx),add(vr,vi,ctx),add(sr,si,ctx),add(tr,ti,ctx),gw,dw,ctx);",
             "        ap=add(ap,a.scalar,ctx);aq=add(aq,b.scalar,ctx);aw=add(aw,c.scalar,ctx);",
             f"        Word pr={gather('cr')},pi={gather('ci')};",
             f"        const uint32_t* cmr=cr+{batch};const uint32_t* cmi=ci+{batch};",
@@ -138,7 +138,7 @@ def append(lanes, bits, prefix, flags, build=True):
         Word u={load("x+i")},v={load("y+i")},s={load("x+h+i")},t={load("y+h+i")};
         if(i==0) {{u={p}_and_si{bits}(u,mask);v={p}_and_si{bits}(v,mask);
             s={p}_and_si{bits}(s,mask);t={p}_and_si{bits}(t,mask);}}
-        {name}_ValueLocal a={name}_vlocal(u,v,s,t,gamma,delta,ctx);
+        {name}_ValueNonrecursive a={name}_vnonrecursive(u,v,s,t,gamma,delta,ctx);
         scalar=add(scalar,a.scalar,ctx);
         Word f=add({load("out+i")},a.first,ctx),g=sub(a.second,{load("out+h+i")},ctx);
         {store("out+i", "f")};{store("out+h+i", "g")};
@@ -176,7 +176,7 @@ def append(lanes, bits, prefix, flags, build=True):
                 + ",".join(map(str, idx))
                 + "),a)"
             )
-        # A negative lane uses b-a; the other lanes use a+b.
+        # A negative lane uses b-a and the other lanes use a+b
         mask = [-1 if i & width else 0 for i in range(lanes)]
         maskexpr = f"{p}_setr_epi32(" + ",".join(map(str, mask)) + ")"
         perm += [

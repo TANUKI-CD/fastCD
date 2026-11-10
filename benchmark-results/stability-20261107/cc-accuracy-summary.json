@@ -1,0 +1,5051 @@
+{
+  "schema": "fastcd-stability-cc-accuracy-1",
+  "completed": true,
+  "command": [
+    "/hdd/math/fastCD/build/review-venv/bin/python",
+    "/hdd/math/fastCD/build/stability-work/measured-source/benchmarks/stability_cc_accuracy.py",
+    "--accuracy",
+    "/hdd/math/fastCD/benchmark-results/stability-20261107/raw/accuracy.json",
+    "--baseline",
+    "/hdd/math/fastCD/build/stability-work/builds/baseline-simd/libfastcd.so.1.2.0",
+    "--measured",
+    "/hdd/math/fastCD/build/stability-work/builds/balanced-simd/libfastcd.so.1.2.0",
+    "--output",
+    "/hdd/math/fastCD/benchmark-results/stability-20261107/raw/cc-accuracy.json",
+    "--summary",
+    "/hdd/math/fastCD/benchmark-results/stability-20261107/cc-accuracy-summary.json"
+  ],
+  "accuracy_sha256": "9deb72e73b2c9d44ba722a00acdb820e089fe55a7330cb856e96581192f9771c",
+  "baseline_library_sha256": "41a41a6a2524b7a6aa6122f87f9bb67da5be84a81afc883e79b0506408a3e934",
+  "measured_library_sha256": "1fc55f1f7af9ba5a43dbc086dd40a59d51ba382b5a5d9191b172926cecb97b80",
+  "aggregate": {
+    "samples": 6808,
+    "improved": 265,
+    "worsened": 23,
+    "tied": 6520,
+    "baseline": {
+      "median_normalized": 1.4100248206949426,
+      "p99_normalized": 13.319048240126234,
+      "maximum_normalized": 183.32809378559716,
+      "median_relative": 1.7837179235111052e-16,
+      "maximum_relative": 0.9527276107450774,
+      "median_scalar": 2.76742317372974e-17
+    },
+    "measured": {
+      "median_normalized": 1.4054512412930742,
+      "p99_normalized": 12.793767455493924,
+      "maximum_normalized": 79.74420967658331,
+      "median_relative": 1.7821242777410382e-16,
+      "maximum_relative": 0.9527276107450774,
+      "median_scalar": 2.76742317372974e-17
+    }
+  },
+  "dense_by_dimension": [
+    {
+      "dimension": 2,
+      "samples": 512,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 512,
+      "baseline": {
+        "median_normalized": 0.7284869098427359,
+        "p99_normalized": 1.9188758938471766,
+        "maximum_normalized": 2.657228657753178,
+        "median_relative": 8.08782940445436e-17,
+        "maximum_relative": 2.9501164375313783e-16,
+        "median_scalar": 3.393660242045611e-17
+      },
+      "measured": {
+        "median_normalized": 0.7284869098427359,
+        "p99_normalized": 1.9188758938471766,
+        "maximum_normalized": 2.657228657753178,
+        "median_relative": 8.08782940445436e-17,
+        "maximum_relative": 2.9501164375313783e-16,
+        "median_scalar": 3.393660242045611e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "samples": 512,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 512,
+      "baseline": {
+        "median_normalized": 0.9941965226650739,
+        "p99_normalized": 2.6635211968878174,
+        "maximum_normalized": 3.945826120865854,
+        "median_relative": 1.1037798704650313e-16,
+        "maximum_relative": 4.380747010552637e-16,
+        "median_scalar": 4.519185778589009e-17
+      },
+      "measured": {
+        "median_normalized": 0.9941965226650739,
+        "p99_normalized": 2.6635211968878174,
+        "maximum_normalized": 3.945826120865854,
+        "median_relative": 1.1037798704650313e-16,
+        "maximum_relative": 4.380747010552637e-16,
+        "median_scalar": 4.519185778589009e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "samples": 512,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 512,
+      "baseline": {
+        "median_normalized": 1.4530364227912056,
+        "p99_normalized": 3.0599737107605196,
+        "maximum_normalized": 4.709745958170786,
+        "median_relative": 1.61319449220177e-16,
+        "maximum_relative": 5.228868402896476e-16,
+        "median_scalar": 5.038099544053708e-17
+      },
+      "measured": {
+        "median_normalized": 1.4530364227912056,
+        "p99_normalized": 3.0599737107605196,
+        "maximum_normalized": 4.709745958170786,
+        "median_relative": 1.61319449220177e-16,
+        "maximum_relative": 5.228868402896476e-16,
+        "median_scalar": 5.038099544053708e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "samples": 512,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 512,
+      "baseline": {
+        "median_normalized": 1.8584870631241779,
+        "p99_normalized": 3.2531303008605685,
+        "maximum_normalized": 4.156845645041145,
+        "median_relative": 2.0910511270717716e-16,
+        "maximum_relative": 4.653150241110152e-16,
+        "median_scalar": 5.592545993672173e-17
+      },
+      "measured": {
+        "median_normalized": 1.8584870631241779,
+        "p99_normalized": 3.2531303008605685,
+        "maximum_normalized": 4.156845645041145,
+        "median_relative": 2.0910511270717716e-16,
+        "maximum_relative": 4.653150241110152e-16,
+        "median_scalar": 5.592545993672173e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "samples": 512,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 512,
+      "baseline": {
+        "median_normalized": 2.420878263269757,
+        "p99_normalized": 3.535990140781359,
+        "maximum_normalized": 4.339616471513958,
+        "median_relative": 2.717444063854167e-16,
+        "maximum_relative": 4.496081345746277e-16,
+        "median_scalar": 5.621922749740499e-17
+      },
+      "measured": {
+        "median_normalized": 2.420878263269757,
+        "p99_normalized": 3.535990140781359,
+        "maximum_normalized": 4.339616471513958,
+        "median_relative": 2.717444063854167e-16,
+        "maximum_relative": 4.496081345746277e-16,
+        "median_scalar": 5.621922749740499e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "samples": 192,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 192,
+      "baseline": {
+        "median_normalized": 3.074790698934776,
+        "p99_normalized": 4.06461630772095,
+        "maximum_normalized": 4.113414790106732,
+        "median_relative": 3.365145349147465e-16,
+        "maximum_relative": 4.790615120266435e-16,
+        "median_scalar": 4.871886080222938e-17
+      },
+      "measured": {
+        "median_normalized": 3.074790698934776,
+        "p99_normalized": 4.06461630772095,
+        "maximum_normalized": 4.113414790106732,
+        "median_relative": 3.365145349147465e-16,
+        "maximum_relative": 4.790615120266435e-16,
+        "median_scalar": 4.871886080222938e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "samples": 192,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 192,
+      "baseline": {
+        "median_normalized": 2.9618209875649266,
+        "p99_normalized": 3.5497064201812876,
+        "maximum_normalized": 3.8673926254619975,
+        "median_relative": 3.291468157741397e-16,
+        "maximum_relative": 4.2480432369205494e-16,
+        "median_scalar": 3.567669490201504e-17
+      },
+      "measured": {
+        "median_normalized": 2.9618209875649266,
+        "p99_normalized": 3.5497064201812876,
+        "maximum_normalized": 3.8673926254619975,
+        "median_relative": 3.291468157741397e-16,
+        "maximum_relative": 4.2480432369205494e-16,
+        "median_scalar": 3.567669490201504e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "samples": 64,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 64,
+      "baseline": {
+        "median_normalized": 3.48918488707247,
+        "p99_normalized": 3.863905621452554,
+        "maximum_normalized": 3.9188300225013504,
+        "median_relative": 3.899793541508673e-16,
+        "maximum_relative": 4.4026738430644254e-16,
+        "median_scalar": 4.104567141850467e-17
+      },
+      "measured": {
+        "median_normalized": 3.48918488707247,
+        "p99_normalized": 3.863905621452554,
+        "maximum_normalized": 3.9188300225013504,
+        "median_relative": 3.899793541508673e-16,
+        "maximum_relative": 4.4026738430644254e-16,
+        "median_scalar": 4.104567141850467e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "samples": 64,
+      "improved": 64,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 4.35646891681964,
+        "p99_normalized": 4.757814054685608,
+        "maximum_normalized": 4.803434424092749,
+        "median_relative": 4.842024219865903e-16,
+        "maximum_relative": 5.314177613648885e-16,
+        "median_scalar": 2.5339418398604482e-17
+      },
+      "measured": {
+        "median_normalized": 3.6707725527386597,
+        "p99_normalized": 3.9909880041936496,
+        "maximum_normalized": 3.9970582231484957,
+        "median_relative": 4.091282204422185e-16,
+        "maximum_relative": 4.667127152334637e-16,
+        "median_scalar": 2.5339418398604482e-17
+      }
+    },
+    {
+      "dimension": 1024,
+      "samples": 16,
+      "improved": 16,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.588702296853279,
+        "p99_normalized": 5.771122254513438,
+        "maximum_normalized": 5.775214241703434,
+        "median_relative": 6.220862134053092e-16,
+        "maximum_relative": 6.649257960664455e-16,
+        "median_scalar": 5.949502654690702e-17
+      },
+      "measured": {
+        "median_normalized": 3.796370907972782,
+        "p99_normalized": 3.957137895306467,
+        "maximum_normalized": 3.9605238100749793,
+        "median_relative": 4.2644864922837453e-16,
+        "maximum_relative": 4.519298213108291e-16,
+        "median_scalar": 5.949502654690702e-17
+      }
+    }
+  ],
+  "by_dimension_and_family": [
+    {
+      "dimension": 2,
+      "family": "alternating_magnitude",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.1368683772161603e-13,
+        "p99_normalized": 1.1368683772161603e-13,
+        "maximum_normalized": 1.1368683772161603e-13,
+        "median_relative": 1.262177448353619e-29,
+        "maximum_relative": 1.262177448353619e-29,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 1.1368683772161603e-13,
+        "p99_normalized": 1.1368683772161603e-13,
+        "maximum_normalized": 1.1368683772161603e-13,
+        "median_relative": 1.262177448353619e-29,
+        "maximum_relative": 1.262177448353619e-29,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "correlated_minus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.8519235085335751,
+        "p99_normalized": 2.3050554525032796,
+        "maximum_normalized": 2.307276241883916,
+        "median_relative": 9.458250943934211e-17,
+        "maximum_relative": 2.5615912079101254e-16,
+        "median_scalar": 6.07741229937436e-17
+      },
+      "measured": {
+        "median_normalized": 0.8519235085335751,
+        "p99_normalized": 2.3050554525032796,
+        "maximum_normalized": 2.307276241883916,
+        "median_relative": 9.458250943934211e-17,
+        "maximum_relative": 2.5615912079101254e-16,
+        "median_scalar": 6.07741229937436e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "correlated_plus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.9905837141627811,
+        "p99_normalized": 2.0311184178414936,
+        "maximum_normalized": 2.096049979148523,
+        "median_relative": 1.0997688472822244e-16,
+        "maximum_relative": 2.3270829476157695e-16,
+        "median_scalar": 6.8932769871949e-17
+      },
+      "measured": {
+        "median_normalized": 0.9905837141627811,
+        "p99_normalized": 2.0311184178414936,
+        "maximum_normalized": 2.096049979148523,
+        "median_relative": 1.0997688472822244e-16,
+        "maximum_relative": 2.3270829476157695e-16,
+        "median_scalar": 6.8932769871949e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "dyadic_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "gaussian",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 0.8202880022275327,
+        "p99_normalized": 2.1590563103461595,
+        "maximum_normalized": 2.657228657753178,
+        "median_relative": 9.107026268967785e-17,
+        "maximum_relative": 2.9501164375313783e-16,
+        "median_scalar": 5.584151606979779e-17
+      },
+      "measured": {
+        "median_normalized": 0.8202880022275327,
+        "p99_normalized": 2.1590563103461595,
+        "maximum_normalized": 2.657228657753178,
+        "median_relative": 9.107026268967785e-17,
+        "maximum_relative": 2.9501164375313783e-16,
+        "median_scalar": 5.584151606979779e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "imaginary_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.27080265784874324,
+        "p99_normalized": 0.7457894368713728,
+        "maximum_normalized": 0.7514638034672221,
+        "median_relative": 3.006513458733631e-17,
+        "maximum_relative": 8.342924167817035e-17,
+        "median_scalar": 1.1335269271376927e-17
+      },
+      "measured": {
+        "median_normalized": 0.27080265784874324,
+        "p99_normalized": 0.7457894368713728,
+        "maximum_normalized": 0.7514638034672221,
+        "median_relative": 3.006513458733631e-17,
+        "maximum_relative": 8.342924167817035e-17,
+        "median_scalar": 1.1335269271376927e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "long_sum_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "rademacher",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "recursive_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.9330033897115106,
+        "p99_normalized": 2.2447972276653076,
+        "maximum_normalized": 2.4847657746475726,
+        "median_relative": 1.035841845311037e-16,
+        "maximum_relative": 2.758644173814298e-16,
+        "median_scalar": 6.50884280734984e-17
+      },
+      "measured": {
+        "median_normalized": 0.9330033897115106,
+        "p99_normalized": 2.2447972276653076,
+        "maximum_normalized": 2.4847657746475726,
+        "median_relative": 1.035841845311037e-16,
+        "maximum_relative": 2.758644173814298e-16,
+        "median_scalar": 6.50884280734984e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "repeated",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.0487378738881907,
+        "p99_normalized": 3.1761841102915995,
+        "maximum_normalized": 3.4164038589780694,
+        "median_relative": 1.164332934387103e-16,
+        "maximum_relative": 3.792970225655689e-16,
+        "median_scalar": 7.417274147124022e-17
+      },
+      "measured": {
+        "median_normalized": 1.0487378738881907,
+        "p99_normalized": 3.1761841102915995,
+        "maximum_normalized": 3.4164038589780694,
+        "median_relative": 1.164332934387103e-16,
+        "maximum_relative": 3.792970225655689e-16,
+        "median_scalar": 7.417274147124022e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "repeated_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.8065884813915465,
+        "p99_normalized": 2.208646384203051,
+        "maximum_normalized": 2.2631115603475083,
+        "median_relative": 8.954931034383345e-17,
+        "maximum_relative": 2.512558561593168e-16,
+        "median_scalar": 6.587634048602444e-17
+      },
+      "measured": {
+        "median_normalized": 0.8065884813915465,
+        "p99_normalized": 2.208646384203051,
+        "maximum_normalized": 2.2631115603475083,
+        "median_relative": 8.954931034383345e-17,
+        "maximum_relative": 2.512558561593168e-16,
+        "median_scalar": 6.587634048602444e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "scalar_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.9049482465487155,
+        "p99_normalized": 2.0004107456956257,
+        "maximum_normalized": 2.049524205669284,
+        "median_relative": 1.0046943794125468e-16,
+        "maximum_relative": 2.275428962660624e-16,
+        "median_scalar": 2.2211229926829412e-17
+      },
+      "measured": {
+        "median_normalized": 0.9049482465487155,
+        "p99_normalized": 2.0004107456956257,
+        "maximum_normalized": 2.049524205669284,
+        "median_relative": 1.0046943794125468e-16,
+        "maximum_relative": 2.275428962660624e-16,
+        "median_scalar": 2.2211229926829412e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "scalar_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.2590777942796754,
+        "p99_normalized": 0.7073460879103737,
+        "maximum_normalized": 0.7207209770289076,
+        "median_relative": 2.876341323783953e-17,
+        "maximum_relative": 8.001610230278317e-17,
+        "median_scalar": 9.62016633928736e-18
+      },
+      "measured": {
+        "median_normalized": 0.2590777942796754,
+        "p99_normalized": 0.7073460879103737,
+        "maximum_normalized": 0.7207209770289076,
+        "median_relative": 2.876341323783953e-17,
+        "maximum_relative": 8.001610230278317e-17,
+        "median_scalar": 9.62016633928736e-18
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "sparse_basis",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.36289723266136986,
+        "p99_normalized": 0.8959863881960518,
+        "maximum_normalized": 0.9054723421801283,
+        "median_relative": 4.028968632734052e-17,
+        "maximum_relative": 1.0052762424496467e-16,
+        "median_scalar": 7.277381725300607e-19
+      },
+      "measured": {
+        "median_normalized": 0.36289723266136986,
+        "p99_normalized": 0.8959863881960518,
+        "maximum_normalized": 0.9054723421801283,
+        "median_relative": 4.028968632734052e-17,
+        "maximum_relative": 1.0052762424496467e-16,
+        "median_scalar": 7.277381725300607e-19
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "sparse_eighth",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.32453592061876385,
+        "p99_normalized": 0.810187418220664,
+        "maximum_normalized": 0.8869799586116011,
+        "median_relative": 3.603072513888737e-17,
+        "maximum_relative": 9.847455724316679e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.32453592061876385,
+        "p99_normalized": 0.810187418220664,
+        "maximum_normalized": 0.8869799586116011,
+        "median_relative": 3.603072513888737e-17,
+        "maximum_relative": 9.847455724316679e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "sparse_four",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.813739901236904,
+        "p99_normalized": 1.910147157643459,
+        "maximum_normalized": 2.0663516526596473,
+        "median_relative": 9.034327744094117e-17,
+        "maximum_relative": 2.2941111817549845e-16,
+        "median_scalar": 4.588288016781366e-17
+      },
+      "measured": {
+        "median_normalized": 0.813739901236904,
+        "p99_normalized": 1.910147157643459,
+        "maximum_normalized": 2.0663516526596473,
+        "median_relative": 9.034327744094117e-17,
+        "maximum_relative": 2.2941111817549845e-16,
+        "median_scalar": 4.588288016781366e-17
+      }
+    },
+    {
+      "dimension": 2,
+      "family": "uniform",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 0.6523121863974756,
+        "p99_normalized": 1.6796324551470405,
+        "maximum_normalized": 1.903471913836204,
+        "median_relative": 7.242120085820542e-17,
+        "maximum_relative": 2.1132783454682657e-16,
+        "median_scalar": 2.2322897099202608e-17
+      },
+      "measured": {
+        "median_normalized": 0.6523121863974756,
+        "p99_normalized": 1.6796324551470405,
+        "maximum_normalized": 1.903471913836204,
+        "median_relative": 7.242120085820542e-17,
+        "maximum_relative": 2.1132783454682657e-16,
+        "median_scalar": 2.2322897099202608e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "alternating_magnitude",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0010918300668843577,
+        "p99_normalized": 0.0010918300670368845,
+        "maximum_normalized": 0.0010918300670368845,
+        "median_relative": 1.2121748792330385e-19,
+        "maximum_relative": 1.2121748794023774e-19,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0010918300668843577,
+        "p99_normalized": 0.0010918300670368845,
+        "maximum_normalized": 0.0010918300670368845,
+        "median_relative": 1.2121748792330385e-19,
+        "maximum_relative": 1.2121748794023774e-19,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "correlated_minus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.5067301705425127,
+        "p99_normalized": 2.7366059664610702,
+        "maximum_normalized": 2.7893969453974043,
+        "median_relative": 1.6728065272336864e-16,
+        "maximum_relative": 3.096852713599279e-16,
+        "median_scalar": 7.687054565470014e-17
+      },
+      "measured": {
+        "median_normalized": 1.5067301705425127,
+        "p99_normalized": 2.7366059664610702,
+        "maximum_normalized": 2.7893969453974043,
+        "median_relative": 1.6728065272336864e-16,
+        "maximum_relative": 3.096852713599279e-16,
+        "median_scalar": 7.687054565470014e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "correlated_plus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.4465707151953,
+        "p99_normalized": 2.6667692423443357,
+        "maximum_normalized": 2.682035033422933,
+        "median_relative": 1.6060161147583019e-16,
+        "maximum_relative": 2.9776570469574413e-16,
+        "median_scalar": 7.474498689129203e-17
+      },
+      "measured": {
+        "median_normalized": 1.4465707151953,
+        "p99_normalized": 2.6667692423443357,
+        "maximum_normalized": 2.682035033422933,
+        "median_relative": 1.6060161147583019e-16,
+        "maximum_relative": 2.9776570469574413e-16,
+        "median_scalar": 7.474498689129203e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "dyadic_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "gaussian",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 1.1736190293939441,
+        "p99_normalized": 2.731144989792607,
+        "maximum_normalized": 3.2054547236154223,
+        "median_relative": 1.3029788685713852e-16,
+        "maximum_relative": 3.5587696385513093e-16,
+        "median_scalar": 5.095987335981812e-17
+      },
+      "measured": {
+        "median_normalized": 1.1736190293939441,
+        "p99_normalized": 2.731144989792607,
+        "maximum_normalized": 3.2054547236154223,
+        "median_relative": 1.3029788685713852e-16,
+        "maximum_relative": 3.5587696385513093e-16,
+        "median_scalar": 5.095987335981812e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "imaginary_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.1292124748576824,
+        "p99_normalized": 2.8179569512429725,
+        "maximum_normalized": 3.0018580747462367,
+        "median_relative": 1.2536776892809547e-16,
+        "maximum_relative": 3.332731951240216e-16,
+        "median_scalar": 2.9474154950579564e-17
+      },
+      "measured": {
+        "median_normalized": 1.1292124748576824,
+        "p99_normalized": 2.8179569512429725,
+        "maximum_normalized": 3.0018580747462367,
+        "median_relative": 1.2536776892809547e-16,
+        "maximum_relative": 3.332731951240216e-16,
+        "median_scalar": 2.9474154950579564e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "long_sum_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.5863019699779287,
+        "p99_normalized": 0.5863019699779287,
+        "maximum_normalized": 0.5863019699779287,
+        "median_relative": 6.509259464525837e-17,
+        "maximum_relative": 6.509259464525837e-17,
+        "median_scalar": 0.25
+      },
+      "measured": {
+        "median_normalized": 0.5863019699779287,
+        "p99_normalized": 0.5863019699779287,
+        "maximum_normalized": 0.5863019699779287,
+        "median_relative": 6.509259464525837e-17,
+        "maximum_relative": 6.509259464525837e-17,
+        "median_scalar": 0.25
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "rademacher",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "recursive_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.1916141809801724,
+        "p99_normalized": 2.8531704121153716,
+        "maximum_normalized": 2.9036050045660606,
+        "median_relative": 1.3229575001940356e-16,
+        "maximum_relative": 3.2236491304860733e-16,
+        "median_scalar": 4.892918851040942e-17
+      },
+      "measured": {
+        "median_normalized": 1.1916141809801724,
+        "p99_normalized": 2.8531704121153716,
+        "maximum_normalized": 2.9036050045660606,
+        "median_relative": 1.3229575001940356e-16,
+        "maximum_relative": 3.2236491304860733e-16,
+        "median_scalar": 4.892918851040942e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "repeated",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.7720334871905674,
+        "p99_normalized": 3.957412569975354,
+        "maximum_normalized": 3.983420613977577,
+        "median_relative": 1.9673523778857753e-16,
+        "maximum_relative": 4.4224852824043836e-16,
+        "median_scalar": 7.23307226400253e-17
+      },
+      "measured": {
+        "median_normalized": 1.7720334871905674,
+        "p99_normalized": 3.957412569975354,
+        "maximum_normalized": 3.983420613977577,
+        "median_relative": 1.9673523778857753e-16,
+        "maximum_relative": 4.4224852824043836e-16,
+        "median_scalar": 7.23307226400253e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "repeated_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.138794668160744,
+        "p99_normalized": 2.668483052108843,
+        "maximum_normalized": 2.8134232823488263,
+        "median_relative": 1.2643160609124226e-16,
+        "maximum_relative": 3.1235273060801498e-16,
+        "median_scalar": 4.566433914260567e-17
+      },
+      "measured": {
+        "median_normalized": 1.138794668160744,
+        "p99_normalized": 2.668483052108843,
+        "maximum_normalized": 2.8134232823488263,
+        "median_relative": 1.2643160609124226e-16,
+        "maximum_relative": 3.1235273060801498e-16,
+        "median_scalar": 4.566433914260567e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "scalar_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.1621974665453467,
+        "p99_normalized": 3.0561725291327537,
+        "maximum_normalized": 3.475848887591952,
+        "median_relative": 1.290298386519669e-16,
+        "maximum_relative": 3.8589674651223227e-16,
+        "median_scalar": 2.1269296691353143e-17
+      },
+      "measured": {
+        "median_normalized": 1.1621974665453467,
+        "p99_normalized": 3.0561725291327537,
+        "maximum_normalized": 3.475848887591952,
+        "median_relative": 1.290298386519669e-16,
+        "maximum_relative": 3.8589674651223227e-16,
+        "median_scalar": 2.1269296691353143e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "scalar_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.24695857935563115,
+        "p99_normalized": 0.6256912745858783,
+        "maximum_normalized": 0.6483750307607267,
+        "median_relative": 2.7417910092934055e-17,
+        "maximum_relative": 7.198408877426029e-17,
+        "median_scalar": 2.630859409158332e-18
+      },
+      "measured": {
+        "median_normalized": 0.24695857935563115,
+        "p99_normalized": 0.6256912745858783,
+        "maximum_normalized": 0.6483750307607267,
+        "median_relative": 2.7417910092934055e-17,
+        "maximum_relative": 7.198408877426029e-17,
+        "median_scalar": 2.630859409158332e-18
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "sparse_basis",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.3570644386389164,
+        "p99_normalized": 0.7717815974856375,
+        "maximum_normalized": 0.8005058159272366,
+        "median_relative": 3.964211610517814e-17,
+        "maximum_relative": 8.887399881887654e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.3570644386389164,
+        "p99_normalized": 0.7717815974856375,
+        "maximum_normalized": 0.8005058159272366,
+        "median_relative": 3.964211610517814e-17,
+        "maximum_relative": 8.887399881887654e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "sparse_eighth",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.4061764313094266,
+        "p99_normalized": 0.8251674583497125,
+        "maximum_normalized": 0.8329348523492698,
+        "median_relative": 4.5094642609980373e-17,
+        "maximum_relative": 9.247434510909145e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.4061764313094266,
+        "p99_normalized": 0.8251674583497125,
+        "maximum_normalized": 0.8329348523492698,
+        "median_relative": 4.5094642609980373e-17,
+        "maximum_relative": 9.247434510909145e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "sparse_four",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.2118190224424827,
+        "p99_normalized": 2.832258278092954,
+        "maximum_normalized": 3.083472326926036,
+        "median_relative": 1.3453893803943936e-16,
+        "maximum_relative": 3.423341973147793e-16,
+        "median_scalar": 8.612883663054007e-17
+      },
+      "measured": {
+        "median_normalized": 1.2118190224424827,
+        "p99_normalized": 2.832258278092954,
+        "maximum_normalized": 3.083472326926036,
+        "median_relative": 1.3453893803943936e-16,
+        "maximum_relative": 3.423341973147793e-16,
+        "median_scalar": 8.612883663054007e-17
+      }
+    },
+    {
+      "dimension": 4,
+      "family": "uniform",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 0.8763427424280635,
+        "p99_normalized": 2.2508533378463764,
+        "maximum_normalized": 3.945826120865854,
+        "median_relative": 9.729358901067892e-17,
+        "maximum_relative": 4.380747010552637e-16,
+        "median_scalar": 3.951503269397888e-17
+      },
+      "measured": {
+        "median_normalized": 0.8763427424280635,
+        "p99_normalized": 2.2508533378463764,
+        "maximum_normalized": 3.945826120865854,
+        "median_relative": 9.729358901067892e-17,
+        "maximum_relative": 4.380747010552637e-16,
+        "median_scalar": 3.951503269397888e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "alternating_magnitude",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.7070959915110495,
+        "p99_normalized": 0.9361043221139926,
+        "maximum_normalized": 0.936425418923469,
+        "median_relative": 7.850342503957214e-17,
+        "maximum_relative": 1.039641060933093e-16,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.7070959915110495,
+        "p99_normalized": 0.9361043221139926,
+        "maximum_normalized": 0.936425418923469,
+        "median_relative": 7.850342503957214e-17,
+        "maximum_relative": 1.039641060933093e-16,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "correlated_minus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.9085906448781649,
+        "p99_normalized": 3.3554602058584804,
+        "maximum_normalized": 3.567083979672117,
+        "median_relative": 2.1189612785279142e-16,
+        "maximum_relative": 3.960258765003518e-16,
+        "median_scalar": 6.839219509274316e-17
+      },
+      "measured": {
+        "median_normalized": 1.9085906448781649,
+        "p99_normalized": 3.3554602058584804,
+        "maximum_normalized": 3.567083979672117,
+        "median_relative": 2.1189612785279142e-16,
+        "maximum_relative": 3.960258765003518e-16,
+        "median_scalar": 6.839219509274316e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "correlated_plus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.792091468360241,
+        "p99_normalized": 4.230779719978614,
+        "maximum_normalized": 4.488890679087165,
+        "median_relative": 1.9896212104078447e-16,
+        "maximum_relative": 4.983669786947825e-16,
+        "median_scalar": 6.814265572222004e-17
+      },
+      "measured": {
+        "median_normalized": 1.792091468360241,
+        "p99_normalized": 4.230779719978614,
+        "maximum_normalized": 4.488890679087165,
+        "median_relative": 1.9896212104078447e-16,
+        "maximum_relative": 4.983669786947825e-16,
+        "median_scalar": 6.814265572222004e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "dyadic_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "gaussian",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 1.5688308778665827,
+        "p99_normalized": 3.0265182464040126,
+        "maximum_normalized": 3.8688046286065627,
+        "median_relative": 1.741752162350377e-16,
+        "maximum_relative": 4.2952359764553835e-16,
+        "median_scalar": 4.11542023858432e-17
+      },
+      "measured": {
+        "median_normalized": 1.5688308778665827,
+        "p99_normalized": 3.0265182464040126,
+        "maximum_normalized": 3.8688046286065627,
+        "median_relative": 1.741752162350377e-16,
+        "maximum_relative": 4.2952359764553835e-16,
+        "median_scalar": 4.11542023858432e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "imaginary_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.6217977197480993,
+        "p99_normalized": 3.0744406940627838,
+        "maximum_normalized": 3.079663015217889,
+        "median_relative": 1.8005571697489167e-16,
+        "maximum_relative": 3.4191127875814345e-16,
+        "median_scalar": 2.0264361902964724e-17
+      },
+      "measured": {
+        "median_normalized": 1.6217977197480993,
+        "p99_normalized": 3.0744406940627838,
+        "maximum_normalized": 3.079663015217889,
+        "median_relative": 1.8005571697489167e-16,
+        "maximum_relative": 3.4191127875814345e-16,
+        "median_scalar": 2.0264361902964724e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "long_sum_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.1427176254125826,
+        "p99_normalized": 1.1427176254125826,
+        "maximum_normalized": 1.1427176254125826,
+        "median_relative": 1.268671418378034e-16,
+        "maximum_relative": 1.268671418378034e-16,
+        "median_scalar": 0.125
+      },
+      "measured": {
+        "median_normalized": 1.1427176254125826,
+        "p99_normalized": 1.1427176254125826,
+        "maximum_normalized": 1.1427176254125826,
+        "median_relative": 1.268671418378034e-16,
+        "maximum_relative": 1.268671418378034e-16,
+        "median_scalar": 0.125
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "rademacher",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "recursive_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.6039233326681908,
+        "p99_normalized": 0.9983704572970137,
+        "maximum_normalized": 1.024637772932517,
+        "median_relative": 6.704895890365834e-17,
+        "maximum_relative": 1.1375764474103233e-16,
+        "median_scalar": 1.6523230271639842e-18
+      },
+      "measured": {
+        "median_normalized": 0.6039233326681908,
+        "p99_normalized": 0.9983704572970137,
+        "maximum_normalized": 1.024637772932517,
+        "median_relative": 6.704895890365834e-17,
+        "maximum_relative": 1.1375764474103233e-16,
+        "median_scalar": 1.6523230271639842e-18
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "repeated",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.2947475706980294,
+        "p99_normalized": 4.050835838716474,
+        "maximum_normalized": 4.3792140456236135,
+        "median_relative": 2.5476815886915964e-16,
+        "maximum_relative": 4.861904263213216e-16,
+        "median_scalar": 5.739265949253498e-17
+      },
+      "measured": {
+        "median_normalized": 2.2947475706980294,
+        "p99_normalized": 4.050835838716474,
+        "maximum_normalized": 4.3792140456236135,
+        "median_relative": 2.5476815886915964e-16,
+        "maximum_relative": 4.861904263213216e-16,
+        "median_scalar": 5.739265949253498e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "repeated_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.6985269546341124,
+        "p99_normalized": 3.521868836631291,
+        "maximum_normalized": 3.5929460599184795,
+        "median_relative": 1.8857437329812403e-16,
+        "maximum_relative": 3.988971441957733e-16,
+        "median_scalar": 4.577213657353733e-17
+      },
+      "measured": {
+        "median_normalized": 1.6985269546341124,
+        "p99_normalized": 3.521868836631291,
+        "maximum_normalized": 3.5929460599184795,
+        "median_relative": 1.8857437329812403e-16,
+        "maximum_relative": 3.988971441957733e-16,
+        "median_scalar": 4.577213657353733e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "scalar_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.4431253177863066,
+        "p99_normalized": 2.7163719488664477,
+        "maximum_normalized": 2.9091969601451706,
+        "median_relative": 1.6021909552258535e-16,
+        "maximum_relative": 3.2298574483226823e-16,
+        "median_scalar": 3.419275386677918e-17
+      },
+      "measured": {
+        "median_normalized": 1.4431253177863066,
+        "p99_normalized": 2.7163719488664477,
+        "maximum_normalized": 2.9091969601451706,
+        "median_relative": 1.6021909552258535e-16,
+        "maximum_relative": 3.2298574483226823e-16,
+        "median_scalar": 3.419275386677918e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "scalar_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.44929892418109507,
+        "p99_normalized": 0.7075472134092601,
+        "maximum_normalized": 0.7149352765839955,
+        "median_relative": 4.9882201056516426e-17,
+        "maximum_relative": 7.937376051803063e-17,
+        "median_scalar": 9.284523875632656e-19
+      },
+      "measured": {
+        "median_normalized": 0.44929892418109507,
+        "p99_normalized": 0.7075472134092601,
+        "maximum_normalized": 0.7149352765839955,
+        "median_relative": 4.9882201056516426e-17,
+        "maximum_relative": 7.937376051803063e-17,
+        "median_scalar": 9.284523875632656e-19
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "sparse_basis",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.42023546160358427,
+        "p99_normalized": 0.7815055335242735,
+        "maximum_normalized": 0.8053362118406913,
+        "median_relative": 4.6655508523628017e-17,
+        "maximum_relative": 8.94102804949938e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.42023546160358427,
+        "p99_normalized": 0.7815055335242735,
+        "maximum_normalized": 0.8053362118406913,
+        "median_relative": 4.6655508523628017e-17,
+        "maximum_relative": 8.94102804949938e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "sparse_eighth",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.28323607524790695,
+        "p99_normalized": 0.8900681751971393,
+        "maximum_normalized": 0.9642439246719594,
+        "median_relative": 3.144552121446897e-17,
+        "maximum_relative": 1.0705258065257344e-16,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.28323607524790695,
+        "p99_normalized": 0.8900681751971393,
+        "maximum_normalized": 0.9642439246719594,
+        "median_relative": 3.144552121446897e-17,
+        "maximum_relative": 1.0705258065257344e-16,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "sparse_four",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.1902035624009615,
+        "p99_normalized": 2.5175251324165084,
+        "maximum_normalized": 2.7272593217508017,
+        "median_relative": 1.3213913989684317e-16,
+        "maximum_relative": 3.027866093131328e-16,
+        "median_scalar": 1.5480225859865213e-17
+      },
+      "measured": {
+        "median_normalized": 1.1902035624009615,
+        "p99_normalized": 2.5175251324165084,
+        "maximum_normalized": 2.7272593217508017,
+        "median_relative": 1.3213913989684317e-16,
+        "maximum_relative": 3.027866093131328e-16,
+        "median_scalar": 1.5480225859865213e-17
+      }
+    },
+    {
+      "dimension": 8,
+      "family": "uniform",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 1.3916461403715172,
+        "p99_normalized": 3.2352602174135887,
+        "maximum_normalized": 4.709745958170786,
+        "median_relative": 1.545037587171191e-16,
+        "maximum_relative": 5.228868402896476e-16,
+        "median_scalar": 7.442837610815207e-17
+      },
+      "measured": {
+        "median_normalized": 1.3916461403715172,
+        "p99_normalized": 3.2352602174135887,
+        "maximum_normalized": 4.709745958170786,
+        "median_relative": 1.545037587171191e-16,
+        "maximum_relative": 5.228868402896476e-16,
+        "median_scalar": 7.442837610815207e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "alternating_magnitude",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.29379607094973276,
+        "p99_normalized": 0.5831336940582128,
+        "maximum_normalized": 0.5997950653450762,
+        "median_relative": 3.261791625127994e-17,
+        "maximum_relative": 6.659062916026539e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.29379607094973276,
+        "p99_normalized": 0.5831336940582128,
+        "maximum_normalized": 0.5997950653450762,
+        "median_relative": 3.261791625127994e-17,
+        "maximum_relative": 6.659062916026539e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "correlated_minus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.4735885770567654,
+        "p99_normalized": 3.98440546632352,
+        "maximum_normalized": 4.006026794151259,
+        "median_relative": 2.746234991698199e-16,
+        "maximum_relative": 4.44758318413203e-16,
+        "median_scalar": 6.953212856826166e-17
+      },
+      "measured": {
+        "median_normalized": 2.4735885770567654,
+        "p99_normalized": 3.98440546632352,
+        "maximum_normalized": 4.006026794151259,
+        "median_relative": 2.746234991698199e-16,
+        "maximum_relative": 4.44758318413203e-16,
+        "median_scalar": 6.953212856826166e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "correlated_plus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.4641870979617737,
+        "p99_normalized": 4.200635627422113,
+        "maximum_normalized": 4.290050936088475,
+        "median_relative": 2.7357972531414073e-16,
+        "maximum_relative": 4.762913326060131e-16,
+        "median_scalar": 9.051949759554966e-17
+      },
+      "measured": {
+        "median_normalized": 2.4641870979617737,
+        "p99_normalized": 4.200635627422113,
+        "maximum_normalized": 4.290050936088475,
+        "median_relative": 2.7357972531414073e-16,
+        "maximum_relative": 4.762913326060131e-16,
+        "median_scalar": 9.051949759554966e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "dyadic_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "gaussian",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 1.9086263363633793,
+        "p99_normalized": 3.5843470787315566,
+        "maximum_normalized": 4.156845645041145,
+        "median_relative": 2.1187831680377445e-16,
+        "maximum_relative": 4.653150241110152e-16,
+        "median_scalar": 2.875305718968119e-17
+      },
+      "measured": {
+        "median_normalized": 1.9086263363633793,
+        "p99_normalized": 3.5843470787315566,
+        "maximum_normalized": 4.156845645041145,
+        "median_relative": 2.1187831680377445e-16,
+        "maximum_relative": 4.653150241110152e-16,
+        "median_scalar": 2.875305718968119e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "imaginary_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.0489193461393933,
+        "p99_normalized": 3.396584726904332,
+        "maximum_normalized": 3.4936301735040165,
+        "median_relative": 2.2449483703007604e-16,
+        "maximum_relative": 3.6614580043347193e-16,
+        "median_scalar": 3.5620832947675e-17
+      },
+      "measured": {
+        "median_normalized": 2.0489193461393933,
+        "p99_normalized": 3.396584726904332,
+        "maximum_normalized": 3.4936301735040165,
+        "median_relative": 2.2449483703007604e-16,
+        "maximum_relative": 3.6614580043347193e-16,
+        "median_scalar": 3.5620832947675e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "long_sum_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.840829544340878,
+        "p99_normalized": 2.840829544340878,
+        "maximum_normalized": 2.840829544340878,
+        "median_relative": 3.153954369162635e-16,
+        "maximum_relative": 3.153954369162635e-16,
+        "median_scalar": 0.0625
+      },
+      "measured": {
+        "median_normalized": 2.840829544340878,
+        "p99_normalized": 2.840829544340878,
+        "maximum_normalized": 2.840829544340878,
+        "median_relative": 3.153954369162635e-16,
+        "maximum_relative": 3.153954369162635e-16,
+        "median_scalar": 0.0625
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "near_zero_divisor_20",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.2436520255211465,
+        "p99_normalized": 3.584594083183111,
+        "maximum_normalized": 3.801629217584658,
+        "median_relative": 1.4779929620183034e-10,
+        "maximum_relative": 3.920827631919325e-10,
+        "median_scalar": 2.9280870710053166e-17
+      },
+      "measured": {
+        "median_normalized": 1.2436520255211465,
+        "p99_normalized": 3.584594083183111,
+        "maximum_normalized": 3.801629217584658,
+        "median_relative": 1.4779929620183034e-10,
+        "maximum_relative": 3.920827631919325e-10,
+        "median_scalar": 2.9280870710053166e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "near_zero_divisor_40",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.2065191985028179,
+        "p99_normalized": 1.9811675884251048,
+        "maximum_normalized": 1.996747548130996,
+        "median_relative": 0.00014402601364403318,
+        "maximum_relative": 0.000309370564465641,
+        "median_scalar": 3.2588053464834e-17
+      },
+      "measured": {
+        "median_normalized": 1.2065191985028179,
+        "p99_normalized": 1.9811675884251048,
+        "maximum_normalized": 1.996747548130996,
+        "median_relative": 0.00014402601364403318,
+        "maximum_relative": 0.000309370564465641,
+        "median_scalar": 3.2588053464834e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "near_zero_divisor_52",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.9521661987079447,
+        "p99_normalized": 1.7607776047354167,
+        "maximum_normalized": 1.9166969803415195,
+        "median_relative": 0.46961025690117275,
+        "maximum_relative": 0.9527276107450774,
+        "median_scalar": 2.849725770215054e-17
+      },
+      "measured": {
+        "median_normalized": 0.9521661987079447,
+        "p99_normalized": 1.7607776047354167,
+        "maximum_normalized": 1.9166969803415195,
+        "median_relative": 0.46961025690117275,
+        "maximum_relative": 0.9527276107450774,
+        "median_scalar": 2.849725770215054e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "rademacher",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "recursive_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.9719668888119608,
+        "p99_normalized": 1.7953879071819425,
+        "maximum_normalized": 1.9733035010377529,
+        "median_relative": 1.0791000191323184e-16,
+        "maximum_relative": 2.1908069814255447e-16,
+        "median_scalar": 2.0190380853754523e-18
+      },
+      "measured": {
+        "median_normalized": 0.9719668888119608,
+        "p99_normalized": 1.7953879071819425,
+        "maximum_normalized": 1.9733035010377529,
+        "median_relative": 1.0791000191323184e-16,
+        "maximum_relative": 2.1908069814255447e-16,
+        "median_scalar": 2.0190380853754523e-18
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "repeated",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.726804999524256,
+        "p99_normalized": 4.984566141783097,
+        "maximum_normalized": 5.177164708160356,
+        "median_relative": 3.027361694134818e-16,
+        "maximum_relative": 5.747807461276406e-16,
+        "median_scalar": 6.178335046913026e-17
+      },
+      "measured": {
+        "median_normalized": 2.726804999524256,
+        "p99_normalized": 4.984566141783097,
+        "maximum_normalized": 5.177164708160356,
+        "median_relative": 3.027361694134818e-16,
+        "maximum_relative": 5.747807461276406e-16,
+        "median_scalar": 6.178335046913026e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "repeated_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.627295153197411,
+        "p99_normalized": 5.14765070969902,
+        "maximum_normalized": 5.484320202553083,
+        "median_relative": 2.9168835715658436e-16,
+        "maximum_relative": 6.088818563291335e-16,
+        "median_scalar": 3.323906336120374e-17
+      },
+      "measured": {
+        "median_normalized": 2.627295153197411,
+        "p99_normalized": 5.14765070969902,
+        "maximum_normalized": 5.484320202553083,
+        "median_relative": 2.9168835715658436e-16,
+        "maximum_relative": 6.088818563291335e-16,
+        "median_scalar": 3.323906336120374e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "scalar_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.072274684549078,
+        "p99_normalized": 2.93295951128166,
+        "maximum_normalized": 2.964107870488473,
+        "median_relative": 2.327661133479631e-16,
+        "maximum_relative": 3.343838857146233e-16,
+        "median_scalar": 5.0917562278021005e-17
+      },
+      "measured": {
+        "median_normalized": 2.072274684549078,
+        "p99_normalized": 2.93295951128166,
+        "maximum_normalized": 2.964107870488473,
+        "median_relative": 2.327661133479631e-16,
+        "maximum_relative": 3.343838857146233e-16,
+        "median_scalar": 5.0917562278021005e-17
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "scalar_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.3416091962930182,
+        "p99_normalized": 0.7940276540961666,
+        "maximum_normalized": 0.7959912017313115,
+        "median_relative": 3.792623951482035e-17,
+        "maximum_relative": 8.837277595611498e-17,
+        "median_scalar": 7.638569641721703e-19
+      },
+      "measured": {
+        "median_normalized": 0.3416091962930182,
+        "p99_normalized": 0.7940276540961666,
+        "maximum_normalized": 0.7959912017313115,
+        "median_relative": 3.792623951482035e-17,
+        "maximum_relative": 8.837277595611498e-17,
+        "median_scalar": 7.638569641721703e-19
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "sparse_basis",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.3152254840566582,
+        "p99_normalized": 0.6380965073614259,
+        "maximum_normalized": 0.6580081619455752,
+        "median_relative": 3.499705903483121e-17,
+        "maximum_relative": 7.305358117832563e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.3152254840566582,
+        "p99_normalized": 0.6380965073614259,
+        "maximum_normalized": 0.6580081619455752,
+        "median_relative": 3.499705903483121e-17,
+        "maximum_relative": 7.305358117832563e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "sparse_eighth",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.9863237338611377,
+        "p99_normalized": 1.8670228820522312,
+        "maximum_normalized": 1.8713066517982753,
+        "median_relative": 1.0950393190668902e-16,
+        "maximum_relative": 2.326343521489241e-16,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.9863237338611377,
+        "p99_normalized": 1.8670228820522312,
+        "maximum_normalized": 1.8713066517982753,
+        "median_relative": 1.0950393190668902e-16,
+        "maximum_relative": 2.326343521489241e-16,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "sparse_four",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.3735525471180186,
+        "p99_normalized": 2.3821033530114346,
+        "maximum_normalized": 2.394959905244045,
+        "median_relative": 1.5691621674778258e-16,
+        "maximum_relative": 2.612895628869118e-16,
+        "median_scalar": 3.748601344651351e-18
+      },
+      "measured": {
+        "median_normalized": 1.3735525471180186,
+        "p99_normalized": 2.3821033530114346,
+        "maximum_normalized": 2.394959905244045,
+        "median_relative": 1.5691621674778258e-16,
+        "maximum_relative": 2.612895628869118e-16,
+        "median_scalar": 3.748601344651351e-18
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "uniform",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 1.824604153158611,
+        "p99_normalized": 3.1808466651820044,
+        "maximum_normalized": 3.308634340745901,
+        "median_relative": 2.0644795192697598e-16,
+        "maximum_relative": 4.449367191253385e-16,
+        "median_scalar": 1.34073614723212e-16
+      },
+      "measured": {
+        "median_normalized": 1.824604153158611,
+        "p99_normalized": 3.1808466651820044,
+        "maximum_normalized": 3.308634340745901,
+        "median_relative": 2.0644795192697598e-16,
+        "maximum_relative": 4.449367191253385e-16,
+        "median_scalar": 1.34073614723212e-16
+      }
+    },
+    {
+      "dimension": 16,
+      "family": "zero_divisor",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "alternating_magnitude",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.9042927993534078,
+        "p99_normalized": 2.6716544092552974,
+        "maximum_normalized": 2.6762468482713158,
+        "median_relative": 1.0039666867952474e-16,
+        "maximum_relative": 2.971230869898682e-16,
+        "median_scalar": 0.0009765625
+      },
+      "measured": {
+        "median_normalized": 0.9042927993534078,
+        "p99_normalized": 2.6716544092552974,
+        "maximum_normalized": 2.6762468482713158,
+        "median_relative": 1.0039666867952474e-16,
+        "maximum_relative": 2.971230869898682e-16,
+        "median_scalar": 0.0009765625
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "correlated_minus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 3.0314898015293466,
+        "p99_normalized": 4.997545505161099,
+        "maximum_normalized": 5.016995419244269,
+        "median_relative": 3.3656297765742266e-16,
+        "maximum_relative": 5.569983828883928e-16,
+        "median_scalar": 8.685311271710991e-17
+      },
+      "measured": {
+        "median_normalized": 3.0314898015293466,
+        "p99_normalized": 4.997545505161099,
+        "maximum_normalized": 5.016995419244269,
+        "median_relative": 3.3656297765742266e-16,
+        "maximum_relative": 5.569983828883928e-16,
+        "median_scalar": 8.685311271710991e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "correlated_plus",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 3.1168883281355937,
+        "p99_normalized": 5.111102665671297,
+        "maximum_normalized": 5.318186226118263,
+        "median_relative": 3.460441187081546e-16,
+        "maximum_relative": 5.904372797480864e-16,
+        "median_scalar": 6.649355625958075e-17
+      },
+      "measured": {
+        "median_normalized": 3.1168883281355937,
+        "p99_normalized": 5.111102665671297,
+        "maximum_normalized": 5.318186226118263,
+        "median_relative": 3.460441187081546e-16,
+        "maximum_relative": 5.904372797480864e-16,
+        "median_scalar": 6.649355625958075e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "dyadic_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "gaussian",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 2.478092019239134,
+        "p99_normalized": 3.5460438440786533,
+        "maximum_normalized": 4.339616471513958,
+        "median_relative": 2.7870629943588406e-16,
+        "maximum_relative": 4.381484369069091e-16,
+        "median_scalar": 2.6363679291501447e-17
+      },
+      "measured": {
+        "median_normalized": 2.478092019239134,
+        "p99_normalized": 3.5460438440786533,
+        "maximum_normalized": 4.339616471513958,
+        "median_relative": 2.7870629943588406e-16,
+        "maximum_relative": 4.381484369069091e-16,
+        "median_scalar": 2.6363679291501447e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "imaginary_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.442310699145054,
+        "p99_normalized": 3.6300084632594585,
+        "maximum_normalized": 3.7485239517837146,
+        "median_relative": 2.7203804465168743e-16,
+        "maximum_relative": 3.842582135643221e-16,
+        "median_scalar": 2.1350158469107894e-17
+      },
+      "measured": {
+        "median_normalized": 2.442310699145054,
+        "p99_normalized": 3.6300084632594585,
+        "maximum_normalized": 3.7485239517837146,
+        "median_relative": 2.7203804465168743e-16,
+        "maximum_relative": 3.842582135643221e-16,
+        "median_scalar": 2.1350158469107894e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "long_sum_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 6.583290798828158,
+        "p99_normalized": 6.583290798828158,
+        "maximum_normalized": 6.583290798828158,
+        "median_relative": 7.308921022661961e-16,
+        "maximum_relative": 7.308921022661961e-16,
+        "median_scalar": 0.03125
+      },
+      "measured": {
+        "median_normalized": 6.583290798828158,
+        "p99_normalized": 6.583290798828158,
+        "maximum_normalized": 6.583290798828158,
+        "median_relative": 7.308921022661961e-16,
+        "maximum_relative": 7.308921022661961e-16,
+        "median_scalar": 0.03125
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "near_zero_divisor_20",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.4831180056721078,
+        "p99_normalized": 3.7102608200590907,
+        "maximum_normalized": 4.0062099229360575,
+        "median_relative": 1.6765140912277528e-10,
+        "maximum_relative": 5.808362349452107e-10,
+        "median_scalar": 4.078306466583837e-17
+      },
+      "measured": {
+        "median_normalized": 1.4831180056721078,
+        "p99_normalized": 3.7102608200590907,
+        "maximum_normalized": 4.0062099229360575,
+        "median_relative": 1.6765140912277528e-10,
+        "maximum_relative": 5.808362349452107e-10,
+        "median_scalar": 4.078306466583837e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "near_zero_divisor_40",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.1692983174059874,
+        "p99_normalized": 1.6908354928995832,
+        "maximum_normalized": 1.7046161421496924,
+        "median_relative": 0.00014832274976432947,
+        "maximum_relative": 0.0002690744068661545,
+        "median_scalar": 2.440578792582162e-17
+      },
+      "measured": {
+        "median_normalized": 1.1692983174059874,
+        "p99_normalized": 1.6908354928995832,
+        "maximum_normalized": 1.7046161421496924,
+        "median_relative": 0.00014832274976432947,
+        "maximum_relative": 0.0002690744068661545,
+        "median_scalar": 2.440578792582162e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "near_zero_divisor_52",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.8838926707574035,
+        "p99_normalized": 1.201809789115108,
+        "maximum_normalized": 1.220001264337611,
+        "median_relative": 0.49439887077117606,
+        "maximum_relative": 0.6536572085168766,
+        "median_scalar": 2.4727281003719006e-17
+      },
+      "measured": {
+        "median_normalized": 0.8838926707574035,
+        "p99_normalized": 1.201809789115108,
+        "maximum_normalized": 1.220001264337611,
+        "median_relative": 0.49439887077117606,
+        "maximum_relative": 0.6536572085168766,
+        "median_scalar": 2.4727281003719006e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "rademacher",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "recursive_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.2863315650133509,
+        "p99_normalized": 2.3928349607935444,
+        "maximum_normalized": 2.4610463410444297,
+        "median_relative": 1.4281149207799336e-16,
+        "maximum_relative": 2.732310312497021e-16,
+        "median_scalar": 1.2599312333547594e-18
+      },
+      "measured": {
+        "median_normalized": 1.2863315650133509,
+        "p99_normalized": 2.3928349607935444,
+        "maximum_normalized": 2.4610463410444297,
+        "median_relative": 1.4281149207799336e-16,
+        "maximum_relative": 2.732310312497021e-16,
+        "median_scalar": 1.2599312333547594e-18
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "repeated",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 3.622916534096387,
+        "p99_normalized": 5.225587839319428,
+        "maximum_normalized": 5.286372919355703,
+        "median_relative": 4.02224535244898e-16,
+        "maximum_relative": 5.869052931823607e-16,
+        "median_scalar": 5.133369972086217e-17
+      },
+      "measured": {
+        "median_normalized": 3.622916534096387,
+        "p99_normalized": 5.225587839319428,
+        "maximum_normalized": 5.286372919355703,
+        "median_relative": 4.02224535244898e-16,
+        "maximum_relative": 5.869052931823607e-16,
+        "median_scalar": 5.133369972086217e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "repeated_blocks",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 4.080577869708743,
+        "p99_normalized": 7.226646080038229,
+        "maximum_normalized": 7.313094077544918,
+        "median_relative": 4.530351504726519e-16,
+        "maximum_relative": 8.119165426140237e-16,
+        "median_scalar": 3.5021743074574995e-17
+      },
+      "measured": {
+        "median_normalized": 4.080577869708743,
+        "p99_normalized": 7.226646080038229,
+        "maximum_normalized": 7.313094077544918,
+        "median_relative": 4.530351504726519e-16,
+        "maximum_relative": 8.119165426140237e-16,
+        "median_scalar": 3.5021743074574995e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "scalar_cancellation",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 2.247600546138635,
+        "p99_normalized": 2.783071412168963,
+        "maximum_normalized": 2.8202990809738617,
+        "median_relative": 2.5042908341575685e-16,
+        "maximum_relative": 3.1575183312381865e-16,
+        "median_scalar": 3.0926029516478423e-17
+      },
+      "measured": {
+        "median_normalized": 2.247600546138635,
+        "p99_normalized": 2.783071412168963,
+        "maximum_normalized": 2.8202990809738617,
+        "median_relative": 2.5042908341575685e-16,
+        "maximum_relative": 3.1575183312381865e-16,
+        "median_scalar": 3.0926029516478423e-17
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "scalar_only",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.37796115598209873,
+        "p99_normalized": 0.8937393163734029,
+        "maximum_normalized": 0.9128388616993779,
+        "median_relative": 4.196211777852662e-17,
+        "maximum_relative": 1.0134547220312683e-16,
+        "median_scalar": 3.321287773290263e-19
+      },
+      "measured": {
+        "median_normalized": 0.37796115598209873,
+        "p99_normalized": 0.8937393163734029,
+        "maximum_normalized": 0.9128388616993779,
+        "median_relative": 4.196211777852662e-17,
+        "maximum_relative": 1.0134547220312683e-16,
+        "median_scalar": 3.321287773290263e-19
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "sparse_basis",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.34140457359570053,
+        "p99_normalized": 0.698763435891335,
+        "maximum_normalized": 0.703091059812984,
+        "median_relative": 3.790352183182805e-17,
+        "maximum_relative": 7.80587883012478e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.34140457359570053,
+        "p99_normalized": 0.698763435891335,
+        "maximum_normalized": 0.703091059812984,
+        "median_relative": 3.790352183182805e-17,
+        "maximum_relative": 7.80587883012478e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "sparse_eighth",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.326060520116927,
+        "p99_normalized": 2.149594633118578,
+        "maximum_normalized": 2.2187644693842596,
+        "median_relative": 1.472222921480223e-16,
+        "maximum_relative": 2.4633234001306233e-16,
+        "median_scalar": 1.224854718684527e-18
+      },
+      "measured": {
+        "median_normalized": 1.326060520116927,
+        "p99_normalized": 2.149594633118578,
+        "maximum_normalized": 2.2187644693842596,
+        "median_relative": 1.472222921480223e-16,
+        "maximum_relative": 2.4633234001306233e-16,
+        "median_scalar": 1.224854718684527e-18
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "sparse_four",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 1.453000124223403,
+        "p99_normalized": 2.435531005093682,
+        "maximum_normalized": 2.4534765397191487,
+        "median_relative": 1.6832885193779725e-16,
+        "maximum_relative": 2.7319062855252617e-16,
+        "median_scalar": 1.734723475976807e-18
+      },
+      "measured": {
+        "median_normalized": 1.453000124223403,
+        "p99_normalized": 2.435531005093682,
+        "maximum_normalized": 2.4534765397191487,
+        "median_relative": 1.6832885193779725e-16,
+        "maximum_relative": 2.7319062855252617e-16,
+        "median_scalar": 1.734723475976807e-18
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "uniform",
+      "samples": 256,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 256,
+      "baseline": {
+        "median_normalized": 2.3715053786960674,
+        "p99_normalized": 3.514973436809817,
+        "maximum_normalized": 3.967190424929302,
+        "median_relative": 2.6446645084288583e-16,
+        "maximum_relative": 4.496081345746277e-16,
+        "median_scalar": 1.9879391244084705e-16
+      },
+      "measured": {
+        "median_normalized": 2.3715053786960674,
+        "p99_normalized": 3.514973436809817,
+        "maximum_normalized": 3.967190424929302,
+        "median_relative": 2.6446645084288583e-16,
+        "maximum_relative": 4.496081345746277e-16,
+        "median_scalar": 1.9879391244084705e-16
+      }
+    },
+    {
+      "dimension": 32,
+      "family": "zero_divisor",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "alternating_magnitude",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.2837380208336255,
+        "p99_normalized": 2.384934863243903,
+        "maximum_normalized": 2.475930040204128,
+        "median_relative": 1.4252385142113296e-16,
+        "maximum_relative": 2.748857115768424e-16,
+        "median_scalar": 0.001953125
+      },
+      "measured": {
+        "median_normalized": 1.2837380208336255,
+        "p99_normalized": 2.384934863243903,
+        "maximum_normalized": 2.475930040204128,
+        "median_relative": 1.4252385142113296e-16,
+        "maximum_relative": 2.748857115768424e-16,
+        "median_scalar": 0.001953125
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "correlated_minus",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 3.97863353493634,
+        "p99_normalized": 5.858755774550404,
+        "maximum_normalized": 6.06335893221753,
+        "median_relative": 4.417170557032102e-16,
+        "maximum_relative": 6.731680693114506e-16,
+        "median_scalar": 9.486125493505638e-17
+      },
+      "measured": {
+        "median_normalized": 3.97863353493634,
+        "p99_normalized": 5.858755774550404,
+        "maximum_normalized": 6.06335893221753,
+        "median_relative": 4.417170557032102e-16,
+        "maximum_relative": 6.731680693114506e-16,
+        "median_scalar": 9.486125493505638e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "correlated_plus",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 3.6610330078518665,
+        "p99_normalized": 4.595952876039846,
+        "maximum_normalized": 4.6653047424398455,
+        "median_relative": 4.0645631392298337e-16,
+        "maximum_relative": 5.179528741949652e-16,
+        "median_scalar": 5.557509701120231e-17
+      },
+      "measured": {
+        "median_normalized": 3.6610330078518665,
+        "p99_normalized": 4.595952876039846,
+        "maximum_normalized": 4.6653047424398455,
+        "median_relative": 4.0645631392298337e-16,
+        "maximum_relative": 5.179528741949652e-16,
+        "median_scalar": 5.557509701120231e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "dyadic_cancellation",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "gaussian",
+      "samples": 96,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 96,
+      "baseline": {
+        "median_normalized": 3.1193744670974812,
+        "p99_normalized": 4.1002745392527835,
+        "maximum_normalized": 4.113414790106732,
+        "median_relative": 3.543155574079451e-16,
+        "maximum_relative": 4.790615120266435e-16,
+        "median_scalar": 2.058141388004156e-17
+      },
+      "measured": {
+        "median_normalized": 3.1193744670974812,
+        "p99_normalized": 4.1002745392527835,
+        "maximum_normalized": 4.113414790106732,
+        "median_relative": 3.543155574079451e-16,
+        "maximum_relative": 4.790615120266435e-16,
+        "median_scalar": 2.058141388004156e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "imaginary_only",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 2.9981210696012166,
+        "p99_normalized": 3.7104056401310577,
+        "maximum_normalized": 3.7346867206803753,
+        "median_relative": 3.490760384214533e-16,
+        "maximum_relative": 4.1361961304668157e-16,
+        "median_scalar": 1.0391894378778265e-17
+      },
+      "measured": {
+        "median_normalized": 2.9981210696012166,
+        "p99_normalized": 3.7104056401310577,
+        "maximum_normalized": 3.7346867206803753,
+        "median_relative": 3.490760384214533e-16,
+        "maximum_relative": 4.1361961304668157e-16,
+        "median_scalar": 1.0391894378778265e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "long_sum_cancellation",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 14.828592929835583,
+        "p99_normalized": 14.828592929835583,
+        "maximum_normalized": 14.828592929835583,
+        "median_relative": 1.6463045293497273e-15,
+        "maximum_relative": 1.6463045293497273e-15,
+        "median_scalar": 0.015625
+      },
+      "measured": {
+        "median_normalized": 14.828592929835583,
+        "p99_normalized": 14.828592929835583,
+        "maximum_normalized": 14.828592929835583,
+        "median_relative": 1.6463045293497273e-15,
+        "maximum_relative": 1.6463045293497273e-15,
+        "median_scalar": 0.015625
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "near_zero_divisor_20",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.259915230356195,
+        "p99_normalized": 2.1392264032864357,
+        "maximum_normalized": 2.1704315743921705,
+        "median_relative": 1.501003897801309e-10,
+        "maximum_relative": 2.487903397756853e-10,
+        "median_scalar": 3.6372122829911935e-17
+      },
+      "measured": {
+        "median_normalized": 1.259915230356195,
+        "p99_normalized": 2.1392264032864357,
+        "maximum_normalized": 2.1704315743921705,
+        "median_relative": 1.501003897801309e-10,
+        "maximum_relative": 2.487903397756853e-10,
+        "median_scalar": 3.6372122829911935e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "near_zero_divisor_40",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.3487125353481706,
+        "p99_normalized": 1.8487608584841273,
+        "maximum_normalized": 1.8596305008825227,
+        "median_relative": 0.0001605851899814605,
+        "maximum_relative": 0.0002507640977400543,
+        "median_scalar": 4.4183870841811564e-17
+      },
+      "measured": {
+        "median_normalized": 1.3487125353481706,
+        "p99_normalized": 1.8487608584841273,
+        "maximum_normalized": 1.8596305008825227,
+        "median_relative": 0.0001605851899814605,
+        "maximum_relative": 0.0002507640977400543,
+        "median_scalar": 4.4183870841811564e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "near_zero_divisor_52",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.7475197258092117,
+        "p99_normalized": 0.9246389792350246,
+        "maximum_normalized": 0.9309872533413097,
+        "median_relative": 0.3548223853875817,
+        "maximum_relative": 0.44515319474587256,
+        "median_scalar": 1.650576693562909e-17
+      },
+      "measured": {
+        "median_normalized": 0.7475197258092117,
+        "p99_normalized": 0.9246389792350246,
+        "maximum_normalized": 0.9309872533413097,
+        "median_relative": 0.3548223853875817,
+        "maximum_relative": 0.44515319474587256,
+        "median_scalar": 1.650576693562909e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "rademacher",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "recursive_blocks",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.7380579066400892,
+        "p99_normalized": 3.7684316436877245,
+        "maximum_normalized": 3.860378796447342,
+        "median_relative": 1.9296319060836278e-16,
+        "maximum_relative": 4.2858814235905897e-16,
+        "median_scalar": 7.54180096392504e-19
+      },
+      "measured": {
+        "median_normalized": 1.7380579066400892,
+        "p99_normalized": 3.7684316436877245,
+        "maximum_normalized": 3.860378796447342,
+        "median_relative": 1.9296319060836278e-16,
+        "maximum_relative": 4.2858814235905897e-16,
+        "median_scalar": 7.54180096392504e-19
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "repeated",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 4.0484294886203,
+        "p99_normalized": 5.9287671543417195,
+        "maximum_normalized": 6.136337126053861,
+        "median_relative": 4.494659631837706e-16,
+        "maximum_relative": 6.812702764207158e-16,
+        "median_scalar": 6.051599894856058e-17
+      },
+      "measured": {
+        "median_normalized": 4.0484294886203,
+        "p99_normalized": 5.9287671543417195,
+        "maximum_normalized": 6.136337126053861,
+        "median_relative": 4.494659631837706e-16,
+        "maximum_relative": 6.812702764207158e-16,
+        "median_scalar": 6.051599894856058e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "repeated_blocks",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 8.079479911702249,
+        "p99_normalized": 21.979475538026687,
+        "maximum_normalized": 22.497098725014343,
+        "median_relative": 8.970024624968263e-16,
+        "maximum_relative": 2.4976796991776177e-15,
+        "median_scalar": 3.728556894686992e-17
+      },
+      "measured": {
+        "median_normalized": 8.079479911702249,
+        "p99_normalized": 21.979475538026687,
+        "maximum_normalized": 22.497098725014343,
+        "median_relative": 8.970024624968263e-16,
+        "maximum_relative": 2.4976796991776177e-15,
+        "median_scalar": 3.728556894686992e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "scalar_cancellation",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 2.6172081793478417,
+        "p99_normalized": 3.2956398408449923,
+        "maximum_normalized": 3.3339195594402837,
+        "median_relative": 2.920196879829199e-16,
+        "maximum_relative": 3.73074961467285e-16,
+        "median_scalar": 2.860567513037911e-17
+      },
+      "measured": {
+        "median_normalized": 2.6172081793478417,
+        "p99_normalized": 3.2956398408449923,
+        "maximum_normalized": 3.3339195594402837,
+        "median_relative": 2.920196879829199e-16,
+        "maximum_relative": 3.73074961467285e-16,
+        "median_scalar": 2.860567513037911e-17
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "scalar_only",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.3559852867967479,
+        "p99_normalized": 0.7485585884526625,
+        "maximum_normalized": 0.7527018444957789,
+        "median_relative": 3.9522306182953926e-17,
+        "maximum_relative": 8.356669184370379e-17,
+        "median_scalar": 1.4468744244184202e-19
+      },
+      "measured": {
+        "median_normalized": 0.3559852867967479,
+        "p99_normalized": 0.7485585884526625,
+        "maximum_normalized": 0.7527018444957789,
+        "median_relative": 3.9522306182953926e-17,
+        "maximum_relative": 8.356669184370379e-17,
+        "median_scalar": 1.4468744244184202e-19
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "sparse_basis",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.4335794006590203,
+        "p99_normalized": 0.7572357796360922,
+        "maximum_normalized": 0.7641417589871203,
+        "median_relative": 4.813698336148201e-17,
+        "maximum_relative": 8.483677749050681e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.4335794006590203,
+        "p99_normalized": 0.7572357796360922,
+        "maximum_normalized": 0.7641417589871203,
+        "median_relative": 4.813698336148201e-17,
+        "maximum_relative": 8.483677749050681e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "sparse_eighth",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.7535374549373137,
+        "p99_normalized": 2.1129817824613073,
+        "maximum_normalized": 2.115837163176532,
+        "median_relative": 1.9241987763446193e-16,
+        "maximum_relative": 2.5436755738329722e-16,
+        "median_scalar": 2.0104747682971085e-18
+      },
+      "measured": {
+        "median_normalized": 1.7535374549373137,
+        "p99_normalized": 2.1129817824613073,
+        "maximum_normalized": 2.115837163176532,
+        "median_relative": 1.9241987763446193e-16,
+        "maximum_relative": 2.5436755738329722e-16,
+        "median_scalar": 2.0104747682971085e-18
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "sparse_four",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.6542401637633337,
+        "p99_normalized": 2.502344838077096,
+        "maximum_normalized": 2.52661325521785,
+        "median_relative": 1.8365755180697426e-16,
+        "maximum_relative": 2.805104210265974e-16,
+        "median_scalar": 4.336808689942018e-19
+      },
+      "measured": {
+        "median_normalized": 1.6542401637633337,
+        "p99_normalized": 2.502344838077096,
+        "maximum_normalized": 2.52661325521785,
+        "median_relative": 1.8365755180697426e-16,
+        "maximum_relative": 2.805104210265974e-16,
+        "median_scalar": 4.336808689942018e-19
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "uniform",
+      "samples": 96,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 96,
+      "baseline": {
+        "median_normalized": 2.992808122235794,
+        "p99_normalized": 3.9991605559531815,
+        "maximum_normalized": 4.0611580686612285,
+        "median_relative": 3.2953140093401584e-16,
+        "maximum_relative": 4.61231722562393e-16,
+        "median_scalar": 3.588079733460611e-16
+      },
+      "measured": {
+        "median_normalized": 2.992808122235794,
+        "p99_normalized": 3.9991605559531815,
+        "maximum_normalized": 4.0611580686612285,
+        "median_relative": 3.2953140093401584e-16,
+        "maximum_relative": 4.61231722562393e-16,
+        "median_scalar": 3.588079733460611e-16
+      }
+    },
+    {
+      "dimension": 64,
+      "family": "zero_divisor",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "alternating_magnitude",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.4078261324634793,
+        "p99_normalized": 2.1009141503398743,
+        "maximum_normalized": 2.105571949424853,
+        "median_relative": 1.5613188197813143e-16,
+        "maximum_relative": 2.338928192312686e-16,
+        "median_scalar": 0.001953125
+      },
+      "measured": {
+        "median_normalized": 1.4078261324634793,
+        "p99_normalized": 2.1009141503398743,
+        "maximum_normalized": 2.105571949424853,
+        "median_relative": 1.5613188197813143e-16,
+        "maximum_relative": 2.338928192312686e-16,
+        "median_scalar": 0.001953125
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "correlated_minus",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 3.7030612819413147,
+        "p99_normalized": 4.30705974606811,
+        "maximum_normalized": 4.314265708132782,
+        "median_relative": 4.111223896809196e-16,
+        "maximum_relative": 4.789797123519771e-16,
+        "median_scalar": 7.963655636912152e-17
+      },
+      "measured": {
+        "median_normalized": 3.7030612819413147,
+        "p99_normalized": 4.30705974606811,
+        "maximum_normalized": 4.314265708132782,
+        "median_relative": 4.111223896809196e-16,
+        "maximum_relative": 4.789797123519771e-16,
+        "median_scalar": 7.963655636912152e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "correlated_plus",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 3.5323867566919946,
+        "p99_normalized": 4.063636568921297,
+        "maximum_normalized": 4.083222474715353,
+        "median_relative": 3.921737109160433e-16,
+        "maximum_relative": 4.533287606095896e-16,
+        "median_scalar": 7.213604402120106e-17
+      },
+      "measured": {
+        "median_normalized": 3.5323867566919946,
+        "p99_normalized": 4.063636568921297,
+        "maximum_normalized": 4.083222474715353,
+        "median_relative": 3.921737109160433e-16,
+        "maximum_relative": 4.533287606095896e-16,
+        "median_scalar": 7.213604402120106e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "dyadic_cancellation",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "gaussian",
+      "samples": 96,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 96,
+      "baseline": {
+        "median_normalized": 3.0426370424200484,
+        "p99_normalized": 3.565399001769164,
+        "maximum_normalized": 3.8673926254619975,
+        "median_relative": 3.3886781962371347e-16,
+        "maximum_relative": 4.2480432369205494e-16,
+        "median_scalar": 1.4909577166213014e-17
+      },
+      "measured": {
+        "median_normalized": 3.0426370424200484,
+        "p99_normalized": 3.565399001769164,
+        "maximum_normalized": 3.8673926254619975,
+        "median_relative": 3.3886781962371347e-16,
+        "maximum_relative": 4.2480432369205494e-16,
+        "median_scalar": 1.4909577166213014e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "imaginary_only",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 3.0590866693670993,
+        "p99_normalized": 3.5511391519466073,
+        "maximum_normalized": 3.5570363319834337,
+        "median_relative": 3.2569679568610865e-16,
+        "maximum_relative": 4.22937189578152e-16,
+        "median_scalar": 1.0446349331952466e-17
+      },
+      "measured": {
+        "median_normalized": 3.0590866693670993,
+        "p99_normalized": 3.5511391519466073,
+        "maximum_normalized": 3.5570363319834337,
+        "median_relative": 3.2569679568610865e-16,
+        "maximum_relative": 4.22937189578152e-16,
+        "median_scalar": 1.0446349331952466e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "long_sum_cancellation",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 8.123027826025032,
+        "p99_normalized": 8.123027826025032,
+        "maximum_normalized": 8.123027826025032,
+        "median_relative": 9.01837252212382e-16,
+        "maximum_relative": 9.01837252212382e-16,
+        "median_scalar": 0.0078125
+      },
+      "measured": {
+        "median_normalized": 8.123027826025032,
+        "p99_normalized": 8.123027826025032,
+        "maximum_normalized": 8.123027826025032,
+        "median_relative": 9.01837252212382e-16,
+        "maximum_relative": 9.01837252212382e-16,
+        "median_scalar": 0.0078125
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "near_zero_divisor_20",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.2874028143295866,
+        "p99_normalized": 4.152453386997967,
+        "maximum_normalized": 4.307345804726877,
+        "median_relative": 1.4649312317815398e-10,
+        "maximum_relative": 5.296121587387872e-10,
+        "median_scalar": 2.5106301197534932e-17
+      },
+      "measured": {
+        "median_normalized": 1.2874028143295866,
+        "p99_normalized": 4.152453386997967,
+        "maximum_normalized": 4.307345804726877,
+        "median_relative": 1.4649312317815398e-10,
+        "maximum_relative": 5.296121587387872e-10,
+        "median_scalar": 2.5106301197534932e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "near_zero_divisor_40",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.1148809379618239,
+        "p99_normalized": 2.0769729029739294,
+        "maximum_normalized": 2.1405057456661334,
+        "median_relative": 0.0001346396457205247,
+        "maximum_relative": 0.00024797574726765774,
+        "median_scalar": 2.7898037484301535e-17
+      },
+      "measured": {
+        "median_normalized": 1.1148809379618239,
+        "p99_normalized": 2.0769729029739294,
+        "maximum_normalized": 2.1405057456661334,
+        "median_relative": 0.0001346396457205247,
+        "maximum_relative": 0.00024797574726765774,
+        "median_scalar": 2.7898037484301535e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "near_zero_divisor_52",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.5384563475689044,
+        "p99_normalized": 0.803317261337109,
+        "maximum_normalized": 0.8288641685249266,
+        "median_relative": 0.26626933922338647,
+        "maximum_relative": 0.4175084591354228,
+        "median_scalar": 9.228989439496067e-18
+      },
+      "measured": {
+        "median_normalized": 0.5384563475689044,
+        "p99_normalized": 0.803317261337109,
+        "maximum_normalized": 0.8288641685249266,
+        "median_relative": 0.26626933922338647,
+        "maximum_relative": 0.4175084591354228,
+        "median_scalar": 9.228989439496067e-18
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "rademacher",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "recursive_blocks",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.833476514939695,
+        "p99_normalized": 3.374759646383751,
+        "maximum_normalized": 3.4275928403252376,
+        "median_relative": 2.0355678419955392e-16,
+        "maximum_relative": 3.8053924903694165e-16,
+        "median_scalar": 8.905184123420214e-20
+      },
+      "measured": {
+        "median_normalized": 1.833476514939695,
+        "p99_normalized": 3.374759646383751,
+        "maximum_normalized": 3.4275928403252376,
+        "median_relative": 2.0355678419955392e-16,
+        "maximum_relative": 3.8053924903694165e-16,
+        "median_scalar": 8.905184123420214e-20
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "repeated",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 4.154318431492794,
+        "p99_normalized": 4.6143575942909845,
+        "maximum_normalized": 4.654510322102529,
+        "median_relative": 4.612219974267966e-16,
+        "maximum_relative": 5.167544527953681e-16,
+        "median_scalar": 6.367085303669327e-17
+      },
+      "measured": {
+        "median_normalized": 4.154318431492794,
+        "p99_normalized": 4.6143575942909845,
+        "maximum_normalized": 4.654510322102529,
+        "median_relative": 4.612219974267966e-16,
+        "maximum_relative": 5.167544527953681e-16,
+        "median_scalar": 6.367085303669327e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "repeated_blocks",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 10.603808292668445,
+        "p99_normalized": 19.028536057781043,
+        "maximum_normalized": 19.32998811414987,
+        "median_relative": 1.1772592115231678e-15,
+        "maximum_relative": 2.1460597870059795e-15,
+        "median_scalar": 3.4615363422106056e-17
+      },
+      "measured": {
+        "median_normalized": 10.603808292668445,
+        "p99_normalized": 19.028536057781043,
+        "maximum_normalized": 19.32998811414987,
+        "median_relative": 1.1772592115231678e-15,
+        "maximum_relative": 2.1460597870059795e-15,
+        "median_scalar": 3.4615363422106056e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "scalar_cancellation",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 2.716659710280486,
+        "p99_normalized": 3.070457906625499,
+        "maximum_normalized": 3.093949317161758,
+        "median_relative": 2.9404106830659376e-16,
+        "maximum_relative": 3.417831467423162e-16,
+        "median_scalar": 1.460432352634487e-17
+      },
+      "measured": {
+        "median_normalized": 2.716659710280486,
+        "p99_normalized": 3.070457906625499,
+        "maximum_normalized": 3.093949317161758,
+        "median_relative": 2.9404106830659376e-16,
+        "maximum_relative": 3.417831467423162e-16,
+        "median_scalar": 1.460432352634487e-17
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "scalar_only",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.29145677277827364,
+        "p99_normalized": 0.8168892389675907,
+        "maximum_normalized": 0.8536049984182772,
+        "median_relative": 3.2358201982138195e-17,
+        "maximum_relative": 9.476919231790917e-17,
+        "median_scalar": 2.660624422122079e-20
+      },
+      "measured": {
+        "median_normalized": 0.29145677277827364,
+        "p99_normalized": 0.8168892389675907,
+        "maximum_normalized": 0.8536049984182772,
+        "median_relative": 3.2358201982138195e-17,
+        "maximum_relative": 9.476919231790917e-17,
+        "median_scalar": 2.660624422122079e-20
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "sparse_basis",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.3606823820947457,
+        "p99_normalized": 0.8347731801701914,
+        "maximum_normalized": 0.841751168322618,
+        "median_relative": 4.0043788517823495e-17,
+        "maximum_relative": 9.345315280768962e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.3606823820947457,
+        "p99_normalized": 0.8347731801701914,
+        "maximum_normalized": 0.841751168322618,
+        "median_relative": 4.0043788517823495e-17,
+        "maximum_relative": 9.345315280768962e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "sparse_eighth",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 2.028888982693474,
+        "p99_normalized": 2.386806844869164,
+        "maximum_normalized": 2.4053618822084917,
+        "median_relative": 2.274723433792319e-16,
+        "maximum_relative": 2.630976322748524e-16,
+        "median_scalar": 1.8358727924953952e-18
+      },
+      "measured": {
+        "median_normalized": 2.028888982693474,
+        "p99_normalized": 2.386806844869164,
+        "maximum_normalized": 2.4053618822084917,
+        "median_relative": 2.274723433792319e-16,
+        "maximum_relative": 2.630976322748524e-16,
+        "median_scalar": 1.8358727924953952e-18
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "sparse_four",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 1.673773233544146,
+        "p99_normalized": 2.292658159053522,
+        "maximum_normalized": 2.3257275972441938,
+        "median_relative": 1.8582615818820103e-16,
+        "maximum_relative": 2.5503821364306086e-16,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 1.673773233544146,
+        "p99_normalized": 2.292658159053522,
+        "maximum_normalized": 2.3257275972441938,
+        "median_relative": 1.8582615818820103e-16,
+        "maximum_relative": 2.5503821364306086e-16,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "uniform",
+      "samples": 96,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 96,
+      "baseline": {
+        "median_normalized": 2.9041687895632506,
+        "p99_normalized": 3.4186120740826413,
+        "maximum_normalized": 3.5517470411789938,
+        "median_relative": 3.2026131485455107e-16,
+        "maximum_relative": 4.079747445372834e-16,
+        "median_scalar": 4.0317324677501997e-16
+      },
+      "measured": {
+        "median_normalized": 2.9041687895632506,
+        "p99_normalized": 3.4186120740826413,
+        "maximum_normalized": 3.5517470411789938,
+        "median_relative": 3.2026131485455107e-16,
+        "maximum_relative": 4.079747445372834e-16,
+        "median_scalar": 4.0317324677501997e-16
+      }
+    },
+    {
+      "dimension": 128,
+      "family": "zero_divisor",
+      "samples": 16,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 16,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "alternating_magnitude",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 1.661894102874398,
+        "p99_normalized": 2.1699917130577133,
+        "maximum_normalized": 2.170590443787053,
+        "median_relative": 1.8569172603629694e-16,
+        "maximum_relative": 2.4761102220441807e-16,
+        "median_scalar": 0.002197265625
+      },
+      "measured": {
+        "median_normalized": 1.661894102874398,
+        "p99_normalized": 2.1699917130577133,
+        "maximum_normalized": 2.170590443787053,
+        "median_relative": 1.8569172603629694e-16,
+        "maximum_relative": 2.4761102220441807e-16,
+        "median_scalar": 0.002197265625
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "correlated_minus",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 4.234540533195446,
+        "p99_normalized": 4.421457904373049,
+        "maximum_normalized": 4.4277238551425855,
+        "median_relative": 4.701284398662071e-16,
+        "maximum_relative": 4.91576097066136e-16,
+        "median_scalar": 8.983145774832562e-17
+      },
+      "measured": {
+        "median_normalized": 4.234540533195446,
+        "p99_normalized": 4.421457904373049,
+        "maximum_normalized": 4.4277238551425855,
+        "median_relative": 4.701284398662071e-16,
+        "maximum_relative": 4.91576097066136e-16,
+        "median_scalar": 8.983145774832562e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "correlated_plus",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 4.213869709495164,
+        "p99_normalized": 4.558821544024269,
+        "maximum_normalized": 4.56048476250604,
+        "median_relative": 4.6783351742520505e-16,
+        "maximum_relative": 5.063155186786395e-16,
+        "median_scalar": 4.6083154633949965e-17
+      },
+      "measured": {
+        "median_normalized": 4.213869709495164,
+        "p99_normalized": 4.558821544024269,
+        "maximum_normalized": 4.56048476250604,
+        "median_relative": 4.6783351742520505e-16,
+        "maximum_relative": 5.063155186786395e-16,
+        "median_scalar": 4.6083154633949965e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "dyadic_cancellation",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "gaussian",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 3.5080270888683907,
+        "p99_normalized": 3.891803729921784,
+        "maximum_normalized": 3.9188300225013504,
+        "median_relative": 3.9111612960870334e-16,
+        "maximum_relative": 4.4026738430644254e-16,
+        "median_scalar": 8.526058457124691e-18
+      },
+      "measured": {
+        "median_normalized": 3.5080270888683907,
+        "p99_normalized": 3.891803729921784,
+        "maximum_normalized": 3.9188300225013504,
+        "median_relative": 3.9111612960870334e-16,
+        "maximum_relative": 4.4026738430644254e-16,
+        "median_scalar": 8.526058457124691e-18
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "imaginary_only",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 3.615649372277378,
+        "p99_normalized": 3.7877794246532392,
+        "maximum_normalized": 3.788816237369357,
+        "median_relative": 3.9700686206970077e-16,
+        "maximum_relative": 4.209102836858198e-16,
+        "median_scalar": 1.5836507190865135e-17
+      },
+      "measured": {
+        "median_normalized": 3.615649372277378,
+        "p99_normalized": 3.7877794246532392,
+        "maximum_normalized": 3.788816237369357,
+        "median_relative": 3.9700686206970077e-16,
+        "maximum_relative": 4.209102836858198e-16,
+        "median_scalar": 1.5836507190865135e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "long_sum_cancellation",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 17.345075403947142,
+        "p99_normalized": 17.345075403947142,
+        "maximum_normalized": 17.345075403947142,
+        "median_relative": 1.9256902077321605e-15,
+        "maximum_relative": 1.9256902077321605e-15,
+        "median_scalar": 0.00390625
+      },
+      "measured": {
+        "median_normalized": 17.345075403947142,
+        "p99_normalized": 17.345075403947142,
+        "maximum_normalized": 17.345075403947142,
+        "median_relative": 1.9256902077321605e-15,
+        "maximum_relative": 1.9256902077321605e-15,
+        "median_scalar": 0.00390625
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "near_zero_divisor_20",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 3.502479628453306,
+        "p99_normalized": 11.382605681964353,
+        "maximum_normalized": 11.442076739763898,
+        "median_relative": 4.1263287538773444e-10,
+        "maximum_relative": 1.4071241002085308e-09,
+        "median_scalar": 4.7495151056252365e-17
+      },
+      "measured": {
+        "median_normalized": 3.502479628453306,
+        "p99_normalized": 11.382605681964353,
+        "maximum_normalized": 11.442076739763898,
+        "median_relative": 4.1263287538773444e-10,
+        "maximum_relative": 1.4071241002085308e-09,
+        "median_scalar": 4.7495151056252365e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "near_zero_divisor_40",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 1.0178452117472108,
+        "p99_normalized": 1.29933848726906,
+        "maximum_normalized": 1.303845554865111,
+        "median_relative": 0.00012569139908498447,
+        "maximum_relative": 0.00016279151682068268,
+        "median_scalar": 3.0032927367897335e-17
+      },
+      "measured": {
+        "median_normalized": 1.0178452117472108,
+        "p99_normalized": 1.29933848726906,
+        "maximum_normalized": 1.303845554865111,
+        "median_relative": 0.00012569139908498447,
+        "maximum_relative": 0.00016279151682068268,
+        "median_scalar": 3.0032927367897335e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "near_zero_divisor_52",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.43503961716055767,
+        "p99_normalized": 0.6134456277668586,
+        "maximum_normalized": 0.6215822846012332,
+        "median_relative": 0.21513754719645778,
+        "maximum_relative": 0.3117545146412491,
+        "median_scalar": 1.818764443604257e-17
+      },
+      "measured": {
+        "median_normalized": 0.43503961716055767,
+        "p99_normalized": 0.6134456277668586,
+        "maximum_normalized": 0.6215822846012332,
+        "median_relative": 0.21513754719645778,
+        "maximum_relative": 0.3117545146412491,
+        "median_scalar": 1.818764443604257e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "rademacher",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "recursive_blocks",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 2.3574325819315867,
+        "p99_normalized": 3.4718419995792353,
+        "maximum_normalized": 3.508511148760372,
+        "median_relative": 2.6172759314619783e-16,
+        "maximum_relative": 3.8952298595078227e-16,
+        "median_scalar": 3.964448470199629e-20
+      },
+      "measured": {
+        "median_normalized": 2.3574325819315867,
+        "p99_normalized": 3.4718419995792353,
+        "maximum_normalized": 3.508511148760372,
+        "median_relative": 2.6172759314619783e-16,
+        "maximum_relative": 3.8952298595078227e-16,
+        "median_scalar": 3.964448470199629e-20
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "repeated",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 4.407518179289557,
+        "p99_normalized": 4.9490134005764315,
+        "maximum_normalized": 4.955192029855941,
+        "median_relative": 4.893328164101215e-16,
+        "maximum_relative": 5.501368282985132e-16,
+        "median_scalar": 7.038695567314988e-17
+      },
+      "measured": {
+        "median_normalized": 4.407518179289557,
+        "p99_normalized": 4.9490134005764315,
+        "maximum_normalized": 4.955192029855941,
+        "median_relative": 4.893328164101215e-16,
+        "maximum_relative": 5.501368282985132e-16,
+        "median_scalar": 7.038695567314988e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "repeated_blocks",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 15.431593286463468,
+        "p99_normalized": 28.66173372242905,
+        "maximum_normalized": 29.24537297912266,
+        "median_relative": 1.713251017328273e-15,
+        "maximum_relative": 3.2468886445172385e-15,
+        "median_scalar": 2.7528758237213722e-17
+      },
+      "measured": {
+        "median_normalized": 15.431593286463468,
+        "p99_normalized": 28.66173372242905,
+        "maximum_normalized": 29.24537297912266,
+        "median_relative": 1.713251017328273e-15,
+        "maximum_relative": 3.2468886445172385e-15,
+        "median_scalar": 2.7528758237213722e-17
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "scalar_cancellation",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 3.133741570586183,
+        "p99_normalized": 3.410795111351224,
+        "maximum_normalized": 3.4149299043301196,
+        "median_relative": 3.4054671900658794e-16,
+        "maximum_relative": 3.9092560292336703e-16,
+        "median_scalar": 3.515779441657438e-18
+      },
+      "measured": {
+        "median_normalized": 3.133741570586183,
+        "p99_normalized": 3.410795111351224,
+        "maximum_normalized": 3.4149299043301196,
+        "median_relative": 3.4054671900658794e-16,
+        "maximum_relative": 3.9092560292336703e-16,
+        "median_scalar": 3.515779441657438e-18
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "scalar_only",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.24589935962648826,
+        "p99_normalized": 0.7055631287327571,
+        "maximum_normalized": 0.7130768440784198,
+        "median_relative": 2.730031307979089e-17,
+        "maximum_relative": 7.916743306229043e-17,
+        "median_scalar": 2.867974163853769e-20
+      },
+      "measured": {
+        "median_normalized": 0.24589935962648826,
+        "p99_normalized": 0.7055631287327571,
+        "maximum_normalized": 0.7130768440784198,
+        "median_relative": 2.730031307979089e-17,
+        "maximum_relative": 7.916743306229043e-17,
+        "median_scalar": 2.867974163853769e-20
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "sparse_basis",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.38437529449715985,
+        "p99_normalized": 0.6888136127542195,
+        "maximum_normalized": 0.693857097677707,
+        "median_relative": 4.267423020478221e-17,
+        "maximum_relative": 7.703361256413765e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.38437529449715985,
+        "p99_normalized": 0.6888136127542195,
+        "maximum_normalized": 0.693857097677707,
+        "median_relative": 4.267423020478221e-17,
+        "maximum_relative": 7.703361256413765e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "sparse_eighth",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 2.299437888959775,
+        "p99_normalized": 2.499836253496019,
+        "maximum_normalized": 2.5055692816035235,
+        "median_relative": 2.6216087711028703e-16,
+        "maximum_relative": 2.771439164384078e-16,
+        "median_scalar": 1.1145239762082751e-18
+      },
+      "measured": {
+        "median_normalized": 2.299437888959775,
+        "p99_normalized": 2.499836253496019,
+        "maximum_normalized": 2.5055692816035235,
+        "median_relative": 2.6216087711028703e-16,
+        "maximum_relative": 2.771439164384078e-16,
+        "median_scalar": 1.1145239762082751e-18
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "sparse_four",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 1.6177744662615552,
+        "p99_normalized": 2.382674165752998,
+        "maximum_normalized": 2.412976344127431,
+        "median_relative": 1.796090461094252e-16,
+        "maximum_relative": 2.678941895126109e-16,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 1.6177744662615552,
+        "p99_normalized": 2.382674165752998,
+        "maximum_normalized": 2.412976344127431,
+        "median_relative": 1.796090461094252e-16,
+        "maximum_relative": 2.678941895126109e-16,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "uniform",
+      "samples": 32,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 32,
+      "baseline": {
+        "median_normalized": 3.481038445451562,
+        "p99_normalized": 3.7537283120780596,
+        "maximum_normalized": 3.7675976975743812,
+        "median_relative": 3.8846056935429546e-16,
+        "maximum_relative": 4.2355006373908077e-16,
+        "median_scalar": 8.22073791329066e-16
+      },
+      "measured": {
+        "median_normalized": 3.481038445451562,
+        "p99_normalized": 3.7537283120780596,
+        "maximum_normalized": 3.7675976975743812,
+        "median_relative": 3.8846056935429546e-16,
+        "maximum_relative": 4.2355006373908077e-16,
+        "median_scalar": 8.22073791329066e-16
+      }
+    },
+    {
+      "dimension": 256,
+      "family": "zero_divisor",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "alternating_magnitude",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 1.7256545109557364,
+        "p99_normalized": 1.9807472940590656,
+        "maximum_normalized": 1.9921182835647337,
+        "median_relative": 1.7731896606810744e-16,
+        "maximum_relative": 2.2084144714941625e-16,
+        "median_scalar": 0.005859375
+      },
+      "measured": {
+        "median_normalized": 1.4563606268405183,
+        "p99_normalized": 1.6541749801642585,
+        "maximum_normalized": 1.658402629213471,
+        "median_relative": 1.612785674622566e-16,
+        "maximum_relative": 1.7715128830574844e-16,
+        "median_scalar": 0.005859375
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "correlated_minus",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.054389991554362,
+        "p99_normalized": 5.347467239645968,
+        "maximum_normalized": 5.361431995645348,
+        "median_relative": 5.611500144058603e-16,
+        "maximum_relative": 5.952385246527467e-16,
+        "median_scalar": 5.858051741119621e-17
+      },
+      "measured": {
+        "median_normalized": 4.375900887808956,
+        "p99_normalized": 4.6566245332880465,
+        "maximum_normalized": 4.665906450949032,
+        "median_relative": 4.858225919123167e-16,
+        "maximum_relative": 5.180196772590663e-16,
+        "median_scalar": 5.858051741119621e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "correlated_plus",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.1885261052643346,
+        "p99_normalized": 5.402620882165461,
+        "maximum_normalized": 5.40642835012147,
+        "median_relative": 5.760421145933153e-16,
+        "maximum_relative": 6.002341235291053e-16,
+        "median_scalar": 6.570095522237987e-17
+      },
+      "measured": {
+        "median_normalized": 4.548386961135932,
+        "p99_normalized": 4.690121185491551,
+        "maximum_normalized": 4.695166495850142,
+        "median_relative": 5.049723929157959e-16,
+        "maximum_relative": 5.212681948141442e-16,
+        "median_scalar": 6.570095522237987e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "dyadic_cancellation",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "gaussian",
+      "samples": 32,
+      "improved": 32,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 4.396667465258075,
+        "p99_normalized": 4.780986305813045,
+        "maximum_normalized": 4.803434424092749,
+        "median_relative": 4.883695826951413e-16,
+        "maximum_relative": 5.314177613648885e-16,
+        "median_scalar": 7.523293631089616e-18
+      },
+      "measured": {
+        "median_normalized": 3.6965414430442025,
+        "p99_normalized": 3.979108072219274,
+        "maximum_normalized": 3.9874229549662004,
+        "median_relative": 4.1019358447624015e-16,
+        "maximum_relative": 4.667127152334637e-16,
+        "median_scalar": 7.523293631089616e-18
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "imaginary_only",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 4.485273070344728,
+        "p99_normalized": 4.616608810005839,
+        "maximum_normalized": 4.620919384558809,
+        "median_relative": 5.055655510594527e-16,
+        "maximum_relative": 5.216425627178327e-16,
+        "median_scalar": 9.49845277698011e-18
+      },
+      "measured": {
+        "median_normalized": 3.7965007402277737,
+        "p99_normalized": 3.968990690442592,
+        "maximum_normalized": 3.9695362326228487,
+        "median_relative": 4.237738686524166e-16,
+        "maximum_relative": 4.519217773185081e-16,
+        "median_scalar": 9.49845277698011e-18
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "long_sum_cancellation",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 35.665773389060796,
+        "p99_normalized": 35.665773389060796,
+        "maximum_normalized": 35.665773389060796,
+        "median_relative": 3.95969628075985e-15,
+        "maximum_relative": 3.95969628075985e-15,
+        "median_scalar": 0.001953125
+      },
+      "measured": {
+        "median_normalized": 17.912755712010206,
+        "p99_normalized": 17.912755712010206,
+        "maximum_normalized": 17.912755712010206,
+        "median_relative": 1.988715382595952e-15,
+        "maximum_relative": 1.988715382595952e-15,
+        "median_scalar": 0.001953125
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "near_zero_divisor_20",
+      "samples": 8,
+      "improved": 7,
+      "worsened": 1,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 3.888821278370287,
+        "p99_normalized": 10.674786418943413,
+        "maximum_normalized": 11.035749742514176,
+        "median_relative": 4.506027824353369e-10,
+        "maximum_relative": 1.2985126203597965e-09,
+        "median_scalar": 2.0593675736810282e-17
+      },
+      "measured": {
+        "median_normalized": 1.1267467788534964,
+        "p99_normalized": 4.506086913243488,
+        "maximum_normalized": 4.551483659647665,
+        "median_relative": 1.324942395453176e-10,
+        "maximum_relative": 5.360996821337663e-10,
+        "median_scalar": 2.0593675736810282e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "near_zero_divisor_40",
+      "samples": 8,
+      "improved": 3,
+      "worsened": 5,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 1.1592024816646762,
+        "p99_normalized": 1.657650484159663,
+        "maximum_normalized": 1.6741072908351047,
+        "median_relative": 0.00014523149983658305,
+        "maximum_relative": 0.0001989745490626471,
+        "median_scalar": 4.087159716513019e-17
+      },
+      "measured": {
+        "median_normalized": 1.1592024816622586,
+        "p99_normalized": 1.657650484215328,
+        "maximum_normalized": 1.674107290893758,
+        "median_relative": 0.00014523149983546556,
+        "maximum_relative": 0.00019897454906961829,
+        "median_scalar": 4.087159716513019e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "near_zero_divisor_52",
+      "samples": 8,
+      "improved": 3,
+      "worsened": 5,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 0.31832584321168733,
+        "p99_normalized": 0.39920336338318174,
+        "maximum_normalized": 0.3994774885718062,
+        "median_relative": 0.15859811693057774,
+        "maximum_relative": 0.2032739398001197,
+        "median_scalar": 1.3461247101760286e-17
+      },
+      "measured": {
+        "median_normalized": 0.31832584321168733,
+        "p99_normalized": 0.39920336338318174,
+        "maximum_normalized": 0.3994774885718062,
+        "median_relative": 0.15859811693057774,
+        "maximum_relative": 0.2032739398001197,
+        "median_scalar": 1.3461247101760286e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "rademacher",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "recursive_blocks",
+      "samples": 8,
+      "improved": 7,
+      "worsened": 1,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.445507093967384,
+        "p99_normalized": 7.863458039685699,
+        "maximum_normalized": 7.925436628145152,
+        "median_relative": 6.045727356482216e-16,
+        "maximum_relative": 8.799002224774313e-16,
+        "median_scalar": 2.5539939599225525e-20
+      },
+      "measured": {
+        "median_normalized": 3.27903219028204,
+        "p99_normalized": 4.44016236521036,
+        "maximum_normalized": 4.496324924957783,
+        "median_relative": 3.640457036138178e-16,
+        "maximum_relative": 4.99192345788411e-16,
+        "median_scalar": 2.5539939599225525e-20
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "repeated",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.4688493704418715,
+        "p99_normalized": 6.264601254038847,
+        "maximum_normalized": 6.28287843104282,
+        "median_relative": 6.071642489271358e-16,
+        "maximum_relative": 6.975396295064518e-16,
+        "median_scalar": 6.179114089486392e-17
+      },
+      "measured": {
+        "median_normalized": 4.9923922277818065,
+        "p99_normalized": 5.5557947748946965,
+        "maximum_normalized": 5.578643154773399,
+        "median_relative": 5.542668799243041e-16,
+        "maximum_relative": 6.193538076596948e-16,
+        "median_scalar": 6.179114089486392e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "repeated_blocks",
+      "samples": 8,
+      "improved": 7,
+      "worsened": 1,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 44.29668522109932,
+        "p99_normalized": 87.48912386103514,
+        "maximum_normalized": 88.71310475462336,
+        "median_relative": 4.9179199847037354e-15,
+        "maximum_relative": 9.84913314845663e-15,
+        "median_scalar": 3.358542631415345e-17
+      },
+      "measured": {
+        "median_normalized": 29.60310994965733,
+        "p99_normalized": 40.737361129105146,
+        "maximum_normalized": 41.43595009652489,
+        "median_relative": 3.2866054266619627e-15,
+        "maximum_relative": 4.600314584438091e-15,
+        "median_scalar": 3.358542631415345e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "scalar_cancellation",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 3.5255947141049147,
+        "p99_normalized": 3.611847632876963,
+        "maximum_normalized": 3.6125553629263902,
+        "median_relative": 3.8667368937788314e-16,
+        "maximum_relative": 4.1046141419225254e-16,
+        "median_scalar": 1.6055436965038468e-17
+      },
+      "measured": {
+        "median_normalized": 3.1384484187541446,
+        "p99_normalized": 3.237222924471288,
+        "maximum_normalized": 3.237831887076452,
+        "median_relative": 3.493948329497257e-16,
+        "maximum_relative": 3.6689659454309455e-16,
+        "median_scalar": 1.6055436965038468e-17
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "scalar_only",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.31634650558240374,
+        "p99_normalized": 0.8383936788224031,
+        "maximum_normalized": 0.8624563496165274,
+        "median_relative": 3.5121517425729524e-17,
+        "maximum_relative": 9.575188970784325e-17,
+        "median_scalar": 4.4672024838377975e-20
+      },
+      "measured": {
+        "median_normalized": 0.31634650558240374,
+        "p99_normalized": 0.8383936788224031,
+        "maximum_normalized": 0.8624563496165274,
+        "median_relative": 3.5121517425729524e-17,
+        "maximum_relative": 9.575188970784325e-17,
+        "median_scalar": 4.4672024838377975e-20
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "sparse_basis",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.3750567543466077,
+        "p99_normalized": 0.5971521131478444,
+        "maximum_normalized": 0.602342552092995,
+        "median_relative": 4.163966442167851e-17,
+        "maximum_relative": 6.687345700451209e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.3750567543466077,
+        "p99_normalized": 0.5971521131478444,
+        "maximum_normalized": 0.602342552092995,
+        "median_relative": 4.163966442167851e-17,
+        "maximum_relative": 6.687345700451209e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "sparse_eighth",
+      "samples": 8,
+      "improved": 6,
+      "worsened": 2,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 2.473780459694745,
+        "p99_normalized": 2.581470859494799,
+        "maximum_normalized": 2.584986371678746,
+        "median_relative": 2.7012353187489705e-16,
+        "maximum_relative": 2.8478528387586626e-16,
+        "median_scalar": 6.178516662717785e-19
+      },
+      "measured": {
+        "median_normalized": 2.4433488888687838,
+        "p99_normalized": 2.590892249734202,
+        "maximum_normalized": 2.59466319917905,
+        "median_relative": 2.6650725480845557e-16,
+        "maximum_relative": 2.9151497794295804e-16,
+        "median_scalar": 6.178516662717785e-19
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "sparse_four",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 1.5046902214439077,
+        "p99_normalized": 1.8480604981675646,
+        "maximum_normalized": 1.861394127842136,
+        "median_relative": 1.6705417287753518e-16,
+        "maximum_relative": 2.0665626186324015e-16,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 1.5046902214439077,
+        "p99_normalized": 1.8480604981675646,
+        "maximum_normalized": 1.861394127842136,
+        "median_relative": 1.6705417287753518e-16,
+        "maximum_relative": 2.0665626186324015e-16,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "uniform",
+      "samples": 32,
+      "improved": 32,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 4.316905524026302,
+        "p99_normalized": 4.616136825645678,
+        "maximum_normalized": 4.648391869475822,
+        "median_relative": 4.823054688250194e-16,
+        "maximum_relative": 5.138376442349658e-16,
+        "median_scalar": 1.345322630904522e-15
+      },
+      "measured": {
+        "median_normalized": 3.6561040382016574,
+        "p99_normalized": 3.9644571269050273,
+        "maximum_normalized": 3.9970582231484957,
+        "median_relative": 4.0618682379306917e-16,
+        "maximum_relative": 4.551569116736093e-16,
+        "median_scalar": 1.345322630904522e-15
+      }
+    },
+    {
+      "dimension": 512,
+      "family": "zero_divisor",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "alternating_magnitude",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 1.8972558181835697,
+        "p99_normalized": 2.2735089281189835,
+        "maximum_normalized": 2.279660194468512,
+        "median_relative": 2.1615197129339791e-16,
+        "maximum_relative": 2.5861055376697015e-16,
+        "median_scalar": 0.007568359375
+      },
+      "measured": {
+        "median_normalized": 1.646657094894042,
+        "p99_normalized": 1.832451817062824,
+        "maximum_normalized": 1.8389364413422362,
+        "median_relative": 1.8608455313628323e-16,
+        "maximum_relative": 1.9772589944299967e-16,
+        "median_scalar": 0.007568359375
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "correlated_minus",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 6.058747450109594,
+        "p99_normalized": 6.218440325974861,
+        "maximum_normalized": 6.2219243628011185,
+        "median_relative": 6.726560919500629e-16,
+        "maximum_relative": 6.907723685058008e-16,
+        "median_scalar": 4.3317673410101123e-17
+      },
+      "measured": {
+        "median_normalized": 4.513064924897251,
+        "p99_normalized": 4.7397790758344245,
+        "maximum_normalized": 4.740704322694825,
+        "median_relative": 5.010508591249131e-16,
+        "maximum_relative": 5.263239091995802e-16,
+        "median_scalar": 4.3317673410101123e-17
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "correlated_plus",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 6.289172714094152,
+        "p99_normalized": 6.465584419972979,
+        "maximum_normalized": 6.468661472371857,
+        "median_relative": 6.982384353031614e-16,
+        "maximum_relative": 7.181656905132902e-16,
+        "median_scalar": 5.355354558209761e-17
+      },
+      "measured": {
+        "median_normalized": 4.590122488488456,
+        "p99_normalized": 4.87650247349607,
+        "maximum_normalized": 4.880187306319701,
+        "median_relative": 5.096059672569604e-16,
+        "maximum_relative": 5.418096311959554e-16,
+        "median_scalar": 5.355354558209761e-17
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "dyadic_cancellation",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "gaussian",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.584427106949788,
+        "p99_normalized": 5.7673110136700485,
+        "maximum_normalized": 5.775214241703434,
+        "median_relative": 6.195050942998539e-16,
+        "maximum_relative": 6.423404381975885e-16,
+        "median_scalar": 7.884256748802561e-18
+      },
+      "measured": {
+        "median_normalized": 3.835926796496513,
+        "p99_normalized": 3.95894371651634,
+        "maximum_normalized": 3.9605238100749793,
+        "median_relative": 4.18060543713852e-16,
+        "maximum_relative": 4.519298213108291e-16,
+        "median_scalar": 7.884256748802561e-18
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "imaginary_only",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.613610039614784,
+        "p99_normalized": 5.898349078196102,
+        "maximum_normalized": 5.9066177967116875,
+        "median_relative": 6.298016565570051e-16,
+        "maximum_relative": 6.460255689566036e-16,
+        "median_scalar": 7.8925565196628e-18
+      },
+      "measured": {
+        "median_normalized": 3.8992701375838514,
+        "p99_normalized": 4.111032197912264,
+        "maximum_normalized": 4.11275627973498,
+        "median_relative": 4.370682395076466e-16,
+        "maximum_relative": 4.687776763852735e-16,
+        "median_scalar": 7.8925565196628e-18
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "long_sum_cancellation",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 73.48182544136976,
+        "p99_normalized": 73.48182544136976,
+        "maximum_normalized": 73.48182544136976,
+        "median_relative": 8.158121449649532e-15,
+        "maximum_relative": 8.158121449649532e-15,
+        "median_scalar": 0.0009765625
+      },
+      "measured": {
+        "median_normalized": 18.11034456756704,
+        "p99_normalized": 18.11034456756704,
+        "maximum_normalized": 18.11034456756704,
+        "median_relative": 2.010652152280805e-15,
+        "maximum_relative": 2.010652152280805e-15,
+        "median_scalar": 0.0009765625
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "near_zero_divisor_20",
+      "samples": 8,
+      "improved": 7,
+      "worsened": 1,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 7.006666920134434,
+        "p99_normalized": 11.456539392767025,
+        "maximum_normalized": 11.60165064436952,
+        "median_relative": 8.036488320823858e-10,
+        "maximum_relative": 1.3668647733042986e-09,
+        "median_scalar": 2.5788626555368152e-17
+      },
+      "measured": {
+        "median_normalized": 1.675042273814607,
+        "p99_normalized": 7.813193369631045,
+        "maximum_normalized": 8.078035097408481,
+        "median_relative": 1.9757298843591724e-10,
+        "maximum_relative": 9.740888378761895e-10,
+        "median_scalar": 2.5788626555368152e-17
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "near_zero_divisor_40",
+      "samples": 8,
+      "improved": 6,
+      "worsened": 2,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 1.0557712358187996,
+        "p99_normalized": 1.7517387515722254,
+        "maximum_normalized": 1.7783772464615928,
+        "median_relative": 0.00012582924774380918,
+        "maximum_relative": 0.00021438906289863392,
+        "median_scalar": 2.0262291885733702e-17
+      },
+      "measured": {
+        "median_normalized": 1.055771235835869,
+        "p99_normalized": 1.7517387515617122,
+        "maximum_normalized": 1.7783772464514074,
+        "median_relative": 0.00012582924774584553,
+        "maximum_relative": 0.00021438906289740603,
+        "median_scalar": 2.0262291885733702e-17
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "near_zero_divisor_52",
+      "samples": 8,
+      "improved": 6,
+      "worsened": 2,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 0.2427102388605047,
+        "p99_normalized": 0.27435834132964565,
+        "maximum_normalized": 0.2746065021503738,
+        "median_relative": 0.12081370694104523,
+        "maximum_relative": 0.13885190938727676,
+        "median_scalar": 8.2440712797046e-18
+      },
+      "measured": {
+        "median_normalized": 0.2427102388605047,
+        "p99_normalized": 0.27435834132964565,
+        "maximum_normalized": 0.2746065021503738,
+        "median_relative": 0.12081370694104523,
+        "maximum_relative": 0.13885190938727676,
+        "median_scalar": 8.2440712797046e-18
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "rademacher",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": 0.0,
+        "maximum_relative": 0.0,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "recursive_blocks",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 10.558291542693599,
+        "p99_normalized": 15.372855415737796,
+        "maximum_normalized": 15.533757005922313,
+        "median_relative": 1.1722058371403498e-15,
+        "maximum_relative": 1.7245934686907286e-15,
+        "median_scalar": 8.709292073117279e-21
+      },
+      "measured": {
+        "median_normalized": 3.6428009861695445,
+        "p99_normalized": 5.001299006585273,
+        "maximum_normalized": 5.003772749137318,
+        "median_relative": 4.0443215289726547e-16,
+        "maximum_relative": 5.555303716084168e-16,
+        "median_scalar": 8.709292073117279e-21
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "repeated",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 6.689751203077876,
+        "p99_normalized": 6.839930808612815,
+        "maximum_normalized": 6.844467188582694,
+        "median_relative": 7.427115814670899e-16,
+        "maximum_relative": 7.59888506405592e-16,
+        "median_scalar": 4.5426102395644246e-17
+      },
+      "measured": {
+        "median_normalized": 5.2339691874744085,
+        "p99_normalized": 5.421295605246375,
+        "maximum_normalized": 5.42398245058313,
+        "median_relative": 5.810873102112711e-16,
+        "maximum_relative": 6.021830201800172e-16,
+        "median_scalar": 4.5426102395644246e-17
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "repeated_blocks",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 107.90945492960519,
+        "p99_normalized": 182.31958454849809,
+        "maximum_normalized": 183.32809378559716,
+        "median_relative": 1.1980356143759828e-14,
+        "maximum_relative": 2.0353507078141005e-14,
+        "median_scalar": 4.5446241699460726e-17
+      },
+      "measured": {
+        "median_normalized": 39.35958644053798,
+        "p99_normalized": 77.59815599896733,
+        "maximum_normalized": 79.74420967658331,
+        "median_relative": 4.369791910600938e-15,
+        "maximum_relative": 8.8533857663479e-15,
+        "median_scalar": 4.5446241699460726e-17
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "scalar_cancellation",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 4.326005189275442,
+        "p99_normalized": 4.462210444383358,
+        "maximum_normalized": 4.465054653180246,
+        "median_relative": 4.777075800891696e-16,
+        "maximum_relative": 4.992756208205771e-16,
+        "median_scalar": 6.906433257661409e-18
+      },
+      "measured": {
+        "median_normalized": 3.2725626828059773,
+        "p99_normalized": 3.3491780114496525,
+        "maximum_normalized": 3.3499686548810392,
+        "median_relative": 3.640781834949104e-16,
+        "maximum_relative": 3.741131964080649e-16,
+        "median_scalar": 6.906433257661409e-18
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "scalar_only",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.3208442426806701,
+        "p99_normalized": 0.7050162133616296,
+        "maximum_normalized": 0.7056806681633199,
+        "median_relative": 3.562086655425013e-17,
+        "maximum_relative": 7.834629258277824e-17,
+        "median_scalar": 4.8203454367029686e-21
+      },
+      "measured": {
+        "median_normalized": 0.3208442426806701,
+        "p99_normalized": 0.7050162133616296,
+        "maximum_normalized": 0.7056806681633199,
+        "median_relative": 3.562086655425013e-17,
+        "maximum_relative": 7.834629258277824e-17,
+        "median_scalar": 4.8203454367029686e-21
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "sparse_basis",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.37003530768398873,
+        "p99_normalized": 0.5847289591466391,
+        "maximum_normalized": 0.5865216414986274,
+        "median_relative": 4.108217185150184e-17,
+        "maximum_relative": 6.511698308327178e-17,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.37003530768398873,
+        "p99_normalized": 0.5847289591466391,
+        "maximum_normalized": 0.5865216414986274,
+        "median_relative": 4.108217185150184e-17,
+        "maximum_relative": 6.511698308327178e-17,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "sparse_eighth",
+      "samples": 8,
+      "improved": 5,
+      "worsened": 3,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 2.654232724727214,
+        "p99_normalized": 2.753142340276897,
+        "maximum_normalized": 2.7549018725770282,
+        "median_relative": 2.958910522243119e-16,
+        "maximum_relative": 3.001465852869029e-16,
+        "median_scalar": 1.189453549087564e-18
+      },
+      "measured": {
+        "median_normalized": 2.630659729678772,
+        "p99_normalized": 2.7570695706697186,
+        "maximum_normalized": 2.7621338006077747,
+        "median_relative": 2.9070165258061953e-16,
+        "maximum_relative": 3.0217697559171467e-16,
+        "median_scalar": 1.189453549087564e-18
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "sparse_four",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 1.583284148192511,
+        "p99_normalized": 2.0873415974213616,
+        "maximum_normalized": 2.0947969424948023,
+        "median_relative": 1.7577985158473542e-16,
+        "maximum_relative": 2.3256917974721095e-16,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 1.583284148192511,
+        "p99_normalized": 2.0873415974213616,
+        "maximum_normalized": 2.0947969424948023,
+        "median_relative": 1.7577985158473542e-16,
+        "maximum_relative": 2.3256917974721095e-16,
+        "median_scalar": 0.0
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "uniform",
+      "samples": 8,
+      "improved": 8,
+      "worsened": 0,
+      "tied": 0,
+      "baseline": {
+        "median_normalized": 5.591520947570617,
+        "p99_normalized": 5.742796149457232,
+        "maximum_normalized": 5.747934327103461,
+        "median_relative": 6.32084528427943e-16,
+        "maximum_relative": 6.649257960664455e-16,
+        "median_scalar": 3.1713981041744805e-15
+      },
+      "measured": {
+        "median_normalized": 3.7872099171042013,
+        "p99_normalized": 3.9313273673627354,
+        "maximum_normalized": 3.9341436747635603,
+        "median_relative": 4.4000277849457137e-16,
+        "maximum_relative": 4.475594975457231e-16,
+        "median_scalar": 3.1713981041744805e-15
+      }
+    },
+    {
+      "dimension": 1024,
+      "family": "zero_divisor",
+      "samples": 8,
+      "improved": 0,
+      "worsened": 0,
+      "tied": 8,
+      "baseline": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      },
+      "measured": {
+        "median_normalized": 0.0,
+        "p99_normalized": 0.0,
+        "maximum_normalized": 0.0,
+        "median_relative": null,
+        "maximum_relative": null,
+        "median_scalar": 0.0
+      }
+    }
+  ],
+  "largest_baseline": {
+    "key": "real_1024_repeated_blocks_2",
+    "dimension": 1024,
+    "family": "repeated_blocks",
+    "baseline_normalized": 183.32809378559716,
+    "measured_normalized": 49.08629999635522
+  },
+  "largest_measured": {
+    "key": "real_1024_repeated_blocks_4",
+    "dimension": 1024,
+    "family": "repeated_blocks",
+    "baseline_normalized": 168.92081896989626,
+    "measured_normalized": 79.74420967658331
+  },
+  "largest_increase": {
+    "key": "real_512_repeated_blocks_2",
+    "dimension": 512,
+    "family": "repeated_blocks",
+    "baseline_normalized": 35.2508256739436,
+    "measured_normalized": 41.43595009652489
+  },
+  "decided_by_exact_squared_errors": 15
+}

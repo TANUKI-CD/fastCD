@@ -211,18 +211,18 @@ static bool valid_algorithm(FastCDAlgorithm algorithm) {
 }
 
 /*
- * Algorithms selected by FASTCD_ALGORITHM_AUTO for dimension 2^level.  The
- * last entry of each table applies to every larger dimension.  Single
- * products and batches of at least two products have separate tables
- * because batches run the two-product SIMD kernels (where the build and
- * dimension allow it), which change the ranking below dimension 32.  Both
- * tables come from benchmarks/benchmark.py (batch and single modes) and are
- * the only place to edit when a new benchmark run reorders the algorithms.
+ * Algorithms selected by FASTCD_ALGORITHM_AUTO for dimension 2^level. The last
+ * entry of each table applies to every larger dimension. Single products and
+ * batches of two or more products have separate tables, because batches run
+ * the two-product SIMD kernels where the build and dimension allow it, and
+ * those kernels change the ranking below dimension 32. Both tables come from
+ * benchmarks/benchmark.py in batch and single modes and are the only place to
+ * edit when a new benchmark run reorders them.
  */
 static const FastCDAlgorithm auto_single_by_level[] = {
     FASTCD_ALGORITHM_QUASILINEAR,   /* 1 */
     FASTCD_ALGORITHM_QUASILINEAR,   /* 2 */
-    FASTCD_ALGORITHM_QUASILINEAR,   /* 4 */
+    FASTCD_ALGORITHM_DIRECT,        /* 4 */
     FASTCD_ALGORITHM_DIRECT,        /* 8 */
     FASTCD_ALGORITHM_DIRECT,        /* 16 */
     FASTCD_ALGORITHM_QUASILINEAR    /* 32 and above */
@@ -258,9 +258,8 @@ static FastCDAlgorithm default_algorithm_unchecked(size_t dimension) {
 
 // Return the algorithm that AUTO selects for a batch at a valid dimension
 static FastCDAlgorithm default_batch_algorithm_unchecked(size_t dimension) {
-    /* The batch table describes the paired SIMD kernels; a build or dimension
-     * without pairing runs batches with the scalar kernels, whose ranking is
-     * the single-product one. */
+    // The batch table describes the paired SIMD kernels; without pairing,
+    // batches run the scalar kernels and follow the single-product table
     if (!FASTCD_HAVE_PAIR || dimension > FASTCD_PAIR_MAX_DIMENSION) {
         return default_algorithm_unchecked(dimension);
     }
@@ -308,7 +307,7 @@ static size_t algorithm_workspace_unchecked(size_t dimension,
     }
 }
 
-// Return the scratch length of the imaginary cross product
+// Return the scratch length of the alternating product
 static size_t cross_workspace_unchecked(size_t dimension) {
     return fastcd_quasilinear_workspace(dimension);
 }
@@ -355,7 +354,7 @@ static void mul_batch_unchecked(double* restrict out, size_t out_stride,
     }
 }
 
-// Evaluate the imaginary cross product after validation
+// Evaluate the alternating product after validation
 static void cross_unchecked(double* restrict out, const double* x,
         const double* y, size_t dimension, double* restrict workspace) {
     fastcd_quasilinear_cross(out, x, y, dimension, workspace);
@@ -487,7 +486,7 @@ static FastCDStatus mul_workspace_query(size_t dimension,
     if (status != FASTCD_SUCCESS) return status;
     result = algorithm_workspace_unchecked(dimension, *effective);
     if (algorithm == FASTCD_ALGORITHM_AUTO) {
-        /* One query serves both single products and batches. */
+        // One query serves both single products and batches
         size_t batch_result = algorithm_workspace_unchecked(dimension,
                 default_batch_algorithm_unchecked(dimension));
 
@@ -519,7 +518,7 @@ FastCDStatus fastcd_mul_workspace_size(size_t dimension, size_t* length) {
             FASTCD_ALGORITHM_AUTO, length);
 }
 
-// Return the scratch length shared by imaginary cross and commutator calls
+// Return the scratch length shared by alternating product and commutator calls
 FastCDStatus fastcd_imag_cross_workspace_size(size_t dimension,
         size_t* length) {
     size_t bytes;
@@ -774,7 +773,7 @@ FastCDStatus fastcd_normalize_f64(double* out, const double* x,
     return FASTCD_SUCCESS;
 }
 
-// Compute the canonical conjugate-over-norm-squared reciprocal
+// Compute the reciprocal conjugate(x) / norm_squared(x) with scaled division
 FastCDStatus fastcd_reciprocal_f64(double* out, const double* x,
         size_t dimension) {
     FastCDScaledSumSquares scaled;
@@ -785,6 +784,7 @@ FastCDStatus fastcd_reciprocal_f64(double* out, const double* x,
     if (!scaled.has_nan && !scaled.has_infinity && scaled.scale == 0.0) {
         return FASTCD_ZERO_NORM;
     }
+    // Non-finite coefficients propagate through one ordinary division
     if (scaled.has_nan || scaled.has_infinity) {
         double denominator = norm_squared_from_scaled(scaled);
         for (size_t i = 0; i < dimension; i++) {
@@ -792,6 +792,7 @@ FastCDStatus fastcd_reciprocal_f64(double* out, const double* x,
             out[i] = coordinate / denominator;
         }
     } else {
+        // Divide by the scale in two steps so no finite intermediate overflows
         for (size_t i = 0; i < dimension; i++) {
             double coordinate;
 
@@ -852,7 +853,7 @@ FastCDStatus fastcd_mul_f64(double* out, const double* x, const double* y,
             FASTCD_ALGORITHM_AUTO, workspace);
 }
 
-// Square one element with the specialized linear-time formula
+// Square one element with the linear-time scalar and imaginary formula
 FastCDStatus fastcd_square_f64(double* out, const double* x,
         size_t dimension) {
     double alpha;
@@ -969,8 +970,8 @@ FastCDStatus fastcd_mul_batch_with_algorithm_f64(double* out,
     status = double_array_bytes(dimension, &element_bytes);
     if (status != FASTCD_SUCCESS) return status;
     /* Read-only inputs may share storage, as when one input broadcasts a
-     * record of the other or both are windows of one array.  Only a pair of
-     * same-index records that partially overlap is rejected. */
+     * record or both are windows of one array. Only same-index records that
+     * partially overlap are rejected. */
     if (ranges_overlap(out, out_bytes, x, x_bytes)
             || ranges_overlap(out, out_bytes, y, y_bytes)
             || (ranges_overlap(x, x_bytes, y, y_bytes)
@@ -996,7 +997,7 @@ FastCDStatus fastcd_mul_batch_f64(double* out, size_t out_stride,
 
 /* ---------- Noncommutative and nonassociative products ---------- */
 
-// Validate one imaginary-cross or commutator operation
+// Validate one alternating product or commutator operation
 static FastCDStatus validate_cross_args(double* out, const double* x,
         const double* y, size_t dimension,
         const FastCDWorkspaceF64* workspace, size_t* required) {
@@ -1018,7 +1019,7 @@ static FastCDStatus validate_cross_args(double* out, const double* x,
             y, bytes, NULL, 0);
 }
 
-// Compute the generalized imaginary cross product
+// Compute the alternating product of the imaginary parts
 FastCDStatus fastcd_imag_cross_f64(double* out, const double* x,
         const double* y, size_t dimension,
         const FastCDWorkspaceF64* workspace) {
@@ -1032,7 +1033,7 @@ FastCDStatus fastcd_imag_cross_f64(double* out, const double* x,
     return FASTCD_SUCCESS;
 }
 
-// Compute the commutator through its imaginary alternating product
+// Compute the commutator as twice the alternating product
 FastCDStatus fastcd_commutator_f64(double* out, const double* x,
         const double* y, size_t dimension,
         const FastCDWorkspaceF64* workspace) {

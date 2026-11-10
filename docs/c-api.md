@@ -28,7 +28,8 @@ typedef enum {
     FASTCD_INVALID_STRIDE,         /* batch stride smaller than dimension */
     FASTCD_SIZE_OVERFLOW,          /* an extent does not fit size_t */
     FASTCD_NULL_POINTER,           /* required pointer is null */
-    FASTCD_UNSUPPORTED_ALGORITHM   /* unknown algorithm, or CC above 1024 */
+    FASTCD_UNSUPPORTED_ALGORITHM   /* unknown algorithm, or Cariow–Cariowa
+                                      above dimension 1024 */
 } FastCDStatus;
 
 typedef enum {
@@ -50,10 +51,11 @@ typedef struct FastCDBasisProduct { size_t index; int sign; } FastCDBasisProduct
 
 **Parameters**
 
-- `dimension` (written as `N` below): a nonzero power of two. An element
-  contains `N` contiguous `double` coefficients in the recursive standard
-  basis, with the scalar in coordinate zero. See [conventions and
-  results](mathematics.md) for the multiplication convention and basis signs.
+- `dimension` (written as `N` below): a nonzero power of two. An element is
+  stored as a *record*: `N` contiguous `double` coefficients in the
+  recursive standard basis, with the scalar in coordinate zero. See
+  [Conventions and results](mathematics.md) for the multiplication
+  convention and basis signs.
 - Lengths and strides count `double` elements.
 - Inputs, outputs, and workspaces belong to the caller. No function
   allocates on the heap or retains a pointer. The three string queries
@@ -72,27 +74,22 @@ typedef struct FastCDBasisProduct { size_t index; int sign; } FastCDBasisProduct
   numerical results. Different algorithms and specialized formulas can
   round differently without returning an error.
 
-Code written against version 1.0.0 compiles and behaves the same way with
-every later 1.x release. AUTO choices, workspace lengths, and arithmetic
-schedules may change in minor or patch releases while preserving the public
-calling contracts. Obtain workspace lengths from the query functions. Floating-point results are not
-guaranteed bitwise identical across versions, even for the same explicitly
-selected algorithm. Relevant numerical changes are recorded in `CHANGELOG.md`.
-
 **Aliasing**
 
-An exact alias has the same starting pointer and covers a complete element.
+An exact alias has the same starting pointer and covers a complete record.
 Partial overlap is rejected with `FASTCD_OVERLAPPING_BUFFERS`. Read-only
 inputs may be the same complete array, and the two inputs of a batch may
-share storage under the record rule given with the batch functions. Outputs
-must be disjoint from every input, except for these cases:
+share storage under the rule given with the batch functions. Outputs must
+be disjoint from every input, except for these cases:
 
 - `fastcd_add_f64` and `fastcd_sub_f64` allow `out == x`, `out == y`, or both.
 - `fastcd_neg_f64`, `fastcd_scale_f64`, `fastcd_conjugate_f64`,
   `fastcd_imag_part_f64`, `fastcd_normalize_f64`, `fastcd_reciprocal_f64`, and
   `fastcd_square_f64` allow `out == x`.
 
-Scalar results and basis permutations must also be disjoint from inputs.
+The one-value outputs of `fastcd_inner_f64`, `fastcd_norm_squared_f64` and
+`fastcd_norm_f64`, and the outputs of `fastcd_basis_lmul_f64` and
+`fastcd_basis_rmul_f64`, must also be disjoint from the inputs.
 
 **Workspaces**
 
@@ -110,27 +107,56 @@ Use the matching query to obtain the required length, allocate that many
 **Threading and SIMD**
 
 Calls can share read-only inputs across threads when their outputs and
-workspaces are disjoint. Each batch uses one thread and one workspace.
+workspaces are disjoint. Each batch call runs on one thread and reuses one
+workspace for all its products.
 
-On GCC/Clang targets with SSE2 or AArch64 SIMD, batches of two or more
-products use two products per instruction at these dimensions:
+On GCC and Clang targets with SSE2 or AArch64 SIMD, a batch of two or more
+products evaluates two products at a time, one in each SIMD lane, at these
+dimensions:
 
 - Quasilinear and Cariow–Cariowa: dimension 16 through 512.
 - Direct: dimension 64 through 512.
 
-On the same targets, a single quasilinear product above dimension 16
-evaluates the two children of the top complex node in the two SIMD lanes
-and continues through the paired kernel, using the caller's workspace; the
-workspace query reports the larger requirement of that form. Single direct
-and Cariow–Cariowa products use scalar kernels, which the compiler may
-vectorize.
+These paired kernels copy each pair of operands into an interleaved layout
+in a fixed 40 KiB stack buffer, so caller storage needs no extra alignment.
+When a batch has an odd number of products, the last one uses the scalar
+kernel. At other dimensions, and with other compilers or targets, batches
+use the scalar kernels and the caller's workspace.
 
-The scalar and SIMD kernels share an arithmetic schedule and produce
-identical finite results for the same algorithm; NaN payloads may differ.
-Odd tails use a scalar kernel. Packing needs no extra alignment of caller
-storage and uses a fixed 40 KiB stack array. Outside these thresholds,
-or on other compiler/target combinations, batches use the scalar kernels
-and the caller's workspace.
+On the same targets, a single quasilinear product above dimension 16 places
+the two recursive calls of `C_(n-1)` (see
+[How quasilinear multiplication works](mathematics.md#how-quasilinear-multiplication-works))
+in the two SIMD lanes and continues through the paired kernel, using the
+caller's workspace; the workspace query reports the larger requirement of
+that form. Single direct and Cariow–Cariowa products use scalar kernels,
+which the compiler may vectorize.
+
+The scalar and SIMD kernels perform the same operations in the same order,
+so they produce identical finite results for the same algorithm; NaN
+payloads may differ.
+
+---
+
+### Compatibility
+
+Every later 1.x release keeps the calling contract of version 1.0.0. Code
+written against 1.0.0 compiles against any later 1.x release, and each of
+its calls keeps:
+
+- the same parameters and the same meaning for each of them;
+- the same status code for each error condition;
+- the same aliasing and workspace rules;
+- the same mathematical result, up to floating-point rounding.
+
+A release may change:
+
+- the algorithm that `AUTO` selects at a given dimension;
+- workspace lengths, so obtain them from the query functions at run time
+  rather than hard-coding them;
+- the arithmetic schedule of an algorithm, and therefore the last bits of a
+  floating-point result, even when the algorithm is selected explicitly.
+
+`CHANGELOG.md` records every change that affects numerical results.
 
 ---
 
@@ -138,7 +164,7 @@ and the caller's workspace.
 
 - `const char* fastcd_version_string(void)`
 
-  Return the library version string, currently `"1.2.0"`.
+  Return the version string of the linked library, such as `"1.2.0"`.
 
 - `const char* fastcd_status_string(FastCDStatus status)`
 
@@ -171,13 +197,18 @@ and the caller's workspace.
 
 ### Algorithm selection
 
-`FASTCD_ALGORITHM_AUTO` uses two tables selected from the benchmark:
+`FASTCD_ALGORITHM_AUTO` chooses from two tables, set from the single-core
+benchmark reported in the README:
 
-- Single products use direct at `N = 8, 16` and quasilinear elsewhere.
-  This table also serves one-record batches and operator routines.
+- Single products use direct at `N = 4, 8, 16` and quasilinear at every
+  other dimension. This table also applies to batches of one product and to the
+  products inside `fastcd_associator_f64` and the two operator commutators.
 - Batches of two or more products use direct at `N = 8`, Cariow–Cariowa at
-  `N = 16`, and quasilinear elsewhere. Builds without SIMD pairing use the
-  single-product table.
+  `N = 16`, and quasilinear at every other dimension. Builds without the
+  two-lane SIMD kernels use the single-product table for batches.
+
+`fastcd_imag_cross_f64` and `fastcd_commutator_f64` always use the
+quasilinear recursion.
 
 **Functions**
 
@@ -203,20 +234,25 @@ Each query writes a scratch length in doubles. Errors are
 `FASTCD_NULL_POINTER`, `FASTCD_INVALID_DIMENSION`, `FASTCD_SIZE_OVERFLOW`,
 and, where an algorithm is involved, `FASTCD_UNSUPPORTED_ALGORITHM`.
 
-Lengths are `O(N)` doubles and do not depend on the batch count.
-With the default leaf cutoffs, lengths are zero for Cariow–Cariowa through
-`N = 64` and `2N` above that, where its table-driven kernel runs.
-Direct needs zero doubles for `N <= 16` and `2N - 32` above that.
-Quasilinear needs zero for `N <= 16`;
-above that it needs `5N - 63` on targets with the two-lane SIMD kernels and
-`2N - 32` otherwise. Composite operations add `2N`. Use the queries in your
-code, as these sizes describe the current implementation;
-[mathematics.md](mathematics.md) explains where the terms come from.
+Lengths are `O(N)` doubles and do not depend on the batch count. With the
+default leaf cutoffs:
+
+- Direct needs nothing for `N <= 16` and `2N - 32` doubles above that.
+- Quasilinear needs nothing for `N <= 16`. Above that it needs `5N - 63`
+  doubles on targets with the two-lane SIMD kernels and `2N - 32` otherwise.
+- Cariow–Cariowa needs nothing through `N = 64`, where it uses straight-line
+  kernels, and `2N` doubles above that, where its table-driven kernel runs.
+- The associator and the operator commutators need `2N` doubles more than
+  their products.
+
+These lengths can change between releases (see [Compatibility](#compatibility)),
+so obtain them from the queries. [Workspace](mathematics.md#workspace)
+explains where the terms come from.
 
 - `FastCDStatus fastcd_mul_workspace_size(size_t dimension, size_t* length)`
 
-  Size the workspace for `fastcd_mul_f64` and `fastcd_mul_batch_f64`, covering the
-  larger of the two automatic selections' needs.
+  Size the workspace for `fastcd_mul_f64` and `fastcd_mul_batch_f64`. The length covers
+  both automatic selections, for single products and for batches.
 
 - `FastCDStatus fastcd_mul_algorithm_workspace_size(size_t dimension, FastCDAlgorithm
   algorithm, size_t* length)`
@@ -325,7 +361,7 @@ These functions take `O(N)` time and use no workspace.
 - `FastCDStatus fastcd_reciprocal_f64(double* out, const double* x, size_t dimension)`
 
   Set `out` to `conjugate(x) / norm_squared(x)` using scaled division. This is the
-  canonical reciprocal, not a general division operation.
+  two-sided reciprocal `x^(-1)`, not a general division operation.
 
 ---
 
@@ -347,8 +383,9 @@ These functions take `O(N)` time and use no workspace.
 
 - `FastCDStatus fastcd_square_f64(double* out, const double* x, size_t dimension)`
 
-  Set `out` to `x^2 = (alpha^2 - <u,u>) + 2 alpha u` in `O(N)` time. If a finite input
-  overflows the plain scalar formula, recompute that coordinate with scaling.
+  Set `out` to `x^2 = (alpha^2 - <X, X>) + 2 alpha X`, where `alpha = x[0]` is the
+  scalar part and `X` the imaginary part, in `O(N)` time. If a finite input
+  overflows this formula, recompute the affected coordinate with scaling.
 
 - `FastCDStatus fastcd_mul_batch_f64(double* out, size_t out_stride, const double* x,
   size_t x_stride, const double* y, size_t y_stride, size_t count, size_t dimension,
@@ -368,7 +405,7 @@ These functions take `O(N)` time and use no workspace.
   may be null, and nothing is written.
 - `count == 1`: ignore all strides.
 - `count > 1`: `out_stride` must be at least `N`. Each input stride must
-  be zero, to broadcast one element, or at least `N`.
+  be zero, to broadcast one record, or at least `N`.
 
 Each span covers `(count - 1) * stride + N` doubles, or `N` doubles for a
 broadcast input. Overflow checks and the output overlap check cover the whole
@@ -383,25 +420,29 @@ and one workspace is reused serially.
 ### Noncommutative and nonassociative products
 
 Outputs must be disjoint from inputs, although read-only inputs may
-coincide. Cross products and commutators are exactly zero at `N = 1, 2` and
-use the workspace from `fastcd_imag_cross_workspace_size`. The associator
-uses its own composite workspace query, even at `N = 1`.
+coincide. The alternating product and the commutator are exactly zero at
+`N = 1, 2` and use the workspace from `fastcd_imag_cross_workspace_size`. The
+associator uses its own composite workspace query, even at `N = 1`. The
+formulas are those of [Derived operations](mathematics.md#derived-operations),
+with `x = alpha + X` and `y = beta + Y`.
 
 - `FastCDStatus fastcd_imag_cross_f64(double* out, const double* x, const double* y, size_t
   dimension, const FastCDWorkspaceF64* workspace)`
 
-  Compute `(uv - vu)/2` from the imaginary parts of `x` and `y` using one quasilinear
-  alternating product. Ignore input scalars and set `out[0] = +0.0`.
+  Compute the alternating product `X cross Y = (XY - YX)/2` of the imaginary parts of
+  `x` and `y` with the quasilinear recursion. The scalar parts of `x` and `y` are
+  ignored, and `out[0] = +0.0`.
 
 - `FastCDStatus fastcd_commutator_f64(double* out, const double* x, const double* y, size_t
   dimension, const FastCDWorkspaceF64* workspace)`
 
-  Compute `xy - yx` as twice the imaginary cross product, with `out[0] = +0.0`.
+  Compute `xy - yx = 2 (X cross Y)`, with `out[0] = +0.0`.
 
 - `FastCDStatus fastcd_anticommutator_f64(double* out, const double* x, const double* y,
   size_t dimension)`
 
-  Compute `xy + yx` using the `O(N)` scalar–imaginary formula, with no workspace.
+  Compute `xy + yx = 2 (alpha beta - <X, Y>) + 2 (alpha Y + beta X)` in `O(N)` time,
+  with no workspace.
 
 - `FastCDStatus fastcd_associator_f64(double* out, const double* x, const double* y, const
   double* z, size_t dimension, const FastCDWorkspaceF64* workspace)`
@@ -412,25 +453,28 @@ uses its own composite workspace query, even at `N = 1`.
 
 ### Indexed basis operations
 
+These functions use the basis signs `sigma_N` of
+[Basis products](mathematics.md#basis-products).
+
 - `FastCDStatus fastcd_basis_product(FastCDBasisProduct* product, size_t dimension, size_t
   left_index, size_t right_index)`
 
   Write the signed basis product `e_left_index e_right_index = product->sign *
-  e_(product->index)`, where `product->index = left_index ^ right_index`. This takes
-  `O(log N)` integer work. Errors are `FASTCD_NULL_POINTER`, `FASTCD_INVALID_DIMENSION`,
-  and `FASTCD_INVALID_BASIS_INDEX`.
+  e_(product->index)`, where `product->index = left_index ^ right_index` and
+  `product->sign = sigma_N(left_index, right_index)`. This takes `O(log N)` integer work.
+  Errors are `FASTCD_NULL_POINTER`, `FASTCD_INVALID_DIMENSION`, and
+  `FASTCD_INVALID_BASIS_INDEX`.
 
 - `FastCDStatus fastcd_basis_lmul_f64(double* out, size_t basis_index, const double* x,
   size_t dimension)`
 
-  Compute `e_basis_index x` as a signed permutation: `out[basis_index ^ i] =
-  sign(basis_index, i) x[i]`.
+  Compute `e_basis_index x`, a signed permutation of `x`:
+  `out[basis_index ^ i] = sigma_N(basis_index, i) x[i]`.
 
 - `FastCDStatus fastcd_basis_rmul_f64(double* out, const double* x, size_t basis_index,
   size_t dimension)`
 
-  Compute `x e_basis_index` with the same permutation and the sign `sign(i,
-  basis_index)`.
+  Compute `x e_basis_index`: `out[i ^ basis_index] = sigma_N(i, basis_index) x[i]`.
 
 ---
 
@@ -453,10 +497,100 @@ matching composite workspace size; workspace is required even at `N = 1`.
 
 ## Arithmetic across coefficient fields
 
-Complex and finite-field arithmetic is declared in `<fastcd/arithmetic.h>`,
-`<fastcd/complex.h>` and `<fastcd/finite.h>`. These headers are C11 with C++
-linkage guards, and their functions allocate no heap storage and retain no
-caller pointers.
+Complex and finite-field arithmetic is declared in `<fastcd/complex.h>` and
+`<fastcd/finite.h>`. Both include `<fastcd/arithmetic.h>`, which declares the
+operation selector `FastCDOperation` and `fastcd_quadratic_norm_f64`. These
+headers are C11 with C++ linkage guards, and their functions allocate no
+heap storage and retain no caller pointers.
+
+A record is stored the same way over every field: the `N` coefficients in
+the recursive standard basis, scalar first, contiguously. What one
+coefficient occupies depends on the field:
+
+| Field | One coefficient | One record |
+| --- | --- | --- |
+| R | one `double` | `N` doubles |
+| C | one `FastCDComplexF64`, two doubles, real part first | `N` complex values, `2N` doubles |
+| F_(p^d) | `d` canonical `uint32_t` residues, constant term first | `N * d` words |
+
+A canonical residue is an integer in `0, ..., p - 1`.
+
+### Rules shared by complex and finite-field functions
+
+**Algorithms**
+
+The functions accept `FASTCD_ALGORITHM_AUTO`, `FASTCD_ALGORITHM_DIRECT` and
+`FASTCD_ALGORITHM_QUASILINEAR`. `AUTO` does not use the real tables: over C
+and over finite fields it selects direct for `N <= 4` and quasilinear
+otherwise. Cariow–Cariowa returns
+`FASTCD_UNSUPPORTED_ALGORITHM` (complex) or
+`FASTCD_FF_UNSUPPORTED_ALGORITHM` (finite).
+
+**Aliasing**
+
+- Exact `out == x` is allowed for add, subtract, negate, scale, divide,
+  conjugate, imaginary part, reciprocal and square. Add and subtract also
+  allow `out == y`.
+- Every other output must be disjoint from the inputs. This includes the
+  one-coefficient outputs of the inner product and the quadratic norm, and
+  the outputs of basis multiplication.
+- `x` and `y` must be the same complete record or disjoint. For scale and
+  divide, `y` is one coefficient and may point into `x`, but the output must
+  not overlap it.
+- The active workspace prefix must be disjoint from every operand, from the
+  output and, over finite fields, from the plan.
+
+The functions check these rules before writing anything and report a
+violation with `FASTCD_OVERLAPPING_BUFFERS` or
+`FASTCD_FF_OVERLAPPING_BUFFERS`. A partial overlap between `x` and `y` is
+rejected the same way. The third operand `z` of the composite operations is
+not checked against `x` or `y`.
+
+**Preconditions the library does not check**
+
+Buffer lengths, alignment, initialized and unmodified field contexts and
+plans, and canonical residues are the caller's responsibility.
+
+**Errors and threads**
+
+A nonzero status leaves every output unchanged. Field contexts and plans
+are read-only during a call, so concurrent calls may share them; each call
+needs its own output and workspace. Inputs, contexts and plans must not
+change while a call that reads them is running, including from another
+thread.
+
+### Record operations
+
+`FastCDOperation` selects the operation applied by `fastcd_apply_c128` and
+`fastcd_apply_ff`:
+
+| Operation | Operands besides `x` | Output | Workspace |
+|---|---|---|---|
+| `FASTCD_OP_MULTIPLY` | `y` | record | product |
+| `FASTCD_OP_ADD`, `FASTCD_OP_SUBTRACT` | `y` | record | none |
+| `FASTCD_OP_NEGATE`, `FASTCD_OP_CONJUGATE`, `FASTCD_OP_IMAG_PART` | none | record | none |
+| `FASTCD_OP_SCALE`, `FASTCD_OP_DIVIDE` | one coefficient `y` | record | none |
+| `FASTCD_OP_INNER` | `y` | one coefficient | none |
+| `FASTCD_OP_QUADRATIC_NORM` | none | one coefficient | none |
+| `FASTCD_OP_RECIPROCAL`, `FASTCD_OP_SQUARE` | none | record | none |
+| `FASTCD_OP_IMAG_CROSS`, `FASTCD_OP_COMMUTATOR` | `y` | record | product |
+| `FASTCD_OP_ANTICOMMUTATOR` | `y` | record | none |
+| `FASTCD_OP_ASSOCIATOR`, `FASTCD_OP_LEFT_OPERATOR_COMMUTATOR`, `FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR` | `y`, `z` | record | product and two records |
+| `FASTCD_OP_BASIS_LEFT`, `FASTCD_OP_BASIS_RIGHT` | `basis_index` | record | none |
+
+Each operation computes the same formula as the corresponding real function
+above; `FASTCD_OP_IMAG_CROSS` is the alternating product. In the three
+composite operations, `z` is the third operand:
+
+- `FASTCD_OP_ASSOCIATOR` computes `(xy)z - x(yz)`.
+- `FASTCD_OP_LEFT_OPERATOR_COMMUTATOR` computes `[L_x, L_y](z) = x(yz) - y(xz)`.
+- `FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR` computes `[R_x, R_y](z) = (zy)x - (zx)y`.
+
+Operand pointers that an operation does not use may be null, and
+`basis_index` is read only by the two basis operations. The `algorithm`
+argument selects how records are multiplied in multiplication, the
+alternating product, the commutator and the composite operations; the other
+operations do not multiply records.
 
 ### Quadratic norm
 
@@ -469,52 +603,18 @@ FastCDFFStatus fastcd_quadratic_norm_ff(uint32_t* value,
         const uint32_t* x, const FastCDPlanFF* plan);
 ```
 
-These return `Q(x)=sum_i x_i^2` in the coefficient field. The real function
-is an alias for `fastcd_norm_squared_f64`, including scaled accumulation
-and all validation. Complex/finite results are one coefficient (two doubles,
-or `field.degree` residues). The CD involution fixes the coefficient field.
-For finite/complex reciprocals, a nonzero isotropic input also returns the
-zero-norm status. See [mathematics](mathematics.md#canonical-quadratic-norm-over-every-field).
+Each function writes `Q(x) = sum_i x_i^2`, computed in the coefficient field
+without complex conjugation, as one coefficient: one `double`, one
+`FastCDComplexF64`, or `d` residues. The real function is an alias for
+`fastcd_norm_squared_f64`, with the same scaled accumulation and
+validation.
 
-### Shared record operations
+Over C and finite fields, `Q(x)` can be zero for a nonzero `x` (see
+[The quadratic form](mathematics.md#the-quadratic-form)). The reciprocal of
+such an element does not exist, and `FASTCD_OP_RECIPROCAL` returns
+`FASTCD_ZERO_NORM` or `FASTCD_FF_ZERO_NORM` for it, as it does for zero.
 
-`FastCDOperation` in `arithmetic.h` selects:
-
-| Operation | Inputs besides `x` | Output | Scratch |
-|---|---|---|---|
-| `FASTCD_OP_MULTIPLY` | `y` | record | product |
-| `FASTCD_OP_ADD`, `FASTCD_OP_SUBTRACT` | `y` | record | none |
-| `FASTCD_OP_NEGATE`, `FASTCD_OP_CONJUGATE`, `FASTCD_OP_IMAG_PART` | none | record | none |
-| `FASTCD_OP_SCALE`, `FASTCD_OP_DIVIDE` | one scalar `y` | record | none |
-| `FASTCD_OP_INNER` | `y` | scalar | none |
-| `FASTCD_OP_QUADRATIC_NORM` | none | scalar | none |
-| `FASTCD_OP_RECIPROCAL`, `FASTCD_OP_SQUARE` | none | record | none |
-| `FASTCD_OP_IMAG_CROSS`, `FASTCD_OP_COMMUTATOR` | `y` | record | product |
-| `FASTCD_OP_ANTICOMMUTATOR` | `y` | record | none |
-| `FASTCD_OP_ASSOCIATOR`, `FASTCD_OP_LEFT_OPERATOR_COMMUTATOR`, `FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR` | `y`, `z` | record | product + two records |
-| `FASTCD_OP_BASIS_LEFT`, `FASTCD_OP_BASIS_RIGHT` | `basis_index` | record | none |
-
-Unused input pointers may be null. `basis_index` is checked only for the
-basis operations. The result formulas are those of the real functions above. `AUTO`,
-`DIRECT` and `QUASILINEAR` are supported over C and finite fields; `AUTO`
-selects quasilinear. Cariow–Cariowa returns the unsupported-algorithm status.
-The selected algorithm governs products used by multiplication, imaginary
-cross products, commutators, and composite operations. Coordinatewise
-operations and reductions use their dedicated formulas without a product.
-
-Exact `out==x` is allowed for add, subtract, negate, scale, divide,
-conjugate, imaginary part, reciprocal and square. Add/subtract also permit
-`out==y`. Other outputs, including scalar results and basis permutations,
-must be disjoint from inputs. Scalar `y` may be a read-only view into `x`
-for scale/divide; the output may not overlap that scalar. All active
-workspace storage must be disjoint from inputs, output and finite plan.
-Other partial overlaps are unsupported. A nonzero status leaves the output
-unchanged. Correct buffer lengths, alignment, initialized plans and
-canonical finite residues are preconditions that the library does not
-check. Keep inputs and contexts unchanged until the call returns, including
-when other threads can reach their storage.
-
-### Complex128
+### Complex coefficients
 
 ```c
 typedef struct FastCDComplexF64 { double real, imag; } FastCDComplexF64;
@@ -539,28 +639,51 @@ FastCDStatus fastcd_mul_batch_c128(FastCDComplexF64* out, size_t out_stride,
         const FastCDWorkspaceF64* workspace);
 ```
 
-Record lengths and strides count `FastCDComplexF64` coefficients; scratch
-lengths count **doubles**. Complex values are passed as this two-double
-struct, never as C99 `double _Complex`. `fastcd_mul_c128` uses `AUTO`. The
-workspace query covers direct and quasilinear products and the selected
-structural operation; a zero-length result allows a null workspace. NaN,
-infinity and overflow are numerical results, and the complex norm,
-reciprocal and square routines do not use the scaled evaluation of their
-real counterparts.
+**Parameters**
 
-Batch output stride must be at least `dimension`; input strides must be
-zero (broadcast) or at least `dimension`. One record ignores strides; an
-empty batch needs no data/workspace. Size and overlap checks precede writes.
-The output span and active scratch must be disjoint from input spans, and
-corresponding input records must be identical or disjoint.
+- `dimension` is `N`, the number of complex coefficients in a record.
+  Batch strides also count `FastCDComplexF64` values.
+- Workspace lengths count **doubles**, as in the real API, and the workspace
+  is described by `FastCDWorkspaceF64`.
+- Complex values are passed as the two-double struct, never as C99
+  `double _Complex`.
 
-### Finite fields and plans
+**Functions**
 
-`FastCDField` stores `prime`, `degree`, `modulus[13]`, and private precomputed
-reduction data. Treat initialized contexts as immutable. `FastCDPlanFF`
-copies the field, records `level`, `dimension`, `words = dimension*degree`,
-and `workspace_words`, and stores normalization constants. It contains no
-heap pointers or caches. `FASTCD_FF_MAX_DEGREE` is 12.
+- `fastcd_workspace_size_c128` writes the number of doubles that `operation`
+  needs. The length covers both direct and quasilinear evaluation, and it is
+  zero for operations that do not multiply records. A batch needs the
+  `FASTCD_OP_MULTIPLY` length.
+- `fastcd_apply_c128` applies one record operation.
+- `fastcd_mul_with_algorithm_c128` multiplies two records with the given
+  algorithm, and `fastcd_mul_c128` multiplies them with `AUTO`.
+- `fastcd_mul_batch_c128` multiplies `count` pairs of records.
+
+**Numerical behavior**
+
+NaN, infinity and overflow are numerical results, not errors.
+`FASTCD_OP_CONJUGATE` negates coordinates `1` through `N - 1` and does not
+conjugate the complex coefficients. The quadratic norm, the reciprocal and
+the square accumulate `Q(x)` and the pairing in plain complex arithmetic,
+without the scaling the real functions use, so they can overflow where
+their real counterparts do not.
+
+**Batches**
+
+- `count == 0`: validate only the dimension and algorithm. Every pointer
+  may be null, and nothing is written.
+- `count == 1`: ignore all strides.
+- `count > 1`: `out_stride` must be at least `N`, and each input stride must
+  be zero, to broadcast one record, or at least `N`. The workspace is
+  required.
+
+All sizes and overlaps are checked before the first product is written.
+The output span and the active workspace must be disjoint from both input
+spans, and same-index input records must be identical or disjoint.
+
+### Finite fields
+
+#### Field contexts
 
 ```c
 FastCDFFStatus fastcd_field_init(FastCDField* field, uint32_t prime,
@@ -569,6 +692,34 @@ FastCDFFStatus fastcd_ff_field_init(FastCDField* field, uint32_t prime,
         uint32_t degree, const uint32_t* modulus);
 FastCDFFStatus fastcd_ff_field_init_trusted(FastCDField* field, uint32_t prime,
         uint32_t degree, const uint32_t* modulus);
+```
+
+A `FastCDField` describes F_(p^d). Its public members are `prime`,
+`degree` and `modulus[13]`; the remaining members hold precomputed
+reduction data. `FASTCD_FF_MAX_DEGREE` is 12. Treat an initialized context
+as immutable.
+
+- `fastcd_field_init` accepts odd primes `3` through `INT32_MAX` and degrees
+  `1` through `12`. With a null `modulus` it chooses a deterministic monic
+  irreducible polynomial and records it in `field->modulus`. An explicit
+  `modulus` has exactly `degree + 1` canonical residues, constant term first,
+  with leading coefficient one. Setup checks that `prime` is prime and that
+  the polynomial is irreducible, and leaves `field` unchanged on failure.
+  `prime == 2` returns `FASTCD_FF_CHARACTERISTIC_TWO`.
+- `fastcd_ff_field_init` is the lower-level constructor. It also accepts
+  `prime == 2`, for scalar arithmetic only, since plans reject
+  characteristic 2. It requires an explicit polynomial for `degree > 1`; at
+  degree one a null `modulus` selects `t`.
+- `fastcd_ff_field_init_trusted` makes the same range and shape checks but
+  skips the primality and irreducibility checks. Use it only for parameters
+  you have already validated.
+
+Neither the trusted constructor nor the scalar operations below are
+available from Python.
+
+#### Plans
+
+```c
 FastCDFFStatus fastcd_ff_plan_init(FastCDPlanFF* plan,
         const FastCDField* field, size_t level);
 FastCDFFStatus fastcd_ff_cd_workspace_size(const FastCDPlanFF* plan,
@@ -577,25 +728,31 @@ FastCDFFStatus fastcd_apply_workspace_size_ff(const FastCDPlanFF* plan,
         FastCDOperation operation, size_t* words);
 ```
 
-`fastcd_field_init` accepts odd primes `3..INT32_MAX` and degrees `1..12`.
-A null modulus chooses a deterministic monic irreducible polynomial, which
-`field->modulus` records. An explicit polynomial has exactly `degree+1`
-canonical residues, constant term first and leading coefficient one. Setup
-checks that `prime` is prime and the polynomial irreducible, and leaves
-`field` unchanged on failure.
+A `FastCDPlanFF` fixes the Cayley–Dickson level over one field.
+`fastcd_ff_plan_init` copies the field into the plan and records `level`,
+`dimension = 2^level`, the record length `words = dimension * degree`, the
+product workspace length `workspace_words`, and the inverses of 2 and of
+`dimension` modulo `p`. A plan contains no pointers; treat it as immutable.
+Level zero is allowed, and its algebra is the coefficient field itself.
+Plans reject characteristic 2 with `FASTCD_FF_CHARACTERISTIC_TWO`, and sizes
+that do not fit `size_t` with `FASTCD_FF_SIZE_OVERFLOW`.
 
-The lower-level `fastcd_ff_field_init` requires an explicit polynomial for
-extensions (null is allowed at degree one) and also accepts characteristic
-2 for scalar arithmetic, which CD plans reject. The trusted variant skips
-the primality and irreducibility checks; use it only for parameters you
-have already validated. Neither the trusted constructor nor the scalar
-operations are exposed to Python.
+Finite-field workspaces are arrays of `uint32_t`, and their lengths count
+words:
 
-Level zero is supported and represents one coefficient-field scalar.
-Dimension and workspace sizes are checked for overflow. CD multiplication
-uses N coefficients in the selected field.
+- `fastcd_ff_cd_workspace_size` writes the workspace needed by every product
+  function: `fastcd_mul_ff`, `fastcd_mul_with_algorithm_ff`,
+  `fastcd_ff_cd_mul` and `fastcd_mul_batch_ff`, with either algorithm. The
+  value equals `plan->workspace_words`.
+- `fastcd_apply_workspace_size_ff` writes the workspace needed by
+  `fastcd_apply_ff` for one operation: the product workspace for
+  multiplication, the alternating product and the commutator, that plus two
+  records for the composite operations, and zero for the others.
 
-### Finite scalar arithmetic
+A larger buffer may be supplied; only the required prefix is used and
+checked for overlap.
+
+#### Scalar arithmetic
 
 ```c
 void fastcd_ff_field_add(uint32_t* out, const uint32_t* x,
@@ -611,21 +768,28 @@ uint32_t fastcd_ff_prime_mul(uint32_t x, uint32_t y, const FastCDField* field);
 uint32_t fastcd_ff_field_reduce64(uint64_t x, const FastCDField* field);
 ```
 
-A scalar occupies `degree` canonical `uint32_t` words. Add/subtract/multiply/
-negate permit exact input aliases and require no scratch. Their buffers must
-otherwise be disjoint and correctly sized; these small operations do not
-validate buffer ranges or canonical residues. Inverse uses exponentiation
-by `prime**degree-2`, with enough local limbs for the entire supported order;
-zero returns `FASTCD_FF_ZERO_NORM` without changing output.
-`prime_mul` multiplies two base-prime residues, even for an extension context;
-`reduce64` reduces any `uint64_t`. Degree-one multiplication and reduction
-are inline functions in the header; define `FASTCD_FF_FIELD_EXTERN_ONLY`
-before including it to call the exported out-of-line versions instead.
-`fastcd_ff_field_mul_extension` is the out-of-line routine that
-`fastcd_ff_field_mul` calls for degrees above one; call
-`fastcd_ff_field_mul`.
+These functions act on single elements of F_(p^d), each `degree` canonical
+words long.
 
-### Finite CD operations
+- Add, subtract, multiply and negate need no workspace and return nothing.
+  `out` may equal `x` or `y` exactly; otherwise the buffers must be
+  disjoint. They do not check buffer ranges or residues.
+- `fastcd_field_inv` computes `x^(p^d - 2)`, the inverse of a nonzero `x`.
+  For zero it returns `FASTCD_FF_ZERO_NORM` and leaves `out` unchanged.
+  `out == x` is allowed.
+- `fastcd_ff_prime_mul` multiplies two residues modulo the prime `p`. An
+  extension context may be passed, but the result is a product in F_p, not
+  of extension elements.
+- `fastcd_ff_field_reduce64` reduces any `uint64_t` modulo `p`.
+
+`fastcd_ff_field_mul`, `fastcd_ff_prime_mul` and `fastcd_ff_field_reduce64`
+are inline functions in the header. For `degree > 1`, `fastcd_ff_field_mul`
+calls the exported `fastcd_ff_field_mul_extension`, which applications should
+not call directly. Define `FASTCD_FF_FIELD_EXTERN_ONLY` before including
+`<fastcd/finite.h>` to call exported out-of-line versions of all three
+instead.
+
+#### Cayley–Dickson operations
 
 ```c
 FastCDFFStatus fastcd_mul_with_algorithm_ff(uint32_t* out, const uint32_t* x,
@@ -646,19 +810,31 @@ FastCDFFStatus fastcd_mul_batch_ff(uint32_t* out, size_t out_stride,
 const char* fastcd_ff_status_string(FastCDFFStatus status);
 ```
 
-All lengths and strides count `uint32_t` words. One field coefficient
-occupies `degree` consecutive words, so a record has `plan->words` words.
-`fastcd_mul_ff` uses `AUTO`; `fastcd_ff_cd_mul` always uses quasilinear.
-Only the queried active workspace prefix is used or checked when a larger
-buffer is supplied. The generic apply operation uses the shared table above.
-A batch reuses one workspace and validates before writing. Strides have the
-complex batch rules with `plan->words` replacing `dimension`.
+**Parameters**
 
-Finite statuses, in declaration order, are `FASTCD_FF_SUCCESS`,
-`FASTCD_FF_INVALID_LEVEL`, `FASTCD_FF_INVALID_FIELD`,
-`FASTCD_FF_CHARACTERISTIC_TWO`, `FASTCD_FF_INSUFFICIENT_WORKSPACE`,
-`FASTCD_FF_OVERLAPPING_BUFFERS`, `FASTCD_FF_SIZE_OVERFLOW`,
-`FASTCD_FF_NULL_POINTER`, `FASTCD_FF_UNSUPPORTED_ALGORITHM`,
-`FASTCD_FF_ZERO_NORM`, `FASTCD_FF_INVALID_BASIS_INDEX`, and
-`FASTCD_FF_INVALID_STRIDE`. `FastCDFFStatus` is a separate enum from
-`FastCDStatus`.
+- A record has `plan->words` words. Lengths and strides count `uint32_t`
+  words.
+- `workspace_words` is the length of the supplied workspace; see
+  [Plans](#plans) for the required length.
+
+**Functions**
+
+- `fastcd_mul_with_algorithm_ff` multiplies two records with the given
+  algorithm, `fastcd_mul_ff` with `AUTO`, and `fastcd_ff_cd_mul` always with
+  quasilinear.
+- `fastcd_apply_ff` applies one [record operation](#record-operations).
+- `fastcd_mul_batch_ff` multiplies `count` pairs of records under the
+  complex batch rules, with `plan->words` in place of `N`. With
+  `count == 0` it checks only that the plan is non-null and the algorithm
+  is supported.
+- `fastcd_ff_status_string` returns a fixed English message for a status.
+
+**Statuses**
+
+`FastCDFFStatus` is a separate enum from `FastCDStatus`. Its values, in
+declaration order, are `FASTCD_FF_SUCCESS`, `FASTCD_FF_INVALID_LEVEL`,
+`FASTCD_FF_INVALID_FIELD`, `FASTCD_FF_CHARACTERISTIC_TWO`,
+`FASTCD_FF_INSUFFICIENT_WORKSPACE`, `FASTCD_FF_OVERLAPPING_BUFFERS`,
+`FASTCD_FF_SIZE_OVERFLOW`, `FASTCD_FF_NULL_POINTER`,
+`FASTCD_FF_UNSUPPORTED_ALGORITHM`, `FASTCD_FF_ZERO_NORM`,
+`FASTCD_FF_INVALID_BASIS_INDEX`, and `FASTCD_FF_INVALID_STRIDE`.

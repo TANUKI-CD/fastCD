@@ -59,10 +59,10 @@ class FiniteField:
     The constructor chooses a deterministic polynomial basis. Use
     :meth:`from_modulus` for an explicit presentation. Parents are cached by
     their actual defining polynomial: isomorphic fields with different
-    presentations do not coerce implicitly. Pickles retain that polynomial.
+    presentations do not coerce implicitly. Pickles record that polynomial.
 
-    Scalars and arrays use the existing ``Element`` and ``ElementArray``
-    classes. Integers embed in the prime subfield and reduce before storage
+    Scalars and arrays are ``Element`` and ``ElementArray`` objects, as for
+    algebras. Integers embed in the prime subfield and reduce before storage
     conversion; floating-point coefficients are rejected. For extensions,
     pass all ``deg`` polynomial coordinates explicitly when constructing a
     non-prime-subfield value. ``quadratic_norm()`` on a scalar c is c*c;
@@ -146,8 +146,8 @@ class FiniteField:
         if len(mod) == 2:
             if mod[1] != 1:
                 raise ValueError("modulus must be monic")
-            # Linear moduli do not change degree-one coordinates or arithmetic.
-            # Give all such presentations the single canonical prime parent.
+            # Linear moduli do not change degree-one coordinates or arithmetic,
+            # so every such presentation maps to the one canonical prime parent
             return cls(char=p)
         return _make_field(p, len(mod) - 1, mod)
 
@@ -184,9 +184,8 @@ class FiniteField:
     def __repr__(self) -> str:
         """Show the selectors or explicit polynomial needed to recreate this parent."""
 
-        # Default status belongs to the polynomial, not construction history.
-        # Resolve the cached default lazily; pickles still restore the actual
-        # explicit polynomial without depending on default selection.
+        # Default status depends on the polynomial rather than construction history,
+        # so the cached default resolves lazily and pickles keep the polynomial
         if self is FiniteField(char=self.char, deg=self.deg):
             return f"FiniteField(char={self.char}, deg={self.deg})"
         return f"FiniteField.from_modulus(char={self.char}, modulus={self.modulus!r})"
@@ -245,7 +244,7 @@ class FiniteField:
         Return an ``Element`` for scalar operands, otherwise an
         ``ElementArray``. ``out`` follows the algebra multiplication contract:
         exact broadcast shape, native writable contiguous storage, and no
-        overlap with inputs. A supplied wrapper is returned unchanged.
+        overlap with inputs. A supplied ``ElementArray`` is itself returned.
         """
 
         from ._domains import multiply

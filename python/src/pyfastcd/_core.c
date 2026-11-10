@@ -11,7 +11,7 @@
 
 #include "fastcd/fastcd.h"
 
-/* Messages shared verbatim with pyfastcd._validation so that the C and Python
+/* Messages shared verbatim with pyfastcd._validation, so the C and Python
  * layers report identical conditions identically. */
 #define PYFASTCD_DIFFERENT_ALGEBRA_MESSAGE "operands belong to different algebras"
 #define PYFASTCD_COMPLEX_SCALAR_MESSAGE "complex scalars are not supported"
@@ -36,10 +36,10 @@ typedef struct {
     double coefficients[];
 } PyFastCDElement;
 
-/* Only new domains reserve this trailer after their coefficient storage.
- * The real object layout and allocation size remain exactly those of v1.1.0.
- * A negative buffer_stride marks a trailer; real buffers always have stride 8.
- * The trailer owns no Python references and shares the element's lifetime. */
+/* Only complex and finite-field Elements reserve this trailer after their
+ * coefficient storage; real Elements have none. A negative buffer_stride marks
+ * a trailer, and real buffers always have stride 8. The trailer owns no Python
+ * references and shares the element's lifetime. */
 typedef struct {
     Py_ssize_t shape[2], strides[2], length;
     int ndim, complex;
@@ -94,13 +94,14 @@ typedef struct {
 
 static PyTypeObject PyFastCDElementType;
 
-// Detect a domain trailer without enlarging the original real Element layout
+// Detect the trailer of a complex or finite-field Element
 static int pyfastcd_is_extended(PyObject* o) {
     return PyObject_TypeCheck(o, &PyFastCDElementType) &&
             ((PyFastCDElement*)o)->buffer_stride < 0;
 }
 
-// Route a new-domain slot to Python parent/shape handling and the native bridge
+// Route a complex or finite-field slot to Python parent/shape handling and the
+// native bridge
 static PyObject* pyfastcd_domain_call(
         const char* name, PyObject* self, PyObject* extra) {
     PyObject* module = PyImport_ImportModule("pyfastcd._domains");
@@ -122,7 +123,8 @@ static PyObject* pyfastcd_domain_binary(
     return result;
 }
 
-// Preserve keyword-capable slot signatures while keeping real dispatch unchanged
+// Forward keyword-capable complex and finite-field slots; real Elements are
+// handled natively
 static PyObject* pyfastcd_domain_keywords(
         const char* name, PyObject* self, PyObject* args, PyObject* kwargs) {
     PyObject* module = PyImport_ImportModule("pyfastcd._domains");
@@ -569,16 +571,16 @@ static int pyfastcd_copy_sequence_coefficients(PyFastCDElement* element,
                 "coefficients must be real numeric values");
         return -1;
     }
-    /* The input must define the coordinate order.  Sequences and iterators
-     * do; a set, mapping, or other unordered iterable would silently assign
-     * coordinates in hash order. */
+    /* The input must define the coordinate order, as sequences and iterators
+     * do, since a set, mapping or other unordered iterable would silently
+     * assign coordinates in hash order. */
     if (!PySequence_Check(source) && !PyIter_Check(source)) {
         PyErr_SetString(PyExc_TypeError,
                 "coefficients must be a sequence, iterator, or buffer");
         return -1;
     }
-    /* Conversions may call Python and mutate source.  A tuple owns stable
-     * references to every coefficient for the whole conversion loop. */
+    // Conversions may call Python and mutate source, so a tuple holds stable
+    // references to every coefficient for the whole conversion loop
     sequence = PySequence_Tuple(source);
     if (sequence == NULL) return -1;
     if (PyTuple_GET_SIZE(sequence) != (Py_ssize_t)dimension) {
@@ -804,8 +806,8 @@ static PyObject* pyfastcd_element_item(PyObject* self, Py_ssize_t index) {
 // Return one coefficient through the sequence protocol slot
 static PyObject* pyfastcd_element_sequence_item(PyObject* self,
         Py_ssize_t index) {
-    /* PySequence_GetItem has already added the length to a negative index,
-     * so a negative value here is out of range rather than a wraparound. */
+    // PySequence_GetItem has already added the length to a negative index,
+    // so a negative value here is out of range rather than a wraparound
     if (index < 0) {
         PyErr_SetString(PyExc_IndexError, "element index is out of range");
         return NULL;
@@ -999,8 +1001,8 @@ static PyObject* pyfastcd_element_richcompare(PyObject* left_object,
                 if (!(left->coefficients[i] == 0.0)) equal = 0;
             }
         } else if (PyErr_Occurred()) {
-            /* Unsupported scalar types allow reflected comparison; other
-             * failures during scalar normalization still propagate. */
+            // Unsupported scalar types allow reflected comparison, and other
+            // failures during scalar normalization propagate
             if (!PyErr_ExceptionMatches(PyExc_TypeError)) return NULL;
             PyErr_Clear();
             Py_RETURN_NOTIMPLEMENTED;
@@ -1032,16 +1034,16 @@ static Py_hash_t pyfastcd_element_hash(PyObject* self_object) {
 
     for (Py_ssize_t i = 0; i < dimension; i++) {
         if (isnan(self->coefficients[i])) {
-            /* NaN never compares equal, so any fixed value is consistent
-             * with equality; a fresh float would hash by identity and
-             * change between calls. */
+            /* NaN never compares equal, so any fixed value is consistent with
+             * equality, while a fresh float would hash by identity and change
+             * between calls. */
             return (Py_hash_t)dimension;
         }
         if (i > 0 && self->coefficients[i] != 0.0) embedded_real = false;
     }
     if (embedded_real) {
-        /* x == r holds for the real scalar r = x[0], so hash like that
-         * float; Python hashes equal ints, floats, and NumPy scalars alike. */
+        // x == r holds for the real scalar r = x[0], so hash like that float,
+        // as Python hashes equal ints, floats and NumPy scalars alike
         key = PyFloat_FromDouble(self->coefficients[0]);
     } else {
         key = PyTuple_New(dimension + 1);
@@ -1730,7 +1732,7 @@ PyDoc_STRVAR(pyfastcd_element_norm_squared_doc,
              "norm_squared($self, /)\n"
              "--\n"
              "\n"
-             "Return the canonical field-valued quadratic norm, sum(x_i**2).\n"
+             "Return the quadratic form sum(x_i**2) in the coefficient field.\n"
              "\n"
              "Returns\n"
              "-------\n"
@@ -1740,8 +1742,8 @@ PyDoc_STRVAR(pyfastcd_element_norm_squared_doc,
              "Notes\n"
              "-----\n"
              "A coefficient-field scalar c has quadratic norm c*c.\n"
-             "The original real routine uses scaled accumulation to reduce overflow\n"
-             "and underflow.  NaN and infinity follow IEEE-754 behavior.");
+             "Over R it uses scaled accumulation to reduce overflow and underflow.\n"
+             "NaN and infinity follow IEEE-754 behavior.");
 
 // Return the Euclidean coefficient norm of an element
 static PyObject* pyfastcd_element_norm(PyObject* self_object,
@@ -1860,7 +1862,7 @@ PyDoc_STRVAR(pyfastcd_element_square_doc,
 "``(alpha**2 - inner(u, u)) + 2*alpha*u``.  Its operation order may round\n"
 "differently from general ``self*self``.");
 
-// Return the generalized imaginary cross product of two elements
+// Return the alternating product of the imaginary parts of two elements
 static PyObject* pyfastcd_element_imag_cross(PyObject* self,
         PyObject* other) {
     if (pyfastcd_is_extended(self) || pyfastcd_is_extended(other))
@@ -1874,7 +1876,7 @@ PyDoc_STRVAR(pyfastcd_element_imag_cross_doc,
 "imag_cross($self, other, /)\n"
 "--\n"
 "\n"
-"Return the generalized imaginary cross product with ``other``.\n"
+"Return the alternating product of the imaginary parts with ``other``.\n"
 "\n"
 "Parameters\n"
 "----------\n"
@@ -1884,7 +1886,7 @@ PyDoc_STRVAR(pyfastcd_element_imag_cross_doc,
 "Returns\n"
 "-------\n"
 "Element\n"
-"    The value ``(u*v - v*u)/2``, where ``u`` and ``v`` are the imaginary\n"
+"    The value ``(X*Y - Y*X)/2``, where ``X`` and ``Y`` are the imaginary\n"
 "    parts.  Its scalar coordinate is zero.\n"
 "\n"
 "Raises\n"
@@ -2289,7 +2291,7 @@ PyDoc_STRVAR(pyfastcd_element_array_ufunc_doc,
 PyDoc_STRVAR(pyfastcd_element_algebra_doc,
 "Algebra or FiniteField: The cached parent.\n"
 "\n"
-"Structural results retain this parent. Finite quadratic norms and inner\n"
+"Structural results have this parent. Finite quadratic norms and inner\n"
 "products return an Element over the coefficient FiniteField instead.");
 
 PyDoc_STRVAR(pyfastcd_element_dimension_doc,
@@ -2326,7 +2328,7 @@ PyDoc_STRVAR(pyfastcd_element_dtype_doc,
 "float64 over R, complex128 over C, or uint32 over finite fields.");
 
 PyDoc_STRVAR(pyfastcd_element_array_priority_doc,
-"float: NumPy dispatch priority, currently ``1000.0``.\n\n"
+"float: NumPy dispatch priority, ``1000.0``.\n\n"
 "This lets supported mixed ufunc calls reach fastCD before ordinary ndarray\n"
 "coordinate semantics are selected.");
 
@@ -2352,6 +2354,7 @@ static PyGetSetDef pyfastcd_element_getset[] = {
     {NULL, NULL, NULL, NULL, NULL}
 };
 
+// Return the quadratic form Q(x), an alias of norm_squared
 static PyObject* pyfastcd_element_quadratic_norm(PyObject* self, PyObject* args) {
     return pyfastcd_element_norm_squared(self, args);
 }
@@ -2365,7 +2368,7 @@ PyDoc_STRVAR(pyfastcd_element_quadratic_norm_doc,
 "The result is a float over R, complex over C, or an Element with the\n"
 "FiniteField parent over finite fields. CD conjugation fixes coefficients;\n"
 "x * x.conjugate() equals the scalar embedding of Q(x) in exact arithmetic.\n"
-"The original scaled real implementation is unchanged.\n"
+"Over R it uses scaled accumulation.\n"
 "For a coefficient-field scalar c, Q(c)=c*c, not the relative field norm.");
 
 static PyMethodDef pyfastcd_element_methods[] = {
@@ -3346,9 +3349,9 @@ static PyObject* pyfastcd_multiply_into(PyObject* out_object,
         PyBuffer_Release(&out);
         return NULL;
     }
-    /* Batches of two or more records use the batch selection on every
-     * layout, so results never depend on strides.  The automatic workspace
-     * query already covers this choice. */
+    /* Batches of two or more records use the batch selection on every layout,
+     * so results never depend on strides, and the automatic workspace query
+     * covers this choice. */
     if (algorithm == FASTCD_ALGORITHM_AUTO && count >= 2) {
         (void)fastcd_default_batch_algorithm(dimension, &algorithm);
     }
@@ -4023,7 +4026,7 @@ static PyObject* pyfastcd_comparison_scalar_entry(PyObject* Py_UNUSED(module),
     return pyfastcd_comparison_scalar(value);
 }
 
-// Allocate an immutable domain record and its trailer using the existing Element type
+// Allocate an immutable complex or finite-field Element and its trailer
 static PyObject* pyfastcd_extended_element(PyObject* module, PyObject* args) {
     (void)module;
     PyObject* parent, *payload, *shape;
@@ -4054,7 +4057,7 @@ static PyObject* pyfastcd_extended_element(PyObject* module, PyObject* args) {
         return NULL;
     }
     // Round coefficient bytes up to double alignment, then reserve metadata
-    // inside the same variable allocation. Real allocations take neither step.
+    // inside the same variable allocation, which real allocations skip
     size_t units =
             (size_t)(length + 7) / 8 + sizeof(PyFastCDDomainStorage) / sizeof(double);
     PyFastCDElement* e = pyfastcd_element_allocate(parent, units);
@@ -4071,7 +4074,7 @@ static PyObject* pyfastcd_extended_element(PyObject* module, PyObject* args) {
         stride *= dimensions[i];
     }
     memcpy(e->coefficients, PyBytes_AS_STRING(payload), (size_t)length);
-    // Publish the domain marker only after payload and buffer metadata agree.
+    // Publish the domain marker only after payload and buffer metadata agree
     e->buffer_stride = -1;
     return (PyObject*)e;
 }

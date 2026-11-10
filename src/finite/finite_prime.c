@@ -1,7 +1,8 @@
-/* Portable register-value prime arithmetic. No representation conversion is
- * needed; extension-field products use the degree-specialized fallback. */
+/* Portable register-value arithmetic for prime fields, with no representation
+ * conversion. Extension fields use the degree-specialized buffer schedule. */
 #include "finite_backend.h"
 #include "field_internal.h"
+// Value types and operations for the shared register-value schedule
 typedef uint32_t Word;
 typedef FastCDPlanFF Context;
 #define FASTCD_FF_NAME(n) scalar_prime_##n
@@ -12,7 +13,7 @@ typedef FastCDPlanFF Context;
 // Fuse ab-cd into one bounded reduction, keeping scalars in registers
 static inline Word prime_difference(
         Word a, Word b, Word c, Word d, const Context* ctx) {
-    /* ab + (p-c)d < 2p^2 < 2^63, including c=0. */
+    // ab + (p-c)d < 2p^2 < 2^63, including c = 0
     return fastcd_ff_reduce(
             (uint64_t)a * b + (uint64_t)(ctx->field.prime - c) * d, &ctx->field);
 }

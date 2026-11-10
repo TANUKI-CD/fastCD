@@ -10,14 +10,14 @@
 #include <string.h>
 
 /*
- * Buffer-protocol bridge for the explicitly selected complex/finite paths.
- * The original real extension remains the default and is not routed here.
+ * Buffer-protocol bridge for explicitly selected complex and finite-field
+ * parents. Real parents use the _core extension and never reach this module.
  * No NumPy C API is required: Python adapters select parents and broadcast
- * leading axes; this module validates layouts and executes coefficient loops.
+ * leading axes, and this module validates layouts and runs coefficient loops.
  *
  * A context owns a copied finite plan or complex dimension, never an operand
  * pointer. Each call pins its buffers, validates the entire batch before
- * writing, and owns separate scratch, including while releasing the GIL.
+ * writing and owns separate scratch, including while the GIL is released.
  */
 typedef struct {
     int finite, field_scalar, features;
@@ -159,9 +159,9 @@ static PyObject* context_new(PyObject* module, PyObject* args) {
         return NULL;
     }
     c->bytes = c->n * c->d * item;
-    // Features are the complete trailing storage axes, never batch axes:
-    // scalar prime fields have none, extension scalars have (d,), and
-    // finite CD records have (N,) or (N,d). Complex CD records have (N,).
+    /* Features are the complete trailing storage axes, never batch axes.
+     * Scalar prime fields have none, extension scalars have (d,), finite CD
+     * records have (N,) or (N,d), and complex CD records have (N,). */
     c->features = scalar ? (c->d > 1) : 1 + (c->d > 1);
     if (c->features == 2) {
         c->shape[0] = n;
@@ -181,8 +181,10 @@ static int get_view(Py_buffer* v, PyObject* obj, Domain* c, int scalar, int outp
     const char* fmt = v->format;
     if (fmt && (*fmt == '@' || *fmt == '=')) fmt++;
     size_t item = c->finite ? 4 : 16;
-    if (v->itemsize != (Py_ssize_t)item || !fmt ||
-            strcmp(fmt, c->finite ? "I" : "Zd") || v->ndim < 0) {
+    // NumPy exports uint32 as "L" where long has 32 bits, as on Windows
+    int known = fmt &&
+            (c->finite ? !strcmp(fmt, "I") || !strcmp(fmt, "L") : !strcmp(fmt, "Zd"));
+    if (v->itemsize != (Py_ssize_t)item || !known || v->ndim < 0) {
         PyErr_SetString(PyExc_TypeError, "incompatible native coefficient dtype");
         return -1;
     }
@@ -199,7 +201,7 @@ static int get_view(Py_buffer* v, PyObject* obj, Domain* c, int scalar, int outp
         return -1;
     }
     // Record axes must be contiguous even when leading batch strides are
-    // negative or zero. Singleton axes need no particular physical stride.
+    // negative or zero, and singleton axes need no particular physical stride
     Py_ssize_t stride = (Py_ssize_t)item;
     for (int j = features - 1; j >= 0; j--) {
         Py_ssize_t extent = scalar ? (Py_ssize_t)c->d : c->shape[j];
@@ -259,7 +261,8 @@ static int overlap(const void* a, size_t an, const void* b, size_t bn) {
 }
 
 /* A contiguous batch or one fully broadcast coefficient record can use the
- * public batch kernel. General views retain the validated strided loop. */
+ * public batch kernel, and general views use the validated strided loop. */
+// Find the record stride of a contiguous or fully broadcast view, if any
 static int flat_stride(Py_buffer* v, int rank, size_t words, size_t* stride) {
     if (PyBuffer_IsContiguous(v, 'C')) {
         *stride = words;
@@ -307,7 +310,7 @@ static PyObject* apply(PyObject* module, PyObject* args) {
         PyErr_SetString(PyExc_TypeError, "missing operand");
         return NULL;
     }
-    // Zero every view so all exits can release exactly the acquired exports.
+    // Zero every view so all exits can release exactly the acquired exports
     Py_buffer views[4];
     memset(views, 0, sizeof(views));
     int active = ternary ? 4 : binary ? 3 : 2;
@@ -351,9 +354,10 @@ static PyObject* apply(PyObject* module, PyObject* args) {
         for (int j = 0; j < active; j++) PyBuffer_Release(&views[j]);
         Py_RETURN_NONE;
     }
-    // Validate every input record before the first output write. Mutable
-    // uint32 arrays need canonical-residue checks on every call, not only
-    // construction; a failure late in a batch must leave all outputs intact.
+    /* Validate every input record before the first output write: mutable
+     * uint32 arrays need canonical-residue checks on every call, not only at
+     * construction, and a failure late in a batch must leave all outputs
+     * intact. */
     for (size_t i = 0; i < count; i++) {
         char* ptr[4];
         for (int j = 0; j < active; j++) ptr[j] = record(&views[j], i, rank);
@@ -382,8 +386,8 @@ static PyObject* apply(PyObject* module, PyObject* args) {
                         goto fail;
                     }
         if (op == FASTCD_OP_RECIPROCAL || op == FASTCD_OP_DIVIDE) {
-            // Preflight every denominator too: nonzero CD elements may have
-            // zero quadratic norm over C or finite fields.
+            // Preflight every denominator too, since nonzero CD elements can
+            // have zero quadratic norm over C or finite fields
             int iszero = 1;
             if (c->finite) {
                 uint32_t q[12];
@@ -411,8 +415,8 @@ static PyObject* apply(PyObject* module, PyObject* args) {
             }
         }
     }
-    // Workspace units differ: finite queries count uint32 words, complex
-    // queries count doubles. One allocation is reused across all records.
+    // Finite queries count uint32 words and complex queries count doubles,
+    // and one allocation is reused across all records
     size_t need = 0;
     if (c->finite) {
         if (ff_error(fastcd_apply_workspace_size_ff(&c->plan, op, &need))) goto fail;
@@ -434,9 +438,10 @@ static PyObject* apply(PyObject* module, PyObject* args) {
     int batch_product = count >= 2 && op == FASTCD_OP_MULTIPLY &&
             flat_stride(&views[1], rank, record_words, &xs) &&
             flat_stride(&views[2], rank, record_words, &ys);
-    // Buffer exports keep storage alive while native code runs without the
-    // GIL. No Python API is called again until that thread state is restored.
-    // Exports do not lock data: callers must synchronize concurrent writers.
+    /* Buffer exports keep storage alive while native code runs without the
+     * GIL, and no Python API is called until that thread state is restored.
+     * Exports do not lock data, so callers must synchronize concurrent
+     * writers. */
     PyThreadState* thread = count >= 32 ? PyEval_SaveThread() : NULL;
     if (batch_product) {
         status = c->finite
@@ -488,6 +493,15 @@ static PyObject* backend(PyObject* module, PyObject* cap) {
     return PyUnicode_FromString(names[b]);
 }
 
+// Report the algorithm that AUTO selects for this domain and dimension
+static PyObject* default_algorithm(PyObject* module, PyObject* cap) {
+    (void)module;
+    Domain* c = PyCapsule_GetPointer(cap, "pyfastcd.domain");
+    if (!c) return NULL;
+    FastCDAlgorithm algorithm = fastcd_domain_auto_algorithm(c->n);
+    return PyUnicode_FromString(fastcd_algorithm_string(algorithm));
+}
+
 static PyMethodDef methods[] = {
         {"field", field_new, METH_VARARGS,
                 "Validate and construct an immutable native field context."},
@@ -497,12 +511,14 @@ static PyMethodDef methods[] = {
                 "Validate a complete broadcast batch before applying native "
                 "arithmetic."},
         {"backend", backend, METH_O, "Report the selected native arithmetic backend."},
+        {"default_algorithm", default_algorithm, METH_O,
+                "Report the algorithm that AUTO selects for this domain."},
         {NULL, NULL, 0, NULL}};
 static struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "_domains_core",
         "Native finite and complex CD arithmetic.", -1, methods, NULL, NULL, NULL,
         NULL};
 
-// Initialize the private extension without touching the original real module
+// Initialize the private extension; the real _core module does not use it
 PyMODINIT_FUNC PyInit__domains_core(void) {
     return PyModule_Create(&module);
 }

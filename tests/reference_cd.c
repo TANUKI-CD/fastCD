@@ -55,11 +55,11 @@ static void reference_conjugate(double* out, const double* x,
 }
 
 /*
- * Evaluate (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c)) literally.
- * scratch holds 2N-2 doubles: at a node of size N its first N doubles hold
- * one conjugated operand and one product, and the rest is child scratch.
+ * Scratch holds 2N-2 doubles: at a call of size N the first N hold one
+ * conjugated operand and one product, and the rest is scratch for the
+ * recursive calls.
  */
-// Evaluate the defining Cayley--Dickson doubling product recursively
+// Evaluate (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c)) literally
 static void reference_multiply_recursive(double* out, const double* x,
         const double* y, size_t dimension, double* scratch) {
     size_t half;

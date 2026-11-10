@@ -4,12 +4,14 @@
 
 /* ---------- Plans and checked sizes ---------- */
 
-/* Plans copy their field by value and retain no caller pointer. Build the
- * complete result locally, including overflow checks and backend scratch,
- * before publishing it so rejected setup leaves the caller's plan intact. */
 // Precompute the dimensions, normalization scalars, and worst-case scratch
 FastCDFFStatus fastcd_ff_plan_init(
         FastCDPlanFF* plan, const FastCDField* field, size_t level) {
+    /*
+     * The plan copies its field by value and keeps no caller pointer. It is
+     * built locally, with every overflow check, so a rejected setup leaves
+     * *plan intact.
+     */
     if (plan == NULL || field == NULL) return FASTCD_FF_NULL_POINTER;
     if (fastcd_ff_overlap(plan, sizeof(*plan), field, sizeof(*field)))
         return FASTCD_FF_OVERLAPPING_BUFFERS;
@@ -17,15 +19,18 @@ FastCDFFStatus fastcd_ff_plan_init(
     if (level >= sizeof(size_t) * CHAR_BIT) return FASTCD_FF_SIZE_OVERFLOW;
     size_t n = (size_t)1 << level, d = field->degree;
     if (n > SIZE_MAX / sizeof(uint32_t) / d / 2) return FASTCD_FF_SIZE_OVERFLOW;
-    // The buffer schedule reserves 32 coefficients for local maps at each
-    // node and four transformed half-size planes above its dimension-4 leaf.
-    // Children run sequentially and share the tail of the same scratch.
+    /*
+     * The buffer schedule reserves 32 coefficients for nonrecursive maps at
+     * each call and four transformed half-size planes above its dimension-4
+     * leaf. The recursive calls run in sequence and share the tail of the same
+     * scratch.
+     */
     size_t cd = 32;
     for (size_t k = n / 2; k >= 4; k /= 2) {
         size_t add = k == 4 ? 32 : 32 + 2 * k;
         if (k > (SIZE_MAX - 32) / 2 || cd > SIZE_MAX - add)
             return FASTCD_FF_SIZE_OVERFLOW;
-        // The first 32 slots are an upper bound also used by root temporaries.
+        // The first 32 slots also bound the root temporaries
         cd += add;
     }
     if (cd > SIZE_MAX / sizeof(uint32_t) / d) return FASTCD_FF_SIZE_OVERFLOW;
@@ -35,21 +40,21 @@ FastCDFFStatus fastcd_ff_plan_init(
     result.dimension = n;
     result.words = n * d;
     result.workspace_words = cd * d;
-    // The chosen packed representation may need more scratch than the
-    // generic schedule. Reserve both so execution can safely fall back.
+    // The selected packed backend may need more scratch than the portable
+    // schedule, so reserve the larger of the two for a safe fallback
     size_t selected_cd;
     fastcd_ff_finite_select(&result, 0, &selected_cd);
     if (selected_cd > SIZE_MAX / sizeof(uint32_t)) return FASTCD_FF_SIZE_OVERFLOW;
     if (selected_cd > result.workspace_words) result.workspace_words = selected_cd;
-    // Repeated modular halving computes 1/N without forming N modulo p
-    // in a potentially narrower integer type.
+    // Repeated modular halving computes 1/N without forming N modulo p in a
+    // possibly narrower integer type
     result.inverse_two = (field->prime + 1) / 2;
     uint32_t inverse = 1;
     for (size_t i = 0; i < level; i++)
         inverse = (uint32_t)((uint64_t)inverse * result.inverse_two % field->prime);
     result.inverse_dimension = inverse;
-    // The defining recursion needs less than 2*N coefficients of scratch.
-    // One immutable plan can therefore serve direct and quasilinear calls.
+    // The defining recursion needs less than 2*N coefficients of scratch, so one
+    // immutable plan serves both direct and quasilinear calls
     if (result.workspace_words < 2 * n * d) result.workspace_words = 2 * n * d;
     *plan = result;
     return FASTCD_FF_SUCCESS;

@@ -1,19 +1,21 @@
 /*
- * Fixed-degree direct CD recursion, mirroring src/direct_impl.h.
- * Included with FASTCD_FF_DEGREE and FASTCD_FF_NAME; intentionally unguarded
- * so every supported polynomial degree gets a compile-time specialization.
- * Inputs are canonical records and writable buffers are already disjoint.
+ * Fixed-degree direct CD recursion over F_(p^d), following src/direct_impl.h.
+ * The file is included once per degree with FASTCD_FF_DEGREE and
+ * FASTCD_FF_NAME, so it has no include guard. Inputs are canonical records, and
+ * writable buffers are disjoint from them.
  */
 // Evaluate (a,b)(c,d) = (ac - conjugate(d)b, da + b conjugate(c))
 static void FASTCD_FF_NAME(direct)(uint32_t* out, const uint32_t* x, const uint32_t* y,
         size_t n, const FastCDField* f, uint32_t* w) {
     const size_t d = FASTCD_FF_DEGREE;
     if (n <= 4) {
-        // Expand the real/complex/quaternion basis signs with exact field
-        // products. The degree is constant throughout this instantiation.
-        // For output k, XOR fixes the partner j=i^k. Each polynomial product
-        // reduces before accumulation, so even p near 2^31 stays canonical.
-        // Initialize from the first term instead of adding it to zero.
+        /*
+         * Expand the real, complex and quaternion basis signs with exact field
+         * products of the fixed degree. Output k pairs coordinate i with
+         * j = i ^ k. Each polynomial product is reduced before accumulation, so
+         * sums stay canonical for p near 2^31, and the first term initializes
+         * each output coefficient.
+         */
         uint32_t product[FASTCD_FF_DEGREE];
         for (size_t k = 0; k < n; k++) {
             for (size_t i = 0; i < n; i++) {
@@ -33,24 +35,28 @@ static void FASTCD_FF_NAME(direct)(uint32_t* out, const uint32_t* x, const uint3
         return;
     }
     size_t h = n / 2, words = h * d;
-    // Reserve one conjugated half-record, one partial product, and then
-    // shared child scratch. All four recursive calls run sequentially.
-    // R(N)=N*d+R(N/2) is less than 2*N*d words, the bound in plan.c.
+    /*
+     * Scratch holds one conjugated half-record, one partial product and the
+     * children's shared scratch; the four recursive calls run in sequence.
+     * R(N) = N*d + R(N/2) stays below the 2*N*d words reserved in plan.c.
+     */
     uint32_t* temp = w;
     uint32_t* product = w + words;
     uint32_t* child = w + 2 * words;
-    // Lower half: ac - conjugate(d)b. Only imaginary CD coordinates negate;
-    // each polynomial coefficient is copied or negated as one field scalar.
+    // Lower half: ac - conjugate(d)b, negating only imaginary CD coordinates
+    // and copying or negating each coefficient as one field scalar
     FASTCD_FF_NAME(direct)(out, x, y, h, f, child);
     memcpy(temp, y + words, d * sizeof(uint32_t));
     for (size_t i = 1; i < h; i++) fastcd_field_neg(temp + i * d, y + words + i * d, f);
     FASTCD_FF_NAME(direct)(product, temp, x + words, h, f, child);
-    // Consume this partial product before its storage is reused by the
-    // upper-half recursion; neither temporary aliases a public operand.
+    /*
+     * Use the partial product before the upper-half recursion reuses its
+     * storage. Neither temporary aliases a public operand.
+     */
     for (size_t i = 0; i < words; i++) out[i] = fastcd_ff_sub(out[i], product[i], f);
-    // Upper half: da + b conjugate(c), preserving this multiplication order.
+    // Upper half: da + b conjugate(c), keeping this multiplication order
     FASTCD_FF_NAME(direct)(out + words, y + words, x, h, f, child);
-    // The first d words are one scalar coefficient, not d CD coordinates.
+    // The first d words are one scalar coefficient, not d CD coordinates
     memcpy(temp, y, d * sizeof(uint32_t));
     for (size_t i = 1; i < h; i++) fastcd_field_neg(temp + i * d, y + i * d, f);
     FASTCD_FF_NAME(direct)(product, x + words, temp, h, f, child);

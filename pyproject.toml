@@ -101,6 +101,8 @@ sdist.exclude = [
     "**/__pycache__/**",
     "**/*.py[co]",
     "build/**",
+    # Raw stability results stay local, as in .gitignore.
+    "benchmark-results/stability-*/raw/**",
 ]
 
 # The version is defined once, in src/fastcd.c; CMakeLists.txt reads the same

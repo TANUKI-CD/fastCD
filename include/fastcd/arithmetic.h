@@ -7,8 +7,9 @@ extern "C" {
 #endif
 
 /* Operations on one algebra record. INNER and QUADRATIC_NORM produce one
- * coefficient. SCALE and DIVIDE take one coefficient in y. Basis operations
- * use basis_index. All other non-null operands are complete records. */
+ * coefficient, SCALE and DIVIDE take one coefficient in y, and basis
+ * operations use basis_index. All other non-null operands are complete
+ * records. */
 typedef enum {
     FASTCD_OP_MULTIPLY = 0,
     FASTCD_OP_ADD,
@@ -32,8 +33,9 @@ typedef enum {
     FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR
 } FastCDOperation;
 
-/* Algebraic quadratic norm. The real entry is an alias of the existing
- * scaled norm_squared operation and has exactly its validation contract. */
+/* The real entry is an alias of fastcd_norm_squared_f64, with its scaled
+ * accumulation and exactly its validation contract. */
+// Compute the algebraic quadratic norm Q(x) = sum_i x_i^2
 FASTCD_API FastCDStatus fastcd_quadratic_norm_f64(
         double* value, const double* x, size_t dimension);
 

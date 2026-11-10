@@ -1,0 +1,52 @@
+{
+  "schema": "fastcd-stability-agreement-1",
+  "completed": true,
+  "command": [
+    "/hdd/math/fastCD/build/review-venv/bin/python",
+    "/hdd/math/fastCD/build/stability-work/measured-source/benchmarks/stability_agreement.py",
+    "--accuracy",
+    "/hdd/math/fastCD/benchmark-results/stability-20261107/raw/accuracy.json",
+    "--simd",
+    "/hdd/math/fastCD/build/stability-work/builds/balanced-simd/libfastcd.so.1.2.0",
+    "--scalar",
+    "/hdd/math/fastCD/build/stability-work/builds/balanced-scalar/libfastcd.so.1.2.0",
+    "--output",
+    "/hdd/math/fastCD/benchmark-results/stability-20261107/agreement.json"
+  ],
+  "accuracy_sha256": "9deb72e73b2c9d44ba722a00acdb820e089fe55a7330cb856e96581192f9771c",
+  "simd_library_sha256": "1fc55f1f7af9ba5a43dbc086dd40a59d51ba382b5a5d9191b172926cecb97b80",
+  "scalar_library_sha256": "cfbd89120e1e4e1cb4439b4bcc38905abd7aec821eee67cd7e5465aef2662bac",
+  "counts": {
+    "quasilinear": {
+      "cases": 13584,
+      "comparisons": 40752
+    },
+    "cariow_cariowa": {
+      "cases": 6808,
+      "comparisons": 20424
+    }
+  },
+  "mismatches": [],
+  "batch_sizes": {
+    "complex-2": 1056,
+    "complex-4": 1056,
+    "complex-8": 1056,
+    "complex-16": 1056,
+    "complex-32": 1056,
+    "complex-64": 464,
+    "complex-128": 464,
+    "complex-256": 200,
+    "complex-512": 200,
+    "real-2": 992,
+    "real-4": 992,
+    "real-8": 992,
+    "real-16": 1120,
+    "real-32": 1120,
+    "real-64": 496,
+    "real-128": 496,
+    "real-256": 216,
+    "real-512": 216,
+    "real-1024": 168,
+    "real-2048": 168
+  }
+}

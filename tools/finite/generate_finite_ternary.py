@@ -169,7 +169,7 @@ static inline __attribute__((always_inline)) __m512i population_vector(__m512i a
         source += f" {{Word b={{_mm512_permutexvar_epi{bits}({ix},a.one),_mm512_permutexvar_epi{bits}({ix},a.two)}};Word s=add(a,b),t=sub(b,a);a=(Word){{_mm512_mask_blend_epi{bits}(UINT64_C({mask}),s.one,t.one),_mm512_mask_blend_epi{bits}(UINT64_C({mask}),s.two,t.two)}};}}\n"
     source += f""" st(data+base,a);}}for(size_t width={lanes};width<n;width*=2)for(size_t base=0;base<n;base+=2*width)for(size_t j=0;j<width;j+={lanes}){{Word a=ld(data+base+j),b=ld(data+base+width+j);st(data+base+j,add(a,b));st(data+base+width+j,sub(a,b));}}}}
 void {name}_tensor(uint32_t* restrict out,const uint32_t* x,const uint32_t* y,const FastCDPlanFF* p,uint32_t* restrict work,int loop,size_t rank,const uint32_t input[48][12],const uint32_t output[48][12]){{
- (void)rank;(void)input;(void)output;size_t d=p->field.degree,n=p->dimension;const CdlSmallMap* maps=&fastcd_ff_small_maps[0][d-1];
+ (void)rank;(void)input;(void)output;size_t d=p->field.degree,n=p->dimension;const FastCDFFSmallMap* maps=&fastcd_ff_small_maps[0][d-1];
  Coef a[12][3]={{{{{{0,0}}}}}},w[12]={{{{0,0}}}},basis[25][3]={{{{{{0,0}}}}}};uint32_t reduced[25][12];fastcd_ff_small_remainders(reduced,&p->field,maps->total,3);
  for(size_t k=0;k<maps->total;k++){{__m512i v=_mm512_loadu_si512((const void*)maps->output[k]);basis[k][1]=(Coef){{({ctype})_mm512_cmpeq_epi8_mask(v,_mm512_set1_epi8(1)),({ctype})_mm512_cmpeq_epi8_mask(v,_mm512_set1_epi8(2))}};basis[k][2]=sn(basis[k][1]);}}
  Word weights[12];__m512i table_one[12],table_two[12];

@@ -121,7 +121,8 @@ def main() -> None:
     for row in rows:
         actual = tuple(row[key] for key in ("M", "A", "S"))
         assert actual == expected(row["kind"], row["dimension"]), row
-    files = ("src/quasilinear_impl.h", "src/generated/quasilinear_kernels.h",
+    files = ("src/balanced_sum.h", "src/quasilinear_impl.h",
+             "src/generated/quasilinear_kernels.h",
              "tools/generate_kernels.py", "tools/check_quasilinear_counts.py")
     document = {
         "status": "ok", "method": "operator-instrumented scalar C++ instantiation",

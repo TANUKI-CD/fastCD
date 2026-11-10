@@ -9,8 +9,8 @@ from typing import Any
 
 import numpy as np
 
-# Messages shared verbatim with the C extension (python/src/pyfastcd/_core.c)
-# so that both layers report identical conditions identically.
+# Messages shared verbatim with the C extension (python/src/pyfastcd/_core.c),
+# so both layers report identical conditions identically
 DIFFERENT_ALGEBRA_MESSAGE = "operands belong to different algebras"
 COMPLEX_SCALAR_MESSAGE = "complex scalars are not supported"
 MODULAR_POWER_MESSAGE = (

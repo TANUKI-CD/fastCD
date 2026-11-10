@@ -48,14 +48,13 @@ ALGORITHMS = ("direct", "cariow_cariowa", "quasilinear")
 MODES = ("batch", "single")
 BASELINE = "quasilinear"
 CC_MAX_DIMENSION = 1024
-# Cariow--Cariowa is timed at every dimension the library supports by default.
-# Above 64 it runs the table-driven kernel, whose time reflects the gathered
-# sign corrections rather than the operation count (see docs/benchmark.md);
-# --max-cc-dimension restricts the timed range when that is not wanted.
+# Cariow--Cariowa is timed at every supported dimension by default, although
+# above 64 its table-driven kernel measures gathered sign corrections more than
+# the operation count (see docs/benchmark.md) and --max-cc-dimension limits it
 CC_TIMING_CAP = CC_MAX_DIMENSION
 
-# Two-sided 95% Student-t critical values t(0.975, df) for df = 1..30.  Larger
-# degrees of freedom deliberately use the df = 30 value (slightly conservative).
+# Two-sided 95% Student-t critical values t(0.975, df) for df = 1..30, with the
+# df = 30 value used for larger degrees of freedom, which is slightly conservative
 T95 = (
     float("nan"), 12.7062047364, 4.30265272975, 3.18244630528, 2.77644510520,
     2.57058183564, 2.44691185114, 2.36462425101, 2.30600413503, 2.26215716285,
@@ -73,7 +72,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--runner", type=Path, required=True,
                         help="runner for the selected protocol (all uses fastcd_benchmark)")
     parser.add_argument("--protocol", choices=("real", "domains", "flint", "all"),
-                        default="real", help="benchmark protocol (default: real, unchanged)")
+                        default="real", help="benchmark protocol (default: real)")
     parser.add_argument("--fields", help="char:deg pairs for domains/FLINT; C is 0:2")
     parser.add_argument("--domain-runner", type=Path,
                         help="domain executable for all (default: beside --runner)")
@@ -92,7 +91,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--trials", type=int, default=10000,
                         help="multiplication pairs per dimension")
     parser.add_argument("--blocks", type=int, default=24,
-                        help="subprocess blocks; each yields one observation per task "
+                        help="timing blocks; each yields one observation per task "
                              "(multiples of 12 keep the task order fully balanced)")
     parser.add_argument("--modes", default=",".join(MODES),
                         help="comma-separated subset of batch,single")
@@ -631,7 +630,7 @@ def main() -> int:
                     entry["single_over_batch"][name] = paired_ratio(
                         observations[(name, "single")], observations[(name, "batch")])
         results_list.append(entry)
-        # Keep finished dimensions on disk so an interrupted run is not a total loss.
+        # Keep finished dimensions on disk so an interrupted run keeps its results
         partial_path.parent.mkdir(parents=True, exist_ok=True)
         partial_path.write_text(json.dumps(
             {"schema": "fastcd-benchmark-results-2-partial", "results": results_list},

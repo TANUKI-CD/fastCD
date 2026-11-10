@@ -234,7 +234,8 @@ def report(path: Path, document: dict[str, Any]) -> None:
         "",
         f"FLINT {metadata['flint_runtime_version']}; one arithmetic thread; "
         f"{document['configuration']['trials']:,} pairs per cell; "
-        f"{document['configuration']['blocks']} paired blocks; "
+        f"{document['configuration']['blocks']} paired blocks "
+        "at separate stack offsets; "
         f"{document['configuration']['warmup']} warmup passes; "
         f"{document['configuration']['min_time_ms']:g} ms calibration target; {document['cpu']}.",
         "",
@@ -359,7 +360,7 @@ def main(argv: list[str] | None = None) -> int:
                     json.dumps(document, indent=2, allow_nan=False) + "\n"
                 )
     # Reject a run whose executable, source, build record or dependencies
-    # changed while observations were being collected.
+    # changed while observations were being collected
     if (
         common.provenance(args) != identity["provenance"]
         or dependency_files(args.runner) != identity["runtime_dependencies_sha256"]

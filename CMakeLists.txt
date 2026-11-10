@@ -176,6 +176,13 @@ if(BUILD_TESTING)
     fastcd_configure_target(fastcd_leaf_tests)
     add_test(NAME fastcd.quasilinear_leaf COMMAND fastcd_leaf_tests)
 
+    add_executable(fastcd_stability_tests tests/test_stability.c)
+    target_include_directories(fastcd_stability_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    target_link_libraries(fastcd_stability_tests PRIVATE fastcd::fastcd)
+    fastcd_configure_target(fastcd_stability_tests)
+    add_test(NAME fastcd.stability COMMAND fastcd_stability_tests)
+    set_tests_properties(fastcd.stability PROPERTIES TIMEOUT 600)
+
     add_executable(fastcd_domain_tests tests/test_domains.c)
     if(FASTCD_HAVE_FINITE_SIMD)
         target_compile_definitions(fastcd_domain_tests PRIVATE FASTCD_TEST_FINITE_SIMD=1)
@@ -184,6 +191,11 @@ if(BUILD_TESTING)
     fastcd_configure_target(fastcd_domain_tests)
     add_test(NAME fastcd.domains COMMAND fastcd_domain_tests)
     set_tests_properties(fastcd.domains PROPERTIES TIMEOUT 600)
+
+    add_executable(fastcd_finite_direct_tests tests/test_finite_direct.c)
+    target_include_directories(fastcd_finite_direct_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    fastcd_configure_target(fastcd_finite_direct_tests)
+    add_test(NAME fastcd.finite_direct_schedule COMMAND fastcd_finite_direct_tests)
 
     add_executable(fastcd_portable_reduce_tests tests/test_field_reduce.c)
     target_link_libraries(fastcd_portable_reduce_tests PRIVATE fastcd::fastcd)
@@ -226,14 +238,37 @@ if(FASTCD_BUILD_BENCHMARK)
             ${PROJECT_SOURCE_DIR}/src/finite)
         target_include_directories(fastcd_flint_benchmark SYSTEM PRIVATE
             ${FASTCD_FLINT_INCLUDE_DIR})
-        target_link_libraries(fastcd_flint_benchmark PRIVATE fastcd::fastcd)
+        # Link the library found above even when pkg-config succeeds: some
+        # flint.pc files (Ubuntu 24.04's FLINT 3.0.1) list only -lgmp -lmpfr
+        # and omit -lflint, so pkg-config contributes just the dependencies.
+        target_link_libraries(fastcd_flint_benchmark PRIVATE
+            fastcd::fastcd ${FASTCD_FLINT_LIBRARY})
         if(TARGET PkgConfig::FLINT)
             target_link_libraries(fastcd_flint_benchmark PRIVATE PkgConfig::FLINT)
-        else()
-            target_link_libraries(fastcd_flint_benchmark PRIVATE ${FASTCD_FLINT_LIBRARY})
         endif()
         fastcd_configure_target(fastcd_flint_benchmark)
     endif()
+    # Keep branches in the runners' timing loops from straddling 32-byte
+    # boundaries, which slows them on Skylake-family processors (Intel's JCC
+    # erratum). Only the runners get the padding; the library is built as it
+    # ships.
+    include(CheckCCompilerFlag)
+    set(fastcd_runner_options "")
+    check_c_compiler_flag(-mbranches-within-32B-boundaries FASTCD_HAVE_BRANCH_PADDING)
+    if(FASTCD_HAVE_BRANCH_PADDING)
+        set(fastcd_runner_options -mbranches-within-32B-boundaries)
+    else()
+        check_c_compiler_flag(-Wa,-mbranches-within-32B-boundaries
+            FASTCD_HAVE_ASSEMBLER_BRANCH_PADDING)
+        if(FASTCD_HAVE_ASSEMBLER_BRANCH_PADDING)
+            set(fastcd_runner_options -Wa,-mbranches-within-32B-boundaries)
+        endif()
+    endif()
+    foreach(runner IN ITEMS fastcd_benchmark fastcd_domains_benchmark fastcd_flint_benchmark)
+        if(TARGET ${runner} AND fastcd_runner_options)
+            target_compile_options(${runner} PRIVATE ${fastcd_runner_options})
+        endif()
+    endforeach()
     # Record the source contents and effective library options beside the runner.
     file(GLOB_RECURSE fastcd_benchmark_sources CONFIGURE_DEPENDS
         src/*.c src/*.h include/*.h tests/reference_cd.* benchmarks/*.c benchmarks/*.h
@@ -266,6 +301,7 @@ if(FASTCD_BUILD_BENCHMARK)
         "$<$<CONFIG:MinSizeRel>:${CMAKE_C_FLAGS_MINSIZEREL}>\n"
         "options=$<JOIN:$<TARGET_PROPERTY:fastcd,COMPILE_OPTIONS>, >\n"
         "definitions=$<JOIN:$<TARGET_PROPERTY:fastcd,COMPILE_DEFINITIONS>, >\n"
+        "runner_options=${fastcd_runner_options}\n"
         "source_options:\n${fastcd_source_options}"
         "source_sha256:\n${fastcd_source_hashes}")
     string(SHA256 fastcd_build_id
@@ -312,6 +348,15 @@ if(FASTCD_BUILD_BENCHMARK)
             add_test(NAME fastcd.flint_agreement COMMAND fastcd_flint_benchmark --self-test)
         endif()
     endif()
+endif()
+
+# GCC's AddressSanitizer misaligns over-aligned stack variables, such as the
+# AVX-512 vectors of the finite-field kernels, in the frames it allocates to
+# detect use after return (GCC bug 110027), so CTest runs turn that check off.
+if(BUILD_TESTING AND FASTCD_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    get_property(fastcd_tests DIRECTORY PROPERTY TESTS)
+    set_tests_properties(${fastcd_tests} PROPERTIES
+        ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()
 
 if(FASTCD_BUILD_PYTHON)

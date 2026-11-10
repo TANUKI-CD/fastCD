@@ -58,7 +58,7 @@ static void {name}_cd{P}(uint32_t* restrict out,const uint32_t* x,const uint32_t
     for(size_t i=0;i<h;i+={coords}) {{
         Word u={load(f"x+i*{P}")},v={load(f"y+i*{P}")},s={load(f"x+(h+i)*{P}")},t={load(f"y+(h+i)*{P}")};
         if(i==0){{u={p}_and_si{bits}(u,keep);v={p}_and_si{bits}(v,keep);s={p}_and_si{bits}(s,keep);t={p}_and_si{bits}(t,keep);}}
-        {old}_ValueLocal a={old}_vlocal(u,v,s,t,gamma,delta,ctx);sum=add(sum,a.scalar,ctx);
+        {old}_ValueNonrecursive a={old}_vnonrecursive(u,v,s,t,gamma,delta,ctx);sum=add(sum,a.scalar,ctx);
         Word f=add({load(f"out+i*{P}")},a.first,ctx),g=sub(a.second,{load(f"out+(h+i)*{P}")},ctx);
         {store(f"out+i*{P}", "f")};{store(f"out+(h+i)*{P}", "g")};
     }}

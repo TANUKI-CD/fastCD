@@ -32,19 +32,42 @@ the generator, regenerate with `python3 tools/generate_kernels.py src/generated`
 and commit both. Generation is deterministic, and CI checks that the committed
 files match.
 
-For quasilinear arithmetic changes, run `python3 tools/check_quasilinear_counts.py`.
-This optional development check requires a C++ compiler (`c++` by default,
-or `CXX`) and instruments the scalar template and generated kernels through
-dimension 1024. The library itself remains C11. CTest also checks the complex
+## Arithmetic checks
+
+For quasilinear arithmetic changes, run
+`python3 tools/check_quasilinear_counts.py`; for Cariow–Cariowa arithmetic
+changes, run `python3 tools/check_cariow_counts.py`. These optional
+development checks require a C++ compiler (`c++` by default, or `CXX`) and
+instrument the scalar templates and generated kernels through dimension
+1024. The library itself remains C11. CTest also checks the complex
 octonion leaf against the independent defining-recursion reference on all
 196 real basis pairs and 256 dense dyadic cases.
+
+For changes to floating-point accumulation, keep `tests/test_stability.c`
+passing: it checks the blocked reductions and the bitwise agreement of
+scalar, SIMD, single and batched products. If the order of additions
+changes, rerun the stability study with `benchmarks/stability_study.py` (see
+`docs/stability.md`).
 
 ## Algorithm defaults
 
 The automatic selection tables live at the top of the algorithm-selection
 section of `src/fastcd.c` and are pinned by tests. Change them only on the
-basis of a new benchmark run (see `docs/benchmark.md`), and update the tables
-in `README.md`, `docs/c-api.md`, and `docs/mathematics.md` in the same commit.
+basis of a new benchmark run (see `docs/benchmark.md`), and update the
+descriptions of the defaults in `README.md`, `docs/c-api.md`, and
+`docs/mathematics.md` in the same commit.
+
+## Benchmark archives
+
+Never edit the archived results under `benchmark-results/`, including their
+checksum and preservation records.
+
+`python3 tools/check_stability_archives.py` checks each stability study
+against its `SHA256SUMS`, checks that the tables in `docs/stability.md` match
+the newest study, and, when the git history is available, checks that the
+measured commit contains exactly the recorded source files. Add `--full` to
+check the raw files under `raw/` as well; they are not distributed, and this
+mode requires NumPy. Both modes are read-only.
 
 ## Release checks
 
@@ -80,7 +103,8 @@ version metadata rather than a staged extension or an editable install.
 
 Real-coefficient arithmetic is in the sources directly under `src/` and
 their generated kernels in `src/generated/`. Complex arithmetic is in
-`src/complex.c`; finite-field arithmetic is in `src/finite/`. Use `tools/finite/generate_fields.py` and
+`src/complex.c`; finite-field arithmetic is in `src/finite/`. Use
+`tools/finite/generate_fields.py` and
 `tools/finite/generate_finite_backends.py` to regenerate the committed
 finite kernels; the latter also regenerates the shared maps and value
 schedule from its checked-in templates. Do not edit generated outputs by
@@ -121,5 +145,4 @@ fields, `--protocol flint` compares scalar arithmetic and complete CD
 products against FLINT (Fast Library for Number Theory), an independent
 exact-arithmetic C library, and `--protocol all` runs all three. The
 [benchmark guide](docs/benchmark.md) describes the timing, field matching,
-verification and reporting rules. Change the AUTO tables only on the basis
-of a new measurement, and never edit archived results.
+verification and reporting rules.

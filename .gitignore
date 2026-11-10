@@ -43,3 +43,6 @@ htmlcov/
 
 # Benchmark corpora and results
 /benchmark-corpora/
+
+# Stability studies: raw results, corpora and logs stay on the machine that ran them.
+benchmark-results/stability-*/raw/
