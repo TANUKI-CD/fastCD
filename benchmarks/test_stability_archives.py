@@ -30,9 +30,11 @@ def repository(tmp_path: Path) -> tuple[Path, Path]:
     root = tmp_path / "repo"
     (root / "src").mkdir(parents=True)
     (root / "include").mkdir()
-    (root / "src" / "kernel.c").write_text("int kernel(void) { return 1; }\n")
-    (root / "include" / "api.h").write_text("int kernel(void);\n")
+    # LF bytes, committed unconverted, so the blobs match the recorded hashes on Windows
+    (root / "src" / "kernel.c").write_text("int kernel(void) { return 1; }\n", newline="\n")
+    (root / "include" / "api.h").write_text("int kernel(void);\n", newline="\n")
     git(root, "init", "-q")
+    git(root, "config", "core.autocrlf", "false")
     git(root, "add", ".")
     git(root, "commit", "-qm", "measured")
     commit = git(root, "rev-parse", "HEAD")
