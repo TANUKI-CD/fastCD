@@ -188,12 +188,6 @@ def emit(name, source):
     source = re.sub(
         r"\bstatic inline\b", "static inline __attribute__((unused))", source
     )
-    # Force the remaining helpers inline in unoptimized builds (see finite_backend.h)
-    source = re.sub(
-        r"static inline __attribute__\(\(unused\)\)(?! __attribute__\(\(always_inline\)\))",
-        "static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE",
-        source,
-    )
     if name.startswith("finite_ternary"):
         source = source.replace(
             "Word a=ld(x+i),b=ld(y+i);dot=add(dot,multiply(a,b));",

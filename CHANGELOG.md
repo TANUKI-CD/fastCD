@@ -38,7 +38,9 @@ All notable changes to fastCD are recorded in this file. The project follows
   dimension 4. Finite-field direct multiplication uses the packed field
   arithmetic of the quasilinear kernels from dimension 16 on.
 - For real coefficients, AUTO selects direct multiplication for single
-  products at dimension 4; batches at dimension 4 still use quasilinear.
+  products at dimension 4. Batches at dimension 4 still use quasilinear
+  where the two-lane SIMD kernels are built; other builds follow the
+  single-product choice for batches, as before.
 - The finite-field and FLINT benchmark runners time each block at its own
   stack offset, spread over a 4 KB page, so that the observations of a cell
   do not share one stack placement.
@@ -50,9 +52,10 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 - Finite-field operations in the Python package rejected NumPy `uint32`
   arrays on Windows, where NumPy exports them with the buffer format `L`.
-- Unoptimized builds of the packed finite-field kernels could crash under
-  AddressSanitizer: their small vector helpers are now forced inline when
-  optimization is off. Optimized builds compile to the same machine code.
+- CTest runs of GCC sanitizer builds turn off AddressSanitizer's
+  use-after-return detection, whose frames misalign the AVX-512 stack
+  variables of the finite-field kernels (GCC bug 110027) and crashed the
+  finite-field tests.
 
 ## [1.2.0] - 2026-11-04
 

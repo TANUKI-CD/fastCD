@@ -348,6 +348,15 @@ if(FASTCD_BUILD_BENCHMARK)
     endif()
 endif()
 
+# GCC's AddressSanitizer misaligns over-aligned stack variables, such as the
+# AVX-512 vectors of the finite-field kernels, in the frames it allocates to
+# detect use after return (GCC bug 110027), so CTest runs turn that check off.
+if(BUILD_TESTING AND FASTCD_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    get_property(fastcd_tests DIRECTORY PROPERTY TESTS)
+    set_tests_properties(${fastcd_tests} PROPERTIES
+        ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
+endif()
+
 if(FASTCD_BUILD_PYTHON)
     if(BUILD_SHARED_LIBS)
         message(FATAL_ERROR "pyfastcd must statically link fastcd; set BUILD_SHARED_LIBS=OFF")

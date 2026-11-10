@@ -26,51 +26,49 @@ typedef struct {
 } Context;
 
 // Add residues modulo 3
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef sa(Coef a, Coef b) {
+static inline __attribute__((unused)) Coef sa(Coef a, Coef b) {
     return (Coef)((a + b) % 3);
 }
 
 // Negate a residue modulo 3
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef sn(Coef a) {
+static inline __attribute__((unused)) Coef sn(Coef a) {
     return (Coef)((3 - a) % 3);
 }
 
 // Subtract residues modulo 3
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef ss(Coef a, Coef b) {
+static inline __attribute__((unused)) Coef ss(Coef a, Coef b) {
     return (Coef)((a + 3 - b) % 3);
 }
 
 // Multiply residues modulo 3
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef sm(Coef a, Coef b) {
+static inline __attribute__((unused)) Coef sm(Coef a, Coef b) {
     return (Coef)(a * b % 3);
 }
 
 // Broadcast a 16-byte lookup table to every 128-bit lane
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word table(
-        const uint8_t* t) {
+static inline __attribute__((unused)) Word table(const uint8_t* t) {
     return _mm512_broadcast_i32x4(_mm_loadu_si128((const void*)t));
 }
 
 // Add packed residues
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word add(Word a, Word b) {
+static inline __attribute__((unused)) Word add(Word a, Word b) {
     static const uint8_t t[16] = {0, 1, 2, 0, 1, 2};
     return _mm512_shuffle_epi8(table(t), _mm512_add_epi8(a, b));
 }
 
 // Negate packed residues
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word neg(Word a) {
+static inline __attribute__((unused)) Word neg(Word a) {
     static const uint8_t t[16] = {0, 2, 1};
     return _mm512_shuffle_epi8(table(t), a);
 }
 
 // Subtract packed residues
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word sub(Word a, Word b) {
+static inline __attribute__((unused)) Word sub(Word a, Word b) {
     return add(a, neg(b));
 }
 
 // Multiply packed residues in this backend's encoding
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word multiply(
-        Word a, Word b) {
+static inline __attribute__((unused)) Word multiply(Word a, Word b) {
     static const uint8_t t[16] = {0, 0, 0, 0, 0, 1, 2, 0, 0, 2, 1};
     return _mm512_shuffle_epi8(table(t), _mm512_add_epi8(a, _mm512_slli_epi16(b, 2)));
 }
@@ -89,28 +87,27 @@ static void packed_direct(
         Coef*, const Coef*, const Coef*, size_t, Coef*, size_t, const Context*);
 
 // Load one vector of packed coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word ld(const Coef* a) {
+static inline __attribute__((unused)) Word ld(const Coef* a) {
     return _mm512_loadu_si512((const void*)a);
 }
 
 // Store one vector of packed coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void st(Coef* a, Word v) {
+static inline __attribute__((unused)) void st(Coef* a, Word v) {
     _mm512_storeu_si512((void*)a, v);
 }
 
 // Broadcast one coefficient to every lane
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word broadcast(Coef a) {
+static inline __attribute__((unused)) Word broadcast(Coef a) {
     return _mm512_set1_epi8((char)a);
 }
 
 // Keep the lanes selected by a mask
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word mask(
-        Word a, Word m) {
+static inline __attribute__((unused)) Word mask(Word a, Word m) {
     return _mm512_and_si512(a, m);
 }
 
 // Sum the lanes of a vector into one residue
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Coef horizontal(Word a) {
+static inline __attribute__((unused)) Coef horizontal(Word a) {
     return (Coef)(_mm512_reduce_add_epi64(_mm512_sad_epu8(a, _mm512_setzero_si512())) %
             3);
 }
@@ -1397,7 +1394,7 @@ static void sh(Coef* data, size_t n) {
 }
 
 // Load canonical public coefficients into byte lanes
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word load_public(
+static inline __attribute__((unused)) Word load_public(
         const uint32_t* x, size_t d, size_t j) {
     if (d == 1) {
         Word v = _mm512_castsi128_si512(
@@ -1422,7 +1419,7 @@ static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word load_public(
 }
 
 // Store byte lanes as canonical public coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void store_public(
+static inline __attribute__((unused)) void store_public(
         uint32_t* restrict out, Word value, size_t d, size_t j) {
     if (d == 1) {
         _mm512_storeu_si512(
@@ -1448,7 +1445,7 @@ static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void store_public(
 }
 
 // Load degree-2 public coefficients into two byte vectors
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void load_quadratic(
+static inline __attribute__((unused)) void load_quadratic(
         const uint32_t* x, Word* a, Word* b) {
     {
         Word lo = _mm512_loadu_si512((const void*)(x + 0)),
@@ -1513,7 +1510,7 @@ static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void load_quadrati
 }
 
 // Store two byte vectors as degree-2 public coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void store_quadratic(
+static inline __attribute__((unused)) void store_quadratic(
         uint32_t* restrict out, Word a, Word b) {
     {
         Word aa = _mm512_cvtepu8_epi32(_mm512_castsi512_si128(a)),
@@ -1682,14 +1679,12 @@ void fastcd_ff_byte64_quadratic(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Load one vector of packed coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word direct_load(
-        const Coef* a) {
+static inline __attribute__((unused)) Word direct_load(const Coef* a) {
     return _mm512_loadu_si512((const void*)a);
 }
 
 // Store one vector of packed coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void direct_store(
-        Coef* a, Word v) {
+static inline __attribute__((unused)) void direct_store(Coef* a, Word v) {
     _mm512_storeu_si512((void*)a, v);
 }
 

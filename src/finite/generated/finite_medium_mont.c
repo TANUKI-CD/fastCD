@@ -28,30 +28,26 @@ typedef struct {
 } Context;
 
 // Add packed residues
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word add(
-        Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) Word add(Word a, Word b, const Context* c) {
     Word t = _mm512_sub_epi16(_mm512_add_epi16(a, b), c->prime);
     return _mm512_add_epi16(t, _mm512_and_si512(_mm512_srai_epi16(t, 15), c->prime));
 }
 
 // Subtract packed residues
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word sub(
-        Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) Word sub(Word a, Word b, const Context* c) {
     Word t = _mm512_sub_epi16(a, b);
     return _mm512_add_epi16(t, _mm512_and_si512(_mm512_srai_epi16(t, 15), c->prime));
 }
 
 // Halve packed residues in odd characteristic
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word half(
-        Word a, const Context* c) {
+static inline __attribute__((unused)) Word half(Word a, const Context* c) {
     Word odd = _mm512_sub_epi16(
             _mm512_setzero_si512(), _mm512_and_si512(a, _mm512_set1_epi16(1)));
     return _mm512_srli_epi16(_mm512_add_epi16(a, _mm512_and_si512(odd, c->prime)), 1);
 }
 
 // Multiply packed residues in this backend's encoding
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word multiply(
-        Word a, Word b, const Context* c) {
+static inline __attribute__((unused)) Word multiply(Word a, Word b, const Context* c) {
 
     Word lo = _mm512_mullo_epi16(a, b), hi = _mm512_mulhi_epu16(a, b);
     Word m = _mm512_mullo_epi16(lo, c->inverse);
@@ -64,7 +60,7 @@ static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word multiply(
 }
 
 // Multiply packed residues by a constant with its precomputed quotient
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word fixed(
+static inline __attribute__((unused)) Word fixed(
         Word a, Word b, Word quotient, const Context* c) {
     Word q = _mm512_mulhi_epu16(a, quotient);
     Word t = _mm512_sub_epi16(
@@ -74,7 +70,7 @@ static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word fixed(
 }
 
 // Compute a*b - x*y on packed residues with one reduction
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word difference(
+static inline __attribute__((unused)) Word difference(
         Word a, Word b, Word x, Word y, const Context* c) {
     Word pc = _mm512_sub_epi16(c->prime, x), lo0 = _mm512_mullo_epi16(a, b),
          lo1 = _mm512_mullo_epi16(pc, y);
@@ -1515,7 +1511,7 @@ static void transform(FastCDFFPacked16* a, size_t n, size_t points, const Contex
 }
 
 // Store the leading lanes of a vector, one value per point
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void save(
+static inline __attribute__((unused)) void save(
         FastCDFFPacked16* out, Word a, size_t points) {
     FastCDFFPacked16 values[32];
     _mm512_storeu_si512((void*)values, a);
@@ -6832,8 +6828,7 @@ void fastcd_ff_medium_mont_tensor(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Multiply packed residues by the normalization factor
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word normalize(
-        Word a, const Context* c) {
+static inline __attribute__((unused)) Word normalize(Word a, const Context* c) {
     return multiply(a, c->normalization, c);
 }
 
@@ -7059,14 +7054,12 @@ void fastcd_ff_medium_mont_prime(uint32_t* restrict out, const uint32_t* x,
 }
 
 // Load one vector of packed coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE Word direct_load(
-        const FastCDFFPacked16* a) {
+static inline __attribute__((unused)) Word direct_load(const FastCDFFPacked16* a) {
     return _mm512_loadu_si512((const void*)a);
 }
 
 // Store one vector of packed coefficients
-static inline __attribute__((unused)) FASTCD_FF_HELPER_INLINE void direct_store(
-        FastCDFFPacked16* a, Word v) {
+static inline __attribute__((unused)) void direct_store(FastCDFFPacked16* a, Word v) {
     _mm512_storeu_si512((void*)a, v);
 }
 

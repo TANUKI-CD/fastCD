@@ -1573,6 +1573,9 @@ class MultiplicationAlgorithmTests(FastCDTestCase):
     def test_default_algorithm_names_the_automatic_selection(self) -> None:
         """Expose both automatic selections and reproduce operators bitwise."""
 
+        # Builds without the two-lane SIMD kernels, such as MSVC builds, serve
+        # batches from the single-product table, recognizable at dimension 16
+        paired = fcd.Algebra(dimension=16).default_batch_algorithm == "cariow_cariowa"
         for dimension in ALGORITHM_DIMENSIONS:
             algebra = fcd.Algebra(dimension=dimension)
             name = algebra.default_algorithm
@@ -1584,7 +1587,7 @@ class MultiplicationAlgorithmTests(FastCDTestCase):
                 self.assertIn(batch_name, CONCRETE_ALGORITHM_NAMES)
                 if dimension == 4:
                     self.assertEqual(name, "direct")
-                    self.assertEqual(batch_name, "quasilinear")
+                    self.assertEqual(batch_name, "quasilinear" if paired else "direct")
                 elif dimension >= 64:
                     self.assertEqual(name, "quasilinear")
                     self.assertEqual(batch_name, "quasilinear")
