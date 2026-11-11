@@ -19,13 +19,6 @@ All notable changes to fastCD are recorded in this file. The project follows
   `benchmark-results/t440-20261109/` and
   `benchmark-results/stability-20261107/` name the measured commits by
   their hashes in the published history, `33addc9` and `558e609`.
-- The generated real quasilinear kernels added a literal zero once at
-  dimension 2 and twice at dimension 4, so they executed 3 and 13 additions
-  where `docs/mathematics.md` counts 2 and 12. The generator no longer emits
-  these operations. A real quasilinear product at dimension 2 or 4 can now
-  return `-0.0` in a coordinate where it returned `0.0`; no other result
-  changes. `tools/check_quasilinear_counts.py` now fails on any operation
-  with a fixed zero operand instead of treating it as free.
 
 ## [1.3.0] - 2026-11-10
 

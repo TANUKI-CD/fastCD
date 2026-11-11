@@ -160,8 +160,8 @@ The study compared two builds: the sequential build at commit `982b9da` and
 the balanced build at commit `558e609`. Both were compiled with GCC 16.2.1
 on Linux, with `-O3 -DNDEBUG`, `-fno-fast-math -ffp-contract=off`, warnings
 as errors and the default leaf cutoffs, and run on an Intel Xeon Gold 6148.
-fastCD 1.3.1 computes the same products as the balanced build, except for
-the sign of a zero in real quasilinear products at dimensions 2 and 4.
+The quasilinear, Cariow–Cariowa and direct kernels of fastCD 1.3.1 are those
+of the balanced build.
 
 ## Accuracy
 

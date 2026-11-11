@@ -1354,15 +1354,17 @@ static inline void FASTCD_NAME(ql_cross_4)(FASTCD_REAL* restrict out, const FAST
     const FASTCD_REAL t2 = y[3] * x[1];
     const FASTCD_REAL t3 = t1 - t2;
     const FASTCD_REAL t4 = x[2] * y[3];
-    const FASTCD_REAL t5 = y[2] * x[1];
-    const FASTCD_REAL t6 = x[2] * y[1];
-    const FASTCD_REAL t7 = t5 - t6;
-    const FASTCD_REAL t8 = y[2] * x[3];
-    const FASTCD_REAL t9 = t4 - t8;
+    const FASTCD_REAL t5 = FASTCD_ZERO + t4;
+    const FASTCD_REAL t6 = y[2] * x[1];
+    const FASTCD_REAL t7 = x[2] * y[1];
+    const FASTCD_REAL t8 = t6 - t7;
+    const FASTCD_REAL t9 = y[2] * x[3];
+    const FASTCD_REAL t10 = t5 - t9;
+    const FASTCD_REAL t11 = t8 - FASTCD_ZERO;
     out[0] = FASTCD_ZERO;
-    out[1] = t9;
+    out[1] = t10;
     out[2] = t3;
-    out[3] = t7;
+    out[3] = t11;
 }
 
 // Compute the dimension-8 alternating product of the imaginary parts, unrolled
@@ -2998,8 +3000,9 @@ static inline void FASTCD_NAME(ql_mul_2)(FASTCD_REAL* restrict out, const FASTCD
     const FASTCD_REAL t4 = x[0] * y[1];
     const FASTCD_REAL t5 = y[0] * x[1];
     const FASTCD_REAL t6 = t4 + t5;
+    const FASTCD_REAL t7 = FASTCD_ZERO + t6;
     out[0] = t3;
-    out[1] = t6;
+    out[1] = t7;
 }
 
 // Multiply two dimension-4 elements with the unrolled quasilinear schedule
@@ -3008,34 +3011,36 @@ static inline void FASTCD_NAME(ql_mul_4)(FASTCD_REAL* restrict out, const FASTCD
     const FASTCD_REAL t2 = y[3] * x[1];
     const FASTCD_REAL t3 = t1 - t2;
     const FASTCD_REAL t4 = x[2] * y[3];
-    const FASTCD_REAL t5 = y[2] * x[1];
-    const FASTCD_REAL t6 = x[2] * y[1];
-    const FASTCD_REAL t7 = t5 - t6;
-    const FASTCD_REAL t8 = y[2] * x[3];
-    const FASTCD_REAL t9 = t4 - t8;
-    const FASTCD_REAL t10 = x[1] * y[1];
-    const FASTCD_REAL t11 = x[2] * y[2];
-    const FASTCD_REAL t12 = x[3] * y[3];
-    const FASTCD_REAL t13 = t10 + t11;
-    const FASTCD_REAL t14 = t13 + t12;
-    const FASTCD_REAL t15 = x[0] * y[0];
-    const FASTCD_REAL t16 = t15 - t14;
-    const FASTCD_REAL t17 = x[0] * y[1];
-    const FASTCD_REAL t18 = y[0] * x[1];
-    const FASTCD_REAL t19 = t17 + t18;
-    const FASTCD_REAL t20 = t9 + t19;
-    const FASTCD_REAL t21 = x[0] * y[2];
-    const FASTCD_REAL t22 = y[0] * x[2];
-    const FASTCD_REAL t23 = t21 + t22;
-    const FASTCD_REAL t24 = t3 + t23;
-    const FASTCD_REAL t25 = x[0] * y[3];
-    const FASTCD_REAL t26 = y[0] * x[3];
-    const FASTCD_REAL t27 = t25 + t26;
-    const FASTCD_REAL t28 = t7 + t27;
-    out[0] = t16;
-    out[1] = t20;
-    out[2] = t24;
-    out[3] = t28;
+    const FASTCD_REAL t5 = FASTCD_ZERO + t4;
+    const FASTCD_REAL t6 = y[2] * x[1];
+    const FASTCD_REAL t7 = x[2] * y[1];
+    const FASTCD_REAL t8 = t6 - t7;
+    const FASTCD_REAL t9 = y[2] * x[3];
+    const FASTCD_REAL t10 = t5 - t9;
+    const FASTCD_REAL t11 = t8 - FASTCD_ZERO;
+    const FASTCD_REAL t12 = x[1] * y[1];
+    const FASTCD_REAL t13 = x[2] * y[2];
+    const FASTCD_REAL t14 = x[3] * y[3];
+    const FASTCD_REAL t15 = t12 + t13;
+    const FASTCD_REAL t16 = t15 + t14;
+    const FASTCD_REAL t17 = x[0] * y[0];
+    const FASTCD_REAL t18 = t17 - t16;
+    const FASTCD_REAL t19 = x[0] * y[1];
+    const FASTCD_REAL t20 = y[0] * x[1];
+    const FASTCD_REAL t21 = t19 + t20;
+    const FASTCD_REAL t22 = t10 + t21;
+    const FASTCD_REAL t23 = x[0] * y[2];
+    const FASTCD_REAL t24 = y[0] * x[2];
+    const FASTCD_REAL t25 = t23 + t24;
+    const FASTCD_REAL t26 = t3 + t25;
+    const FASTCD_REAL t27 = x[0] * y[3];
+    const FASTCD_REAL t28 = y[0] * x[3];
+    const FASTCD_REAL t29 = t27 + t28;
+    const FASTCD_REAL t30 = t11 + t29;
+    out[0] = t18;
+    out[1] = t22;
+    out[2] = t26;
+    out[3] = t30;
 }
 
 // Multiply two dimension-8 elements with the unrolled quasilinear schedule
