@@ -3,7 +3,7 @@
   "date": "2026-11-07",
   "profile": "full",
   "baseline_commit": "982b9daed40e61e59fd939dae61a0e358a35191a",
-  "commit": "ffaaf9f05cf12d729f138b6173da8e05fe630188",
+  "commit": "558e609b499f5a46bd102c370e64d445031b85a8",
   "steps": {
     "build-baseline-simd": {
       "started": "2026-11-07T18:42:55-05:00",
@@ -558,7 +558,7 @@
     "--baseline-commit",
     "982b9da",
     "--commit",
-    "ffaaf9f",
+    "558e609",
     "--output",
     "benchmark-results/stability-20261107",
     "--cpu",
@@ -570,7 +570,7 @@
     "--document",
     "docs/stability.md"
   ],
-  "command_line": "python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit ffaaf9f --output benchmark-results/stability-20261107 --cpu 18 --accuracy-cpu 20 --jobs 16 --document docs/stability.md",
+  "command_line": "python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit 558e609 --output benchmark-results/stability-20261107 --cpu 18 --accuracy-cpu 20 --jobs 16 --document docs/stability.md",
   "tools": "measured commit",
   "timing_cpu": 18,
   "accuracy_cpu": 20,
@@ -643,7 +643,7 @@
       }
     },
     "measured": {
-      "commit": "ffaaf9f05cf12d729f138b6173da8e05fe630188",
+      "commit": "558e609b499f5a46bd102c370e64d445031b85a8",
       "files_sha256": {
         "include/fastcd/arithmetic.h": "b07b3eafee369a708e2e682d5b4a3642d57d3de89a0192c5fa24f5589c1aa83b",
         "include/fastcd/complex.h": "9df22a88061e184386c5e79669f485b3c1be8982b9940b3eb937f1f6af2f5187",

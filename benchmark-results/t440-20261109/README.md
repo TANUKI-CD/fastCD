@@ -8,7 +8,7 @@ This directory holds the run that the README tables and
 * Dell PowerEdge T440, Intel Xeon Gold 6148 (80 logical CPUs, two sockets,
   two SMT threads per core), Linux 7.2.11, shared host; no CPU governor,
   turbo or SMT settings were changed.
-* Source: commit `78228a7`, built from a clean checkout. Each JSON file
+* Source: commit `33addc9`, built from a clean checkout. Each JSON file
   records the commit, that the checkout was clean, and the source and
   executable hashes it measured.
 * Build: CMake Release (`-O3 -DNDEBUG`, `-fno-fast-math -ffp-contract=off`),

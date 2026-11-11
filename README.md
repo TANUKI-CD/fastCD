@@ -59,9 +59,16 @@ For more information on how to get started using fastCD in C and to familiarize 
 
 ## Using Python
 
-`pyfastcd` requires CPython 3.10 or newer and NumPy 1.26 or newer. Building it from source also
-requires a C11 compiler, Python development headers, and CMake 3.18 or newer. To build and
-install it from the repository root, run:
+fastCD can be used in Python via the package `pyfastcd`. It requires CPython 3.10 or newer
+and NumPy 1.26 or newer. To install it from PyPI with `pip`, run:
+
+```sh
+pip install pyfastcd
+```
+
+The package can also be built from source from this repository. This also requires a C11
+compiler, Python development headers, and CMake 3.18 or newer. To build and install it
+from the repository root, run:
 
 ```sh
 python -m pip install .

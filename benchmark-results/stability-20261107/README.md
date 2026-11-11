@@ -5,7 +5,7 @@ This directory holds the measurements behind [docs/stability.md](../../docs/stab
 ## What was compared
 
 - **Sequential accumulation:** commit `982b9daed40e61e59fd939dae61a0e358a35191a`, the baseline.
-- **Balanced accumulation:** commit `ffaaf9f05cf12d729f138b6173da8e05fe630188`, the measured commit.
+- **Balanced accumulation:** commit `558e609b499f5a46bd102c370e64d445031b85a8`, the measured commit.
 
 Errors are measured against the exact product. Both commits contain the same direct multiplication, which is measured alongside for comparison, and the accuracy study checks that the two builds give bit-for-bit identical direct products on every stored operand pair. Direct timings are therefore the control for noise between the two builds. The study also compares the Cariow–Cariowa correction sums of the two commits and times the balanced-accumulation block sizes 4, 8 and 16 at the measured commit.
 
@@ -28,7 +28,7 @@ Errors are measured against the exact product. Both commits contain the same dir
 `benchmarks/stability_study.py` built both commits from clean detached worktrees and ran every step below with the scripts of the measured commit.
 
 ```sh
-python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit ffaaf9f --output benchmark-results/stability-20261107 --cpu 18 --accuracy-cpu 20 --jobs 16 --document docs/stability.md
+python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit 558e609 --output benchmark-results/stability-20261107 --cpu 18 --accuracy-cpu 20 --jobs 16 --document docs/stability.md
 ```
 
 | Step | What it does | Duration |

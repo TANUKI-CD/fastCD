@@ -5,9 +5,9 @@
   "platform": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
   "numpy": "2.5.4",
   "git": {
-    "commit": "78228a7aadde7fa3cc8fd42069474fbf06b7ec7a",
+    "commit": "33addc944b8cf47d07b9eec59541ffcbdda441e7",
     "dirty": false,
-    "describe": "v1.1.0-7-g78228a7"
+    "describe": "v1.1.0-7-g33addc9"
   },
   "configuration": {
     "runner": "/hdd/math/fastCD/build/bench-build/fastcd_flint_benchmark",

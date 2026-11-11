@@ -4,7 +4,7 @@ Host: Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz (x86_64); gcc 16.2.1 20260810; 24
 
 Batch mode times one validated batch call per corpus pass (two products per SIMD instruction where the build supports it); single mode times one validated single-product call per pair.  Python object overhead is excluded. Verification uses an independent float64 oracle, not an exact product. Fastest names the lowest verified mean, or a tie when the paired-ratio interval of the two lowest means contains one; default is the library's automatic selection for that mode.
 
-Seed: 20260906; CPU: 2; status: ok. Commit: 78228a7aadde7fa3cc8fd42069474fbf06b7ec7a (clean tree). Build options, source and executable hashes, corpus hashes, and raw observations are in the accompanying JSON.
+Seed: 20260906; CPU: 2; status: ok. Commit: 33addc944b8cf47d07b9eec59541ffcbdda441e7 (clean tree). Build options, source and executable hashes, corpus hashes, and raw observations are in the accompanying JSON.
 
 ## Batch products (ns per product)
 

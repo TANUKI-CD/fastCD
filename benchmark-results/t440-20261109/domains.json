@@ -78,9 +78,9 @@
     ]
   },
   "git": {
-    "commit": "78228a7aadde7fa3cc8fd42069474fbf06b7ec7a",
+    "commit": "33addc944b8cf47d07b9eec59541ffcbdda441e7",
     "dirty": false,
-    "describe": "v1.1.0-7-g78228a7"
+    "describe": "v1.1.0-7-g33addc9"
   },
   "metadata": {
     "schema": "fastcd-domains-1",

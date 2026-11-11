@@ -66,7 +66,7 @@
     },
     "balanced-simd": {
       "source": "measured",
-      "commit": "ffaaf9f05cf12d729f138b6173da8e05fe630188",
+      "commit": "558e609b499f5a46bd102c370e64d445031b85a8",
       "tuning_definitions": null,
       "directory": "build/stability-work/builds/balanced-simd",
       "configure_command": [
@@ -97,7 +97,7 @@
     },
     "balanced-scalar": {
       "source": "measured",
-      "commit": "ffaaf9f05cf12d729f138b6173da8e05fe630188",
+      "commit": "558e609b499f5a46bd102c370e64d445031b85a8",
       "tuning_definitions": "FASTCD_DISABLE_SIMD=1",
       "directory": "build/stability-work/builds/balanced-scalar",
       "configure_command": [
@@ -129,7 +129,7 @@
     },
     "block-4": {
       "source": "measured",
-      "commit": "ffaaf9f05cf12d729f138b6173da8e05fe630188",
+      "commit": "558e609b499f5a46bd102c370e64d445031b85a8",
       "tuning_definitions": "FASTCD_SUM_BLOCK=4",
       "directory": "build/stability-work/builds/block-4",
       "configure_command": [
@@ -161,7 +161,7 @@
     },
     "block-16": {
       "source": "measured",
-      "commit": "ffaaf9f05cf12d729f138b6173da8e05fe630188",
+      "commit": "558e609b499f5a46bd102c370e64d445031b85a8",
       "tuning_definitions": "FASTCD_SUM_BLOCK=16",
       "directory": "build/stability-work/builds/block-16",
       "configure_command": [
