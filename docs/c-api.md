@@ -168,7 +168,7 @@ A release may change:
 
 - `const char* fastcd_version_string(void)`
 
-  Return the version string of the linked library, such as `"1.3.0"`.
+  Return the version string of the linked library, such as `"1.3.1"`.
 
 - `const char* fastcd_status_string(FastCDStatus status)`
 

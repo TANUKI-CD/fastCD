@@ -5,10 +5,18 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
-## [Unreleased]
+## [1.3.1] - 2026-11-10
+
+### Added
+
+- A release workflow, `.github/workflows/release.yml`, that builds the source
+  distribution and wheels for CPython 3.10 through 3.14 on Linux, macOS and
+  Windows and publishes them to PyPI when a version tag is pushed.
 
 ### Fixed
 
+- `README.md`, `docs/benchmark.md` and `docs/stability.md` name the measured
+  commits by their hashes in the published history, `33addc9` and `558e609`.
 - The generated real quasilinear kernels added a literal zero once at
   dimension 2 and twice at dimension 4, so they executed 3 and 13 additions
   where `docs/mathematics.md` counts 2 and 12. The generator no longer emits
