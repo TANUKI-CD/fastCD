@@ -115,7 +115,7 @@ All timings below were measured on 2026-11-09 on a Dell PowerEdge T440 with an I
 
 Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every product of every operand pair was also checked against an independent implementation.
 
-The measured source is commit `78228a7`, built from a clean checkout; the archived build records list the SHA-256 of every measured source file. The raw observations, environment, commands, and build records are archived in [benchmark-results/t440-20261109/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261109/), and the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) describes the protocol and how to rerun it.
+The measured source is commit `33addc9`, built from a clean checkout; the archived build records list the SHA-256 of every measured source file. The raw observations, environment, commands, and build records are archived in [benchmark-results/t440-20261109/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261109/), and the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) describes the protocol and how to rerun it.
 
 ### Real coefficients
 

@@ -157,7 +157,7 @@ their variety.
 ### Builds
 
 The study compared two builds: the sequential build at commit `982b9da` and
-the balanced build at commit `ffaaf9f`. Both were compiled with GCC 16.2.1
+the balanced build at commit `558e609`. Both were compiled with GCC 16.2.1
 on Linux, with `-O3 -DNDEBUG`, `-fno-fast-math -ffp-contract=off`, warnings
 as errors and the default leaf cutoffs, and run on an Intel Xeon Gold 6148.
 The quasilinear, Cariow–Cariowa and direct kernels of fastCD 1.3.0 are those
@@ -469,11 +469,11 @@ To repeat the study, run `benchmarks/stability_study.py` with a Python that
 has NumPy, gmpy2 and Matplotlib:
 
 ```sh
-python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit ffaaf9f \
+python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit 558e609 \
     --output benchmark-results/stability-YYYYMMDD --cpu CPU --accuracy-cpu CPU
 ```
 
-Commit `982b9da` has sequential accumulation and `ffaaf9f` is the measured
+Commit `982b9da` has sequential accumulation and `558e609` is the measured
 commit. The script builds both from clean worktrees, pins the timings and the
 accuracy study to the given logical CPUs, runs every step, and writes the
 README, the tables and `SHA256SUMS`; `--document docs/stability.md` also

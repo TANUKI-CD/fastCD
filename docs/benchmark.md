@@ -395,7 +395,7 @@ required. Each protocol's corpora go into its own subdirectory of
 
 The README tables come from the run archived in
 [`benchmark-results/t440-20261109/`](../benchmark-results/t440-20261109/README.md),
-measured on 2026-11-09 from commit `78228a7`, with each protocol pinned to
+measured on 2026-11-09 from commit `33addc9`, with each protocol pinned to
 one logical CPU of an Intel Xeon Gold 6148 in a Dell PowerEdge T440.
 `real.json` and `real.md` hold the real protocol with its default settings,
 `domains.*` the domains protocol, and `flint.*` the comparison with FLINT
