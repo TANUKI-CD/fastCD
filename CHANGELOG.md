@@ -25,8 +25,7 @@ All notable changes to fastCD are recorded in this file. The project follows
   8 took about 1.9 µs over R and 2.3 µs over C and F_7, against 23 µs, 30 µs
   and 32 µs, and batches of 4096 products at dimension 8 ran within 4% of
   the batch kernels over every coefficient field.
-- Results, including floating-point rounding, and exception types and
-  messages are those of 1.3.1.
+- `tools/verify_octonion_leaf.py` has been reformatted to pass CI linting.
 
 ### Added
 
