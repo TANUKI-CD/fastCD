@@ -5,7 +5,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
-## [Unreleased]
+## [1.4.0] - 2026-11-12
 
 ### Changed
 

@@ -25,27 +25,29 @@ import sys
 from fractions import Fraction
 from pathlib import Path
 
+
 # ---- Reference: the defining Cayley--Dickson product with every mu_k = -1 ----
 def cd_mul(x, y):
     """(a,b)(c,d) = (ac - conj(d) b, da + b conj(c)), the paper's eq. (2.1)."""
     if len(x) == 1:
         return [x[0] * y[0]]
     h = len(x) // 2
-    conj = lambda v: [v[0]] + [-c for c in v[1:]]
+    def conj(v): return [v[0]] + [-c for c in v[1:]]
     a, b, c, d = x[:h], x[h:], y[:h], y[h:]
-    first = [p - q for p, q in zip(cd_mul(a, c), cd_mul(conj(d), b))]
-    second = [p + q for p, q in zip(cd_mul(d, a), cd_mul(b, conj(c)))]
+    first = [p - q for p, q in zip(cd_mul(a, c), cd_mul(conj(d), b), strict=True)]
+    second = [p + q for p, q in zip(cd_mul(d, a), cd_mul(b, conj(c)), strict=True)]
     return first + second
 
 def alt(X, Y):
     """X x_3 Y = (XY - YX)/2 for rational imaginary octonions (coordinates e1..e7)."""
     xy, yx = cd_mul([0] + X, [0] + Y), cd_mul([0] + Y, [0] + X)
-    return [Fraction(p - q, 2) for p, q in zip(xy[1:], yx[1:])]
+    return [Fraction(p - q, 2) for p, q in zip(xy[1:], yx[1:], strict=True)]
 
 def reference(xr, xi, yr, yi):
     """Complex-bilinear extension of x_3, by planes: (rr - ii) + iota (ri + ir)."""
     rr, ii, ri, ir = alt(xr, yr), alt(xi, yi), alt(xr, yi), alt(xi, yr)
-    return [p - q for p, q in zip(rr, ii)], [p + q for p, q in zip(ri, ir)]
+    return ([p - q for p, q in zip(rr, ii, strict=True)],
+            [p + q for p, q in zip(ri, ir, strict=True)])
 
 # ---- Counted numbers: every real operation of an evaluation is recorded ----
 COUNT = {"M": 0, "A": 0, "E": 0}
@@ -75,13 +77,14 @@ class Num:
         return Num(self.v / 2, self.tag)
 
 # ---- Complex helpers on pairs; they work for Fraction and for Num ----
-cadd = lambda a, b: (a[0] + b[0], a[1] + b[1])
-csub = lambda a, b: (a[0] - b[0], a[1] - b[1])
-times_i = lambda a: (-a[1], a[0])                       # free: swap and one sign
-chalf = lambda a: (a[0].half(), a[1].half())
-cmul = lambda a, b: (a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0])
-cross = lambda a, b: [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
-                      a[0] * b[1] - a[1] * b[0]]        # 6 products, 3 subtractions
+def cadd(a, b): return (a[0] + b[0], a[1] + b[1])
+def csub(a, b): return (a[0] - b[0], a[1] - b[1])
+def times_i(a): return (-a[1], a[0])                    # free: swap and one sign
+def chalf(a): return (a[0].half(), a[1].half())
+def cmul(a, b): return (a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0])
+def cross(a, b):                                        # 6 products, 3 subtractions
+    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0]]
 
 def leaf_maps(X):
     """L_1X..L_4X for X = (x1,x2,x3,h,y1,y2,y3): 9 complex additions."""
@@ -98,9 +101,10 @@ def check_identity():
     zero, one = (Fraction(0), Fraction(0)), (Fraction(1), Fraction(0))
     basis = [[one if k == a else zero for k in range(7)] for a in range(7)]
     columns = [leaf_maps(e) for e in basis]             # columns[k][j][i] = (L_j)_{i,k}
-    ccross = lambda u, v: [csub(cmul(u[i], v[j]), cmul(u[j], v[i]))
-                           for i, j in ((1, 2), (2, 0), (0, 1))]
-    unit = lambda a: [Fraction(int(k == a)) for k in range(7)]
+    def ccross(u, v):
+        return [csub(cmul(u[i], v[j]), cmul(u[j], v[i]))
+                for i, j in ((1, 2), (2, 0), (0, 1))]
+    def unit(a): return [Fraction(int(k == a)) for k in range(7)]
     for a in range(7):
         for b in range(7):
             rhs = [zero] * 7
@@ -120,9 +124,10 @@ def check_identity():
 # ---- Check 2: the real straight-line evaluation, stage by stage ----
 def leaf(xr, xi, yr, yi, stages=None):
     """Mirror of octonion_cross in tools/generate_kernels.py; returns two planes."""
-    mark = lambda: stages.append(dict(COUNT)) if stages is not None else None
+    def mark(): return stages.append(dict(COUNT)) if stages is not None else None
     # Stage 1, input linear maps: 9 complex additions per operand
-    LX, LY = leaf_maps(list(zip(xr, xi))), leaf_maps(list(zip(yr, yi)))
+    LX = leaf_maps(list(zip(xr, xi, strict=True)))
+    LY = leaf_maps(list(zip(yr, yi, strict=True)))
     mark()
     # Stage 2, four complex cross products, each by three real cross products
     # Delta = re x re, Omega = im x im, W = (re+im) x (re+im); the plane sum of
@@ -135,7 +140,7 @@ def leaf(xr, xi, yr, yi, stages=None):
     results, thirds = [], []
     for j in range(4):
         D = cross([c[0] for c in LX[j]], [c[0] for c in LY[j]])
-        O = cross([c[1] for c in LX[j]], [c[1] for c in LY[j]])
+        O = cross([c[1] for c in LX[j]], [c[1] for c in LY[j]])  # noqa: E741
         W = cross(SX[j], SY[j])
         # Upsilon_1, Upsilon_2 enter only the e4 output, so they stay unreconstructed
         keep = 2 if j < 2 else 3
@@ -166,16 +171,17 @@ def c_kernel(text):
     def run(xr, xi, yr, yi):
         env = {f"{n}[{i + 1}]": v for n, plane in (("x_real", xr), ("x_imag", xi),
                ("y_real", yr), ("y_imag", yi)) for i, v in enumerate(plane)}
-        val = lambda s: -env[s[1:]] if s[0] == "-" else env[s]
+        def val(s): return -env[s[1:]] if s[0] == "-" else env[s]
         for line in lines:
             lhs, rhs = line.replace("const FASTCD_REAL ", "").split(" = ")
             tok = rhs.split()
             if rhs == "FASTCD_ZERO":
-                continue                                # scalar coordinate of the output
+                continue                               # scalar coordinate of the output
             if len(tok) == 1:
                 env[lhs] = val(tok[0])                  # copy or sign change: free
             elif tok[1] in "+-":
-                env[lhs] = val(tok[0]) + val(tok[2]) if tok[1] == "+" else val(tok[0]) - val(tok[2])
+                env[lhs] = (val(tok[0]) + val(tok[2]) if tok[1] == "+"
+                            else val(tok[0]) - val(tok[2]))
             elif tok[2] == "0.5":
                 env[lhs] = val(tok[0]).half()
             else:
@@ -191,17 +197,18 @@ def check_program(program, with_stages=False):
             planes = [[Fraction(int(k == i)) for k in range(7)]
                       for i in (a, a - 7, b, b - 7)]    # xr, xi, yr, yi
             tagged = [[Num(v, tag) for v in plane]
-                      for plane, tag in zip(planes, "xxyy")]
+                      for plane, tag in zip(planes, "xxyy", strict=True)]
             COUNT.update(M=0, A=0, E=0)
             stages = [] if with_stages else None
             got = program(*tagged, stages) if with_stages else program(*tagged)
-            assert tuple([n.v for n in plane] for plane in got) == reference(*planes), (a, b)
+            values = tuple([n.v for n in plane] for plane in got)
+            assert values == reference(*planes), (a, b)
             assert (COUNT["M"], COUNT["A"], COUNT["E"]) == (72, 156, 15), COUNT
             if with_stages:                             # the stage table in the paper
                 s1, s2, s3 = [(s["M"], s["A"], s["E"]) for s in stages]
                 assert s1 == (0, 36, 0)
-                assert tuple(q - p for p, q in zip(s1, s2)) == (72, 88, 0)
-                assert tuple(q - p for p, q in zip(s2, s3)) == (0, 32, 15)
+                assert tuple(q - p for p, q in zip(s1, s2, strict=True)) == (72, 88, 0)
+                assert tuple(q - p for p, q in zip(s2, s3, strict=True)) == (0, 32, 15)
     return 196
 
 # ---- Check 4: closed forms against the recurrences ----
@@ -214,7 +221,7 @@ def check_closed_forms(top=40):
         assert (M, P, E) == ((36 * k - 81) * 2 ** (k - 2) + 18,
                              (76 * k - 168) * 2 ** (k - 2) + 36,
                              (16 * k - 37) * 2 ** (k - 3) + 4)
-        n, N = k + 1, 2 ** (k + 1)                      # full product: root + reconstruction
+        n, N = k + 1, 2 ** (k + 1)                 # full product: root + reconstruction
         full = (M + 6 * (N // 2 - 1) + 3 * N - 2, P + (3 * N - 7) + (3 * N - 3), E)
         assert full == ((36 * n - 69) * N // 8 + 10, (76 * n - 196) * N // 8 + 26,
                         (16 * n - 53) * N // 16 + 4)
@@ -222,15 +229,19 @@ def check_closed_forms(top=40):
 
 if __name__ == "__main__":
     print(f"1. identity (A.2): {check_identity()} basis pairs, exact")
-    print(f"2. straight-line evaluation: {check_program(leaf, True)} plane basis pairs, "
-          "counts (M, A, E) = (72, 156, 15), stages (0,36,0) + (72,88,0) + (0,32,15)")
-    default = Path(__file__).resolve().parents[1] / "src/generated/quasilinear_kernels.h"
+    print(f"2. straight-line evaluation: {check_program(leaf, True)} plane basis "
+          "pairs, counts (M, A, E) = (72, 156, 15), "
+          "stages (0,36,0) + (72,88,0) + (0,32,15)")
+    root = Path(__file__).resolve().parents[1]
+    default = root / "src/generated/quasilinear_kernels.h"
     header = Path(sys.argv[1]) if len(sys.argv) > 1 else default
     if header.is_file():
         n = check_program(c_kernel(header.read_text()))
         print(f"3. C kernel ql_complex_cross_8 ({header}): {n} plane basis pairs, "
               "counts (72, 156, 15)")
     else:
-        print("3. C kernel: skipped (pass the path of src/generated/quasilinear_kernels.h)")
-    print(f"4. closed forms for kernel and full counts: levels 3..{check_closed_forms()}")
+        print("3. C kernel: skipped "
+              "(pass the path of src/generated/quasilinear_kernels.h)")
+    print("4. closed forms for kernel and full counts: "
+          f"levels 3..{check_closed_forms()}")
     print("all checks passed")
