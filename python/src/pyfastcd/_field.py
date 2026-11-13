@@ -9,6 +9,8 @@ import numpy as np
 
 from . import _domains_core
 
+_UINT32 = np.dtype(np.uint32)
+
 
 def _integer(value: Any, name: str) -> int:
     """Validate a selector with the integer protocol while rejecting booleans."""
@@ -155,7 +157,7 @@ class FiniteField:
     def dtype(self) -> np.dtype[np.uint32]:
         """Native uint32 storage for prime-field polynomial coordinates."""
 
-        return np.dtype(np.uint32)
+        return _UINT32
 
     @property
     def coefficient_shape(self) -> tuple[int, ...]:
@@ -198,9 +200,7 @@ class FiniteField:
     def __call__(self, value: Any = 0) -> Any:
         """Copy a matching scalar or construct polynomial coordinates."""
 
-        from ._domains import element
-
-        return element(self, value)
+        return _domains.element(self, value)
 
     def scalar(self, value: Any) -> Any:
         """Construct one coefficient-field scalar."""
@@ -220,9 +220,7 @@ class FiniteField:
     def array(self, values: Any) -> Any:
         """Copy values into writable canonical coefficient storage."""
 
-        from ._domains import array
-
-        return array(self, values, copy=True)
+        return _domains.array(self, values, copy=True)
 
     def asarray(self, values: Any, *, copy: bool | None = None) -> Any:
         """Construct a field array under the requested copy policy.
@@ -234,9 +232,7 @@ class FiniteField:
         for canonical residues before native arithmetic.
         """
 
-        from ._domains import array
-
-        return array(self, values, copy=copy)
+        return _domains.array(self, values, copy=copy)
 
     def multiply(self, x: Any, y: Any, *, out: Any = None) -> Any:
         """Multiply field scalars or broadcast field arrays.
@@ -247,9 +243,7 @@ class FiniteField:
         overlap with inputs. A supplied ``ElementArray`` is itself returned.
         """
 
-        from ._domains import multiply
-
-        return multiply(self, x, y, out=out)
+        return _domains.multiply(self, x, y, out=out)
 
 
 def _make_field(p: int, d: int, mod: tuple[int, ...] | None) -> FiniteField:
@@ -285,3 +279,8 @@ def _restore_field(p: int, mod: tuple[int, ...]) -> FiniteField:
     """Reconstruct a pickle through validation of its explicit presentation."""
 
     return FiniteField.from_modulus(char=p, modulus=mod)
+
+
+# The adapters import FiniteField while they load, so they are bound here only
+# after the class exists
+from . import _domains  # noqa: E402

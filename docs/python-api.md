@@ -583,10 +583,12 @@ leading axes.
 - **Copying.** Numeric input that cannot be shared is converted and copied,
   unless `copy=False` forbids it. When finite-field coefficients are copied,
   integers are reduced modulo `char` before being stored as `uint32`.
-- **Checks.** Before writing any output, every arithmetic operation checks
-  again that finite-field storage holds canonical residues. Comparison,
-  indexing and copying do not: `==` compares the stored words, and copies
-  reduce them modulo `char`.
+- **Checks.** The storage of an array can change after the array is
+  created, so every arithmetic operation that reads a finite-field array
+  checks again, before writing any output, that the storage holds canonical
+  residues. An `Element` is immutable and always holds canonical residues.
+  Comparison, indexing and copying do not check: `==` compares the stored
+  words, and copies reduce them modulo `char`.
 - **Overlap.** Inputs are read-only and may share storage, as in
   `X[:-1] * X[1:]` or `X * X[:1]`, as long as each pair of corresponding
   elements is either identical or disjoint. Native operations reject
@@ -675,8 +677,10 @@ storage.
 Native operations do not raise on NaN, infinity, or overflow. NumPy's error
 settings apply to the coordinate operations that NumPy itself performs on
 real `ElementArray` operands: addition, subtraction, scaling, scalar
-division, and equality. Complex and finite-field arrays and all `Element`
-arithmetic are native and never raise on these conditions.
+division, and equality. They also apply when a complex element or array is
+compared with a scalar, because NumPy carries out that exact comparison.
+Arithmetic on complex and finite-field arrays and all `Element` arithmetic
+are native and never raise on these conditions.
 
 ---
 

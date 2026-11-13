@@ -13,8 +13,9 @@ from typing import TYPE_CHECKING, Any, cast, final
 
 import numpy as np
 
-from . import _core
+from . import _array, _core, _domains, _domains_core
 from ._core import Element
+from ._field import FiniteField, _integer
 from ._validation import (
     COMPLEX_SCALAR_MESSAGE,
     DIFFERENT_ALGEBRA_MESSAGE,
@@ -24,6 +25,12 @@ from ._validation import (
 
 if TYPE_CHECKING:
     from ._array import ElementArray
+
+_AUTO = _core._algorithm("auto", 1)
+_MULTIPLY = _domains._MULTIPLY
+_FLOAT64 = np.dtype(np.float64)
+_COMPLEX128 = np.dtype(np.complex128)
+_UINT32 = np.dtype(np.uint32)
 
 
 @dataclass(frozen=True)
@@ -152,8 +159,6 @@ class Algebra:
         normalized_dimension, normalized_level = _dimension_and_level(
             dimension=dimension, level=level
         )
-        from ._field import FiniteField, _integer
-
         p, d = _integer(char, "char"), _integer(deg, "deg")
         if field is not None:
             if not isinstance(field, FiniteField):
@@ -185,8 +190,6 @@ class Algebra:
         # Only explicitly selected complex and finite-field parents construct
         # the separate native context, and real parents use the _core module
         if p or d != 1:
-            from . import _domains_core
-
             ctx = _domains_core.context(
                 field._native if field is not None else None,
                 normalized_dimension,
@@ -280,20 +283,20 @@ class Algebra:
         """Trailing storage axes of one complete algebra element."""
 
         return (
-            (self.dimension, self.deg)
-            if self.char and self.deg > 1
-            else (self.dimension,)
+            (self._dimension, self._deg)
+            if self._char and self._deg > 1
+            else (self._dimension,)
         )
 
     @property
     def dtype(self) -> np.dtype[np.float64]:
         """numpy.dtype: Native coefficient storage dtype for the selected field."""
 
-        if self.char:
-            return cast("np.dtype[np.float64]", np.dtype(np.uint32))
-        if self.deg == 2:
-            return cast("np.dtype[np.float64]", np.dtype(np.complex128))
-        return np.dtype(np.float64)
+        if self._char:
+            return cast("np.dtype[np.float64]", _UINT32)
+        if self._deg == 2:
+            return cast("np.dtype[np.float64]", _COMPLEX128)
+        return _FLOAT64
 
     @property
     def default_algorithm(self) -> str:
@@ -310,8 +313,6 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from . import _domains_core
-
             return _domains_core.default_algorithm(self._ctx)
         return _core._default_algorithm(self.dimension)
 
@@ -328,8 +329,6 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from . import _domains_core
-
             return _domains_core.default_algorithm(self._ctx)
         return _core._default_batch_algorithm(self.dimension)
 
@@ -387,9 +386,7 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import element
-
-            return cast(Element, element(self, value))
+            return cast(Element, _domains.element(self, value))
         if isinstance(value, Element) and value.algebra._ctx is not None:
             raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
 
@@ -430,9 +427,7 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import scalar
-
-            if not scalar(value, self):
+            if not _domains.scalar(value, self):
                 raise TypeError("scalar must belong to the coefficient field")
             return self(value)
 
@@ -570,13 +565,9 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import array
+            return cast("ElementArray", _domains.array(self, values, copy=True))
 
-            return cast("ElementArray", array(self, values, copy=True))
-
-        from ._array import _array_from_values
-
-        return _array_from_values(self, values, copy=True)
+        return _array._array_from_values(self, values, copy=True)
 
     def asarray(self, values: Any, *, copy: bool | None = None) -> ElementArray:
         """Interpret complete coefficient records as algebra elements.
@@ -616,13 +607,9 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import array
+            return cast("ElementArray", _domains.array(self, values, copy=copy))
 
-            return cast("ElementArray", array(self, values, copy=copy))
-
-        from ._array import _array_from_values
-
-        return _array_from_values(self, values, copy=copy)
+        return _array._array_from_values(self, values, copy=copy)
 
     def multiply(
         self,
@@ -686,21 +673,44 @@ class Algebra:
         multiplication kernel, so the algorithm does not change their result.
         """
 
+        elements = type(x) is Element and type(y) is Element and out is None
         if self._ctx is not None:
-            from ._domains import multiply
-
+            if elements and x.algebra is self and y.algebra is self:
+                return cast(
+                    Element,
+                    _core._apply_elements(
+                        _MULTIPLY, _domains.algorithm_code(algorithm), 0, x, y
+                    ),
+                )
             return cast(
                 "Element | ElementArray",
-                multiply(self, x, y, out=out, algorithm=algorithm),
+                _domains.multiply(self, x, y, out=out, algorithm=algorithm),
             )
 
-        from ._array import _is_real_scalar, _multiply
-
-        code = _core._algorithm(algorithm, self.dimension)
-        if isinstance(x, Element) and isinstance(y, Element) and out is None:
-            self._require_element(x)
-            self._require_element(y)
+        # Automatic selection is valid at every dimension, so only an explicit
+        # name needs the dimension check
+        code = (
+            _AUTO
+            if type(algorithm) is str and algorithm == "auto"
+            else _core._algorithm(algorithm, self._dimension)
+        )
+        if elements:
+            if x.algebra is not self or y.algebra is not self:
+                raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
             return _core._multiply_element(code, x, y)
+        ElementArray = _array.ElementArray
+        if type(x) is ElementArray and type(y) is ElementArray:
+            return _array._binary(
+                self,
+                x,
+                y,
+                _core._BINARY_MULTIPLY,
+                out=out,
+                allow_array_like=True,
+                algorithm=code,
+            )
+        _is_real_scalar = _array._is_real_scalar
+        _multiply = _array._multiply
         if isinstance(x, Element) and _is_real_scalar(y) and out is None:
             self._require_element(x)
             return cast("Element | ElementArray", x * y)
@@ -759,11 +769,9 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import apply
-
             return cast(
                 "Element | ElementArray",
-                apply(
+                _domains.apply(
                     self,
                     "basis_left",
                     x,
@@ -777,9 +785,7 @@ class Algebra:
         if isinstance(x, Element) and out is None:
             self._require_element(x)
             return _core._basis_lmul(normalized, x)
-        from ._array import _basis_action
-
-        return _basis_action(self, normalized, x, left=True, out=out)
+        return _array._basis_action(self, normalized, x, left=True, out=out)
 
     def right_basis_multiply(
         self, x: Any, index: Any, *, out: Any | None = None
@@ -819,11 +825,9 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import apply
-
             return cast(
                 "Element | ElementArray",
-                apply(
+                _domains.apply(
                     self,
                     "basis_right",
                     x,
@@ -837,9 +841,7 @@ class Algebra:
         if isinstance(x, Element) and out is None:
             self._require_element(x)
             return _core._basis_rmul(x, normalized)
-        from ._array import _basis_action
-
-        return _basis_action(self, normalized, x, left=False, out=out)
+        return _array._basis_action(self, normalized, x, left=False, out=out)
 
     def left_operator_commutator(
         self, a: Any, b: Any, x: Any, *, out: Any | None = None
@@ -877,20 +879,18 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import apply
-
             return cast(
                 "Element | ElementArray",
-                apply(self, "left_operator_commutator", a, b, x, out=out, coerce=True),
+                _domains.apply(
+                    self, "left_operator_commutator", a, b, x, out=out, coerce=True
+                ),
             )
 
         if all(isinstance(value, Element) for value in (a, b, x)) and out is None:
             for value in (a, b, x):
                 self._require_element(value)
             return _core._lop_commutator(a, b, x)
-        from ._array import _operator_commutator
-
-        return _operator_commutator(self, a, b, x, left=True, out=out)
+        return _array._operator_commutator(self, a, b, x, left=True, out=out)
 
     def right_operator_commutator(
         self, a: Any, b: Any, x: Any, *, out: Any | None = None
@@ -928,20 +928,18 @@ class Algebra:
         """
 
         if self._ctx is not None:
-            from ._domains import apply
-
             return cast(
                 "Element | ElementArray",
-                apply(self, "right_operator_commutator", a, b, x, out=out, coerce=True),
+                _domains.apply(
+                    self, "right_operator_commutator", a, b, x, out=out, coerce=True
+                ),
             )
 
         if all(isinstance(value, Element) for value in (a, b, x)) and out is None:
             for value in (a, b, x):
                 self._require_element(value)
             return _core._rop_commutator(a, b, x)
-        from ._array import _operator_commutator
-
-        return _operator_commutator(self, a, b, x, left=False, out=out)
+        return _array._operator_commutator(self, a, b, x, left=False, out=out)
 
     def _require_element(self, value: Element) -> None:
         """Require an element to belong to this cached algebra parent."""
@@ -1004,10 +1002,10 @@ def cd_element(
             ):
                 raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
             return cast(Element, coefficients.copy())
-        from ._domains import _finite_values
-
         values = np.asarray(
-            _finite_values(probe, coefficients) if probe.char else coefficients
+            _domains._finite_values(probe, coefficients)
+            if probe.char
+            else coefficients
         )
         axes = 2 if probe.char and probe.deg > 1 else 1
         if values.ndim != axes:

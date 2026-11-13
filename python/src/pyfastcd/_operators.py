@@ -7,14 +7,14 @@ from typing import Any
 
 import numpy as np
 
+from ._array import ElementArray, _is_real_scalar
+from ._core import Element
+
 _Handler = Callable[[Any, tuple[Any, ...]], Any]
 
 
 def _supported_operand(value: Any) -> bool:
     """Return whether *value* belongs to the intentional ufunc surface."""
-
-    from ._array import ElementArray, _is_real_scalar
-    from ._core import Element
 
     return isinstance(value, (Element, ElementArray)) or _is_real_scalar(value)
 

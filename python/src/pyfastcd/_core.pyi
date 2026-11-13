@@ -225,6 +225,13 @@ _SCALAR_INNER: int
 _SCALAR_NORM_SQUARED: int
 _SCALAR_NORM: int
 
-def _extended_element(
-    parent: Any, payload: bytes, shape: tuple[int, ...], complex: bool
-) -> Element: ...
+def _extended_element(parent: Any, payload: Any, /) -> Element: ...
+def _apply_elements(
+    operation: int,
+    algorithm: int,
+    index: int,
+    x: Element,
+    y: Element = ...,
+    z: Element = ...,
+    /,
+) -> Any: ...

@@ -21,6 +21,7 @@ from numpy.lib import NumpyVersion
 from . import _core
 from ._core import Element
 from ._domains import array_dispatch as _domain_array_dispatch
+from ._domains import array_operator as _domain_array_operator
 from ._typing import _RealScalar
 from ._validation import (
     DIFFERENT_ALGEBRA_MESSAGE,
@@ -64,6 +65,13 @@ def _dlpack_pair(value: Any, *, name: str) -> tuple[int, int] | None:
 def _is_real_scalar(value: Any) -> bool:
     """Return whether a value has unambiguous real-scalar semantics."""
 
+    # Decide the operand types of ordinary arithmetic before the protocol
+    # check below, which inspects the value attribute by attribute
+    kind = type(value)
+    if kind is float or kind is int:
+        return True
+    if kind is ElementArray or kind is Element:
+        return False
     if isinstance(value, (complex, np.complexfloating)):
         return False
     if isinstance(value, np.ndarray):
@@ -124,9 +132,14 @@ def _layout_is_compatible(array: np.ndarray[Any, Any], dimension: int) -> bool:
             or (dimension == 1 and array.strides[-1] == 0)
             or (array.size == 0 and array.flags.c_contiguous)
         )
-        and all(
-            extent <= 1 or stride % alignment == 0
-            for extent, stride in zip(array.shape[:-1], array.strides[:-1], strict=True)
+        and (
+            array.flags.c_contiguous
+            or all(
+                extent <= 1 or stride % alignment == 0
+                for extent, stride in zip(
+                    array.shape[:-1], array.strides[:-1], strict=True
+                )
+            )
         )
     )
 
@@ -274,6 +287,17 @@ class ElementArray:
         self = object.__new__(cls)
         self._algebra = algebra
         self._coefficients = coefficients.view()
+        return self
+
+    @classmethod
+    def _wrap(
+        cls, algebra: Algebra, coefficients: np.ndarray[Any, Any]
+    ) -> ElementArray:
+        """Wrap a newly created ndarray that no other object refers to."""
+
+        self = object.__new__(cls)
+        self._algebra = algebra
+        self._coefficients = coefficients
         return self
 
     def __new__(cls, *args: Any, **kwargs: Any) -> ElementArray:
@@ -754,8 +778,13 @@ class ElementArray:
         """
 
         if self._algebra._ctx is not None:
-            return cast("ElementArray", _domain_array_dispatch("__add__", self, other))
+            return cast("ElementArray", _domain_array_operator("__add__", self, other))
 
+        if type(other) is ElementArray and other._algebra is self._algebra:
+            left = self._coefficients
+            right = other._coefficients
+            if left.shape == right.shape:
+                return ElementArray._wrap(self._algebra, np.add(left, right))
         return cast(
             ElementArray,
             _coordinate_add(self, other, subtract=False, reflected=False),
@@ -765,7 +794,7 @@ class ElementArray:
         """Add this array to an element or embedded coefficient scalar."""
 
         if self._algebra._ctx is not None:
-            return cast("ElementArray", _domain_array_dispatch("__radd__", self, other))
+            return cast("ElementArray", _domain_array_operator("__radd__", self, other))
 
         return cast(
             ElementArray,
@@ -782,8 +811,13 @@ class ElementArray:
         """
 
         if self._algebra._ctx is not None:
-            return cast("ElementArray", _domain_array_dispatch("__sub__", self, other))
+            return cast("ElementArray", _domain_array_operator("__sub__", self, other))
 
+        if type(other) is ElementArray and other._algebra is self._algebra:
+            left = self._coefficients
+            right = other._coefficients
+            if left.shape == right.shape:
+                return ElementArray._wrap(self._algebra, np.subtract(left, right))
         return cast(
             ElementArray,
             _coordinate_add(self, other, subtract=True, reflected=False),
@@ -793,7 +827,7 @@ class ElementArray:
         """Subtract this array from an element or embedded coefficient scalar."""
 
         if self._algebra._ctx is not None:
-            return cast("ElementArray", _domain_array_dispatch("__rsub__", self, other))
+            return cast("ElementArray", _domain_array_operator("__rsub__", self, other))
 
         return cast(
             ElementArray,
@@ -808,8 +842,24 @@ class ElementArray:
         """
 
         if self._algebra._ctx is not None:
-            return cast("ElementArray", _domain_array_dispatch("__mul__", self, other))
+            return cast("ElementArray", _domain_array_operator("__mul__", self, other))
 
+        if type(other) is ElementArray and other._algebra is self._algebra:
+            left = self._coefficients
+            right = other._coefficients
+            if left.shape == right.shape:
+                coefficients = np.empty(left.shape, dtype=np.float64)
+                if coefficients.size:
+                    _core._apply_binary_into(
+                        _core._BINARY_MULTIPLY,
+                        coefficients,
+                        left,
+                        right,
+                        left.shape[-1],
+                    )
+                return ElementArray._wrap(self._algebra, coefficients)
+        elif type(other) is Element and other.algebra is self._algebra:
+            return _element_product(self, self._coefficients, other)
         return cast(
             ElementArray,
             _multiply(self.algebra, self, other, allow_array_like=False),
@@ -823,8 +873,10 @@ class ElementArray:
         """
 
         if self._algebra._ctx is not None:
-            return cast("ElementArray", _domain_array_dispatch("__rmul__", self, other))
+            return cast("ElementArray", _domain_array_operator("__rmul__", self, other))
 
+        if type(other) is Element and other.algebra is self._algebra:
+            return _element_product(self, other, self._coefficients)
         return cast(
             ElementArray,
             _multiply(self.algebra, other, self, allow_array_like=False),
@@ -859,7 +911,7 @@ class ElementArray:
 
         if self._algebra._ctx is not None:
             return cast(
-                "ElementArray", _domain_array_dispatch("__truediv__", self, other)
+                "ElementArray", _domain_array_operator("__truediv__", self, other)
             )
 
         if not _is_real_scalar(other):
@@ -1119,7 +1171,7 @@ class ElementArray:
         if self._algebra._ctx is not None:
             return cast(
                 "np.ndarray[Any, np.dtype[np.float64]]",
-                _domain_array_dispatch("inner", self, other),
+                _domain_array_operator("inner", self, other),
             )
 
         return _scalar_binary(self.algebra, self, other, _core._SCALAR_INNER)
@@ -1207,7 +1259,7 @@ class ElementArray:
 
         if self._algebra._ctx is not None:
             return cast(
-                "ElementArray", _domain_array_dispatch("imag_cross", self, other)
+                "ElementArray", _domain_array_operator("imag_cross", self, other)
             )
 
         return _binary(self.algebra, self, other, _core._BINARY_IMAG_CROSS)
@@ -1240,7 +1292,7 @@ class ElementArray:
 
         if self._algebra._ctx is not None:
             return cast(
-                "ElementArray", _domain_array_dispatch("commutator", self, other)
+                "ElementArray", _domain_array_operator("commutator", self, other)
             )
 
         return _binary(self.algebra, self, other, _core._BINARY_COMMUTATOR)
@@ -1273,7 +1325,7 @@ class ElementArray:
 
         if self._algebra._ctx is not None:
             return cast(
-                "ElementArray", _domain_array_dispatch("anticommutator", self, other)
+                "ElementArray", _domain_array_operator("anticommutator", self, other)
             )
 
         return _binary(self.algebra, self, other, _core._BINARY_ANTICOMMUTATOR)
@@ -1336,9 +1388,19 @@ class ElementArray:
                 "__array_ufunc__", self, ufunc, method, *inputs, **kwargs
             )
 
-        from ._operators import _dispatch_array_ufunc
+        return _operators._dispatch_array_ufunc(self, ufunc, method, inputs, kwargs)
 
-        return _dispatch_array_ufunc(self, ufunc, method, inputs, kwargs)
+
+def _element_product(array: ElementArray, left: Any, right: Any) -> ElementArray:
+    """Multiply every record of a real array by one Element of its algebra."""
+
+    shape = array._coefficients.shape
+    coefficients = np.empty(shape, dtype=np.float64)
+    if coefficients.size:
+        _core._apply_binary_into(
+            _core._BINARY_MULTIPLY, coefficients, left, right, shape[-1]
+        )
+    return ElementArray._wrap(array._algebra, coefficients)
 
 
 def _element_array_from_pickle(algebra: Algebra, coefficients: Any) -> ElementArray:
@@ -1372,8 +1434,22 @@ def _general_operand(algebra: Algebra, value: Any) -> np.ndarray[Any, Any]:
 def _broadcast_coefficients(
     algebra: Algebra, *operands: np.ndarray[Any, Any]
 ) -> tuple[tuple[int, ...], list[np.ndarray[Any, Any]]]:
-    """Broadcast batch axes while preserving the complete coefficient axis."""
+    """Broadcast batch axes while preserving the complete coefficient axis.
 
+    The native kernels and NumPy repeat an operand that holds one record, so
+    operands are expanded here only when two different batch shapes must be
+    combined.
+    """
+
+    batch_shape: tuple[int, ...] = ()
+    for value in operands:
+        candidate = value.shape[:-1]
+        if candidate:
+            if batch_shape and candidate != batch_shape:
+                break
+            batch_shape = candidate
+    else:
+        return batch_shape, list(operands)
     batch_shape = np.broadcast_shapes(*(value.shape[:-1] for value in operands))
     full_shape = batch_shape + (algebra.dimension,)
     return batch_shape, [np.broadcast_to(value, full_shape) for value in operands]
@@ -1393,7 +1469,7 @@ def _element_output(
 
     if out is None:
         coefficients = np.empty(full_shape, dtype=np.float64)
-        return coefficients, ElementArray._from_coefficients(algebra, coefficients)
+        return coefficients, ElementArray._wrap(algebra, coefficients)
     if isinstance(out, ElementArray):
         if out.algebra is not algebra:
             raise ValueError("out belongs to a different algebra")
@@ -1424,7 +1500,7 @@ def _unary(algebra: Algebra, value: Any, operation: int) -> ElementArray:
     coefficients = np.empty(source.shape, dtype=np.float64)
     if coefficients.size:
         _core._apply_unary_into(operation, coefficients, source, algebra.dimension)
-    return ElementArray._from_coefficients(algebra, coefficients)
+    return ElementArray._wrap(algebra, coefficients)
 
 
 def _binary(
@@ -1449,11 +1525,14 @@ def _binary(
     right_values = operand(algebra, right)
     if left_values is None or right_values is None:
         raise TypeError("array arithmetic requires Element or ElementArray operands")
-    _batch_shape, (left_broadcast, right_broadcast) = _broadcast_coefficients(
+    batch_shape, (left_broadcast, right_broadcast) = _broadcast_coefficients(
         algebra, left_values, right_values
     )
     coefficients, result = _element_output(
-        algebra, left_broadcast.shape, out, (left_broadcast, right_broadcast)
+        algebra,
+        batch_shape + (algebra.dimension,),
+        out,
+        (left_broadcast, right_broadcast),
     )
     if not coefficients.size:
         return result
@@ -1521,9 +1600,9 @@ def _multiply(
             np.multiply(left_values, float(right), out=coefficients)
             return result
         return ElementArray._from_coefficients(algebra, left_values * float(right))
-    if not allow_array_like and (
-        _strict_operand(algebra, left) is None
-        or _strict_operand(algebra, right) is None
+    if not allow_array_like and not (
+        isinstance(left, (Element, ElementArray))
+        and isinstance(right, (Element, ElementArray))
     ):
         return NotImplemented
     return _binary(
@@ -1592,7 +1671,7 @@ def _coordinate_equal(array: ElementArray, other: Any, *, invert: bool) -> Any:
         _batch_shape, (left, right) = _broadcast_coefficients(
             array.algebra, array._coefficients, other_values
         )
-        comparison = np.all(left == right, axis=-1)
+        comparison = (left == right).all(axis=-1)
     result = np.logical_not(comparison) if invert else comparison
     return np.asarray(result)
 
@@ -1634,8 +1713,8 @@ def _associator(algebra: Algebra, x: Any, y: Any, z: Any) -> ElementArray:
     if any(value is None for value in operands):
         raise TypeError("array arithmetic requires Element or ElementArray operands")
     operand_arrays = cast(list[np.ndarray[Any, Any]], operands)
-    _batch_shape, broadcast = _broadcast_coefficients(algebra, *operand_arrays)
-    coefficients = np.empty(broadcast[0].shape, dtype=np.float64)
+    batch_shape, broadcast = _broadcast_coefficients(algebra, *operand_arrays)
+    coefficients = np.empty(batch_shape + (algebra.dimension,), dtype=np.float64)
     if coefficients.size:
         _core._apply_associator_into(
             coefficients,
@@ -1644,7 +1723,7 @@ def _associator(algebra: Algebra, x: Any, y: Any, z: Any) -> ElementArray:
             broadcast[2],
             algebra.dimension,
         )
-    return ElementArray._from_coefficients(algebra, coefficients)
+    return ElementArray._wrap(algebra, coefficients)
 
 
 def _basis_action(
@@ -1671,9 +1750,9 @@ def _operator_commutator(
     """Apply a multiplication-operator commutator to broadcast batches."""
 
     operands = [_general_operand(algebra, value) for value in (a, b, x)]
-    _batch_shape, broadcast = _broadcast_coefficients(algebra, *operands)
+    batch_shape, broadcast = _broadcast_coefficients(algebra, *operands)
     coefficients, result = _element_output(
-        algebra, broadcast[0].shape, out, tuple(broadcast)
+        algebra, batch_shape + (algebra.dimension,), out, tuple(broadcast)
     )
     if coefficients.size:
         _core._apply_operator_into(
@@ -1685,3 +1764,8 @@ def _operator_commutator(
             algebra.dimension,
         )
     return result
+
+
+# The ufunc dispatcher imports ElementArray while it loads, so it is bound
+# here only after the class exists
+from . import _operators  # noqa: E402

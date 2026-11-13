@@ -70,6 +70,7 @@ build-dir = "build/{wheel_tag}"
 wheel.packages = ["python/src/pyfastcd"]
 wheel.exclude = [
     "pyfastcd/_core.c",
+    "pyfastcd/_domain.h",
     "pyfastcd/_domains_core.c",
     "pyfastcd/__pycache__/**",
     "pyfastcd/*.py[co]",

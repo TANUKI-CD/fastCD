@@ -1,8 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#include "fastcd/complex.h"
-#include "fastcd/finite.h"
+#include "_domain.h"
 #include "finite_backend.h"
 #include <stdint.h>
 #include <limits.h>
@@ -10,21 +9,19 @@
 #include <string.h>
 
 /*
- * Buffer-protocol bridge for explicitly selected complex and finite-field
- * parents. Real parents use the _core extension and never reach this module.
- * No NumPy C API is required: Python adapters select parents and broadcast
- * leading axes, and this module validates layouts and runs coefficient loops.
+ * Buffer-protocol bridge for the arrays of explicitly selected complex and
+ * finite-field parents. Real parents use the _core extension and never reach
+ * this module, and _core also runs Element arithmetic over C and finite
+ * fields with the contexts created here. No NumPy C API is required: Python
+ * adapters select parents and combine differing batch shapes, and this module
+ * validates layouts, repeats an operand that holds one record, and runs
+ * coefficient loops.
  *
  * A context owns a copied finite plan or complex dimension, never an operand
  * pointer. Each call pins its buffers, validates the entire batch before
  * writing and owns separate scratch, including while the GIL is released.
  */
-typedef struct {
-    int finite, field_scalar, features;
-    size_t n, d, bytes;
-    Py_ssize_t shape[2];
-    FastCDPlanFF plan;
-} Domain;
+typedef PyFastCDDomain Domain;
 
 // Free the native value owned by a field or algebra-context capsule
 static void capsule_free(PyObject* capsule) {
@@ -34,24 +31,12 @@ static void capsule_free(PyObject* capsule) {
 
 // Translate finite status codes at the Python boundary, with the GIL held
 static int ff_error(FastCDFFStatus s) {
-    if (!s) return 0;
-    PyErr_SetString(s == FASTCD_FF_ZERO_NORM             ? PyExc_ZeroDivisionError
-                    : s == FASTCD_FF_SIZE_OVERFLOW       ? PyExc_OverflowError
-                    : s == FASTCD_FF_INVALID_BASIS_INDEX ? PyExc_IndexError
-                                                         : PyExc_ValueError,
-            fastcd_ff_status_string(s));
-    return -1;
+    return pyfastcd_domain_ff_error(s);
 }
 
 // Translate complex status codes using the corresponding real-API exceptions
 static int c_error(FastCDStatus s) {
-    if (!s) return 0;
-    PyErr_SetString(s == FASTCD_ZERO_NORM             ? PyExc_ZeroDivisionError
-                    : s == FASTCD_SIZE_OVERFLOW       ? PyExc_OverflowError
-                    : s == FASTCD_INVALID_BASIS_INDEX ? PyExc_IndexError
-                                                      : PyExc_ValueError,
-            fastcd_status_string(s));
-    return -1;
+    return pyfastcd_domain_complex_error(s);
 }
 
 // Construct a checked field and return its capsule plus actual immutable modulus
@@ -159,16 +144,14 @@ static PyObject* context_new(PyObject* module, PyObject* args) {
         return NULL;
     }
     c->bytes = c->n * c->d * item;
-    /* Features are the complete trailing storage axes, never batch axes.
-     * Scalar prime fields have none, extension scalars have (d,), finite CD
-     * records have (N,) or (N,d), and complex CD records have (N,). */
+    // Count the complete trailing storage axes of one record
     c->features = scalar ? (c->d > 1) : 1 + (c->d > 1);
     if (c->features == 2) {
         c->shape[0] = n;
         c->shape[1] = (Py_ssize_t)c->d;
     } else if (c->features == 1)
         c->shape[0] = (Py_ssize_t)(scalar ? c->d : c->n);
-    PyObject* cap = PyCapsule_New(c, "pyfastcd.domain", capsule_free);
+    PyObject* cap = PyCapsule_New(c, PYFASTCD_DOMAIN_CAPSULE, capsule_free);
     if (!cap) PyMem_Free(c);
     return cap;
 }
@@ -184,7 +167,8 @@ static int get_view(Py_buffer* v, PyObject* obj, Domain* c, int scalar, int outp
     // NumPy exports uint32 as "L" where long has 32 bits, as on Windows
     int known = fmt &&
             (c->finite ? !strcmp(fmt, "I") || !strcmp(fmt, "L") : !strcmp(fmt, "Zd"));
-    if (v->itemsize != (Py_ssize_t)item || !known || v->ndim < 0) {
+    if (v->itemsize != (Py_ssize_t)item || !known || v->ndim < 0 ||
+            v->ndim > PyBUF_MAX_NDIM) {
         PyErr_SetString(PyExc_TypeError, "incompatible native coefficient dtype");
         return -1;
     }
@@ -243,15 +227,48 @@ static int get_view(Py_buffer* v, PyObject* obj, Domain* c, int scalar, int outp
     return 0;
 }
 
-// Locate a C-order batch index in a validated view, including broadcast strides
-static char* record(Py_buffer* v, size_t i, int rank) {
-    char* p = v->buf;
-    for (int k = rank - 1; k >= 0; k--) {
-        size_t extent = (size_t)v->shape[k];
-        p += (Py_ssize_t)(i % extent) * v->strides[k];
-        i /= extent;
+/* The record pointers of every active view at one C-order batch index. The
+ * output fixes the batch shape. An input either has that shape or has no
+ * batch axes, in which case its one record is reused at every index. Stepping
+ * adds strides like an odometer, so broadcast and reversed layouts are
+ * visited without any division. */
+typedef struct {
+    char* at[4];
+    const Py_ssize_t* strides[4];
+    const Py_ssize_t* shape;
+    int active, rank;
+    Py_ssize_t index[PyBUF_MAX_NDIM];
+} Cursor;
+
+// Strides of an input that repeats one record along every batch axis
+static const Py_ssize_t repeat_strides[PyBUF_MAX_NDIM] = {0};
+
+// Point a cursor at the first record of each validated view
+static void cursor_start(
+        Cursor* cursor, Py_buffer* views, const int* single, int active, int rank) {
+    cursor->shape = views[0].shape;
+    cursor->active = active;
+    cursor->rank = rank;
+    for (int j = 0; j < active; j++) {
+        cursor->at[j] = views[j].buf;
+        cursor->strides[j] = single[j] ? repeat_strides : views[j].strides;
     }
-    return p;
+    for (int k = 0; k < rank; k++) cursor->index[k] = 0;
+}
+
+// Step a cursor to the next batch index in C order
+static void cursor_next(Cursor* cursor) {
+    for (int k = cursor->rank - 1; k >= 0; k--) {
+        Py_ssize_t extent = cursor->shape[k];
+        if (++cursor->index[k] < extent) {
+            for (int j = 0; j < cursor->active; j++)
+                cursor->at[j] += cursor->strides[j][k];
+            return;
+        }
+        cursor->index[k] = 0;
+        for (int j = 0; j < cursor->active; j++)
+            cursor->at[j] -= (extent - 1) * cursor->strides[j][k];
+    }
 }
 
 // Compare byte spans without undefined subtraction of unrelated pointers
@@ -263,7 +280,12 @@ static int overlap(const void* a, size_t an, const void* b, size_t bn) {
 /* A contiguous batch or one fully broadcast coefficient record can use the
  * public batch kernel, and general views use the validated strided loop. */
 // Find the record stride of a contiguous or fully broadcast view, if any
-static int flat_stride(Py_buffer* v, int rank, size_t words, size_t* stride) {
+static int flat_stride(
+        Py_buffer* v, int rank, int single, size_t words, size_t* stride) {
+    if (single) {
+        *stride = 0;
+        return 1;
+    }
     if (PyBuffer_IsContiguous(v, 'C')) {
         *stride = words;
         return 1;
@@ -283,7 +305,7 @@ static PyObject* apply(PyObject* module, PyObject* args) {
     if (!PyArg_ParseTuple(args, "OiOOOOin", &cap, &operation, &objects[0], &objects[1],
                 &objects[2], &objects[3], &algorithm, &basis))
         return NULL;
-    Domain* c = PyCapsule_GetPointer(cap, "pyfastcd.domain");
+    Domain* c = PyCapsule_GetPointer(cap, PYFASTCD_DOMAIN_CAPSULE);
     if (!c) return NULL;
     if (operation < 0 || operation > FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR || basis < 0) {
         PyErr_SetString(PyExc_ValueError, "invalid operation or basis index");
@@ -319,10 +341,11 @@ static PyObject* apply(PyObject* module, PyObject* args) {
         goto fail;
     if (binary && get_view(&views[2], objects[2], c, scale, 0)) goto fail;
     if (ternary && get_view(&views[3], objects[3], c, 0, 0)) goto fail;
-    int rank = views[1].ndim - c->features;
+    // The output has every batch axis, and get_view checked its record axes
+    int rank = views[0].ndim - (reduction ? (c->d > 1) : c->features);
     size_t count = 1;
     for (int k = 0; k < rank; k++) {
-        size_t extent = (size_t)views[1].shape[k];
+        size_t extent = (size_t)views[0].shape[k];
         if (extent && count > (size_t)PY_SSIZE_T_MAX / extent) {
             PyErr_SetString(PyExc_OverflowError, "batch size overflow");
             goto fail;
@@ -331,21 +354,24 @@ static PyObject* apply(PyObject* module, PyObject* args) {
     }
     size_t lengths[4] = {reduction ? c->d * (c->finite ? 4 : 16) : c->bytes, c->bytes,
             scale ? c->d * (c->finite ? 4 : 16) : c->bytes, c->bytes};
+    int single[4] = {0, 0, 0, 0};
     for (int j = 0; j < active; j++) {
         int features = j == 0 && reduction ? (c->d > 1)
                 : j == 2 && scale          ? (c->d > 1)
                                            : c->features;
-        if (views[j].ndim - features != rank) {
+        // An input without batch axes is one record broadcast over the batch
+        single[j] = j > 0 && rank > 0 && views[j].ndim == features;
+        if (!single[j] && views[j].ndim - features != rank) {
             PyErr_SetString(PyExc_ValueError, "batch rank mismatch");
             goto fail;
         }
-        for (int k = 0; k < rank; k++)
-            if (views[j].shape[k] != views[1].shape[k]) {
+        for (int k = 0; !single[j] && k < rank; k++)
+            if (views[j].shape[k] != views[0].shape[k]) {
                 PyErr_SetString(PyExc_ValueError, "batch shape mismatch");
                 goto fail;
             }
         if (count > (size_t)PY_SSIZE_T_MAX / lengths[j] ||
-                (size_t)views[j].len != count * lengths[j]) {
+                (size_t)views[j].len != (single[j] ? 1 : count) * lengths[j]) {
             PyErr_SetString(PyExc_OverflowError, "buffer extent mismatch");
             goto fail;
         }
@@ -357,23 +383,53 @@ static PyObject* apply(PyObject* module, PyObject* args) {
     /* Validate every input record before the first output write: mutable
      * uint32 arrays need canonical-residue checks on every call, not only at
      * construction, and a failure late in a batch must leave all outputs
-     * intact. */
-    for (size_t i = 0; i < count; i++) {
-        char* ptr[4];
-        for (int j = 0; j < active; j++) ptr[j] = record(&views[j], i, rank);
+     * intact.
+     *
+     * Contiguous batches and single records admit the same checks on whole
+     * spans first. A clean result proves that every record would pass. Any
+     * other result, and every operation with a denominator, is left to the
+     * record loop, which reports the first failing record. */
+    int clean = op != FASTCD_OP_RECIPROCAL && op != FASTCD_OP_DIVIDE;
+    size_t steps[4] = {0, 0, 0, 0}, spans[4] = {0, 0, 0, 0};
+    for (int j = 1; clean && j < active; j++) {
+        clean = flat_stride(&views[j], rank, single[j], lengths[j], &steps[j]);
+        spans[j] = steps[j] ? count * lengths[j] : lengths[j];
+        if (!clean || overlap(views[0].buf, count * lengths[0], views[j].buf, spans[j]))
+            clean = 0;
+        else if (c->finite) {
+            const uint32_t* a = (const uint32_t*)views[j].buf;
+            uint32_t prime = c->plan.field.prime, invalid = 0;
+            for (size_t k = 0; k < spans[j] / 4; k++) invalid |= a[k] >= prime;
+            clean = !invalid;
+        }
+    }
+    // Two inputs must be the same records throughout or share no storage
+    for (int j = 1; clean && !scale && j < active; j++)
+        for (int k = j + 1; k < active; k++)
+            if (!(views[j].buf == views[k].buf && steps[j] == steps[k]) &&
+                    overlap(views[j].buf, spans[j], views[k].buf, spans[k]))
+                clean = 0;
+    Cursor cursor;
+    cursor_start(&cursor, views, single, active, rank);
+    for (size_t i = 0; !clean && i < count; i++, cursor_next(&cursor)) {
+        char** ptr = cursor.at;
         for (int j = 1; j < active; j++) {
+            // One broadcast record needs these checks only once
+            if (single[j] && i) continue;
             if (overlap(views[0].buf, count * lengths[0], ptr[j], lengths[j])) {
                 PyErr_SetString(PyExc_ValueError, "output overlaps an input");
                 goto fail;
             }
             if (c->finite) {
+                // Test a whole record without branching so the loop vectorizes
                 const uint32_t* a = (const uint32_t*)ptr[j];
-                for (size_t k = 0; k < lengths[j] / 4; k++)
-                    if (a[k] >= c->plan.field.prime) {
-                        PyErr_SetString(PyExc_ValueError,
-                                "finite coefficients must be canonical residues");
-                        goto fail;
-                    }
+                uint32_t prime = c->plan.field.prime, invalid = 0;
+                for (size_t k = 0; k < lengths[j] / 4; k++) invalid |= a[k] >= prime;
+                if (invalid) {
+                    PyErr_SetString(PyExc_ValueError,
+                            "finite coefficients must be canonical residues");
+                    goto fail;
+                }
             }
         }
         if (!scale)
@@ -409,8 +465,7 @@ static PyObject* apply(PyObject* module, PyObject* args) {
                 iszero = q.real == 0 && q.imag == 0;
             }
             if (iszero) {
-                PyErr_SetString(PyExc_ZeroDivisionError,
-                        "zero quadratic norm or scalar divisor");
+                PyErr_SetString(PyExc_ZeroDivisionError, PYFASTCD_ZERO_DIVISOR_MESSAGE);
                 goto fail;
             }
         }
@@ -436,8 +491,8 @@ static PyObject* apply(PyObject* module, PyObject* args) {
     FastCDWorkspaceF64 w = {scratch, need};
     size_t record_words = c->finite ? c->n * c->d : c->n, xs = 0, ys = 0;
     int batch_product = count >= 2 && op == FASTCD_OP_MULTIPLY &&
-            flat_stride(&views[1], rank, record_words, &xs) &&
-            flat_stride(&views[2], rank, record_words, &ys);
+            flat_stride(&views[1], rank, single[1], record_words, &xs) &&
+            flat_stride(&views[2], rank, single[2], record_words, &ys);
     /* Buffer exports keep storage alive while native code runs without the
      * GIL, and no Python API is called until that thread state is restored.
      * Exports do not lock data, so callers must synchronize concurrent
@@ -452,11 +507,12 @@ static PyObject* apply(PyObject* module, PyObject* args) {
                           xs, views[2].buf, ys, count, c->n, (FastCDAlgorithm)algorithm,
                           &w);
     }
-    for (size_t i = 0; !batch_product && i < count; i++) {
-        void* out = record(&views[0], i, rank);
-        const void* x = record(&views[1], i, rank);
-        const void* y = binary ? record(&views[2], i, rank) : NULL;
-        const void* z = ternary ? record(&views[3], i, rank) : NULL;
+    cursor_start(&cursor, views, single, active, rank);
+    for (size_t i = 0; !batch_product && i < count; i++, cursor_next(&cursor)) {
+        void* out = cursor.at[0];
+        const void* x = cursor.at[1];
+        const void* y = binary ? cursor.at[2] : NULL;
+        const void* z = ternary ? cursor.at[3] : NULL;
         status = c->finite
                 ? (int)fastcd_apply_ff(out, x, y, z, &c->plan, op, (size_t)basis,
                           (FastCDAlgorithm)algorithm, scratch, need)
@@ -477,10 +533,31 @@ fail:
     return NULL;
 }
 
+// Report whether contiguous uint32 storage holds only canonical residues
+static PyObject* canonical(PyObject* module, PyObject* args) {
+    (void)module;
+    PyObject *cap, *object;
+    if (!PyArg_ParseTuple(args, "OO", &cap, &object)) return NULL;
+    Domain* c = PyCapsule_GetPointer(cap, PYFASTCD_DOMAIN_CAPSULE);
+    if (!c) return NULL;
+    Py_buffer view;
+    if (PyObject_GetBuffer(object, &view, PyBUF_C_CONTIGUOUS)) return NULL;
+    if (!c->finite || view.itemsize != 4 || (uintptr_t)view.buf % 4) {
+        PyBuffer_Release(&view);
+        PyErr_SetString(PyExc_TypeError, "expected aligned uint32 residues");
+        return NULL;
+    }
+    const uint32_t* a = view.buf;
+    uint32_t prime = c->plan.field.prime, invalid = 0;
+    for (Py_ssize_t k = 0; k < view.len / 4; k++) invalid |= a[k] >= prime;
+    PyBuffer_Release(&view);
+    return PyBool_FromLong(!invalid);
+}
+
 // Report private dispatch metadata for validation and benchmark provenance
 static PyObject* backend(PyObject* module, PyObject* cap) {
     (void)module;
-    Domain* c = PyCapsule_GetPointer(cap, "pyfastcd.domain");
+    Domain* c = PyCapsule_GetPointer(cap, PYFASTCD_DOMAIN_CAPSULE);
     if (!c) return NULL;
     if (!c->finite) return PyUnicode_FromString("complex_alternating");
     static const char* names[] = {"scalar", "byte_prime", "byte_quadratic", "ternary16",
@@ -496,7 +573,7 @@ static PyObject* backend(PyObject* module, PyObject* cap) {
 // Report the algorithm that AUTO selects for this domain and dimension
 static PyObject* default_algorithm(PyObject* module, PyObject* cap) {
     (void)module;
-    Domain* c = PyCapsule_GetPointer(cap, "pyfastcd.domain");
+    Domain* c = PyCapsule_GetPointer(cap, PYFASTCD_DOMAIN_CAPSULE);
     if (!c) return NULL;
     FastCDAlgorithm algorithm = fastcd_domain_auto_algorithm(c->n);
     return PyUnicode_FromString(fastcd_algorithm_string(algorithm));
@@ -510,6 +587,8 @@ static PyMethodDef methods[] = {
         {"apply", apply, METH_VARARGS,
                 "Validate a complete broadcast batch before applying native "
                 "arithmetic."},
+        {"canonical", canonical, METH_VARARGS,
+                "Report whether uint32 storage holds only canonical residues."},
         {"backend", backend, METH_O, "Report the selected native arithmetic backend."},
         {"default_algorithm", default_algorithm, METH_O,
                 "Report the algorithm that AUTO selects for this domain."},

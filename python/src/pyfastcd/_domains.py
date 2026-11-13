@@ -1,7 +1,10 @@
-"""Field-aware adapters; all coefficient loops execute in _domains_core.
+"""Field-aware adapters for complex and finite-field parents.
 
-Real parents use the _core extension directly. These adapters are entered
-only for explicitly selected complex and finite-field parents.
+Real parents use the _core extension directly. Over C and finite fields,
+_core runs Element arithmetic whose operands share one parent, and scalings
+by builtin scalars, without calling Python. These adapters handle every
+other operand combination, all array arithmetic, and coercion; their
+coefficient loops execute in _domains_core.
 """
 
 from __future__ import annotations
@@ -12,6 +15,8 @@ from typing import Any
 import numpy as np
 
 from . import _core, _domains_core
+from ._core import Element
+from ._field import FiniteField
 from ._validation import DIFFERENT_ALGEBRA_MESSAGE
 
 _OPS = {
@@ -43,6 +48,80 @@ _OPS = {
 }
 
 
+_AUTO = _core._algorithm("auto", 1)
+_ADD = _OPS["add"]
+_SUBTRACT = _OPS["subtract"]
+_MULTIPLY = _OPS["multiply"]
+_SCALE = _OPS["scale"]
+_DIVIDE = _OPS["divide"]
+_INNER = _OPS["inner"]
+_QUADRATIC_NORM = _OPS["quadratic_norm"]
+
+# Array methods that map one complete record to another of the same parent
+_ARRAY_UNARY = {
+    "__neg__": _OPS["negative"],
+    "negative": _OPS["negative"],
+    "conjugate": _OPS["conjugate"],
+    "imag_part": _OPS["imag_part"],
+    "imag": _OPS["imag_part"],
+    "square": _OPS["square"],
+    "reciprocal": _OPS["reciprocal"],
+}
+# Binary array methods, each with its operation and whether the array is the
+# right operand
+_ARRAY_BINARY = {
+    "__add__": (_ADD, False),
+    "__radd__": (_ADD, True),
+    "__sub__": (_SUBTRACT, False),
+    "__rsub__": (_SUBTRACT, True),
+    "__mul__": (_MULTIPLY, False),
+    "__rmul__": (_MULTIPLY, True),
+    "__truediv__": (_DIVIDE, False),
+    "imag_cross": (_OPS["imag_cross"], False),
+    "commutator": (_OPS["commutator"], False),
+    "anticommutator": (_OPS["anticommutator"], False),
+    "inner": (_INNER, False),
+}
+# Operator names of element_binary, as array methods in either operand order
+_FORWARD = {
+    "add": "__add__",
+    "subtract": "__sub__",
+    "multiply": "__mul__",
+    "divide": "__truediv__",
+}
+_REFLECTED = {"add": "__radd__", "subtract": "__rsub__", "multiply": "__rmul__"}
+_ARRAY_OPERATORS = {
+    "__add__": "add",
+    "__radd__": "add",
+    "__sub__": "subtract",
+    "__rsub__": "subtract",
+    "__mul__": "multiply",
+    "__rmul__": "multiply",
+    "__truediv__": "divide",
+    "__eq__": "eq",
+    "__ne__": "ne",
+}
+_UFUNC_BINARY = {
+    np.add: "add",
+    np.subtract: "subtract",
+    np.multiply: "multiply",
+    np.true_divide: "divide",
+    np.equal: "eq",
+    np.not_equal: "ne",
+}
+_UFUNC_UNARY = {
+    np.negative: "negative",
+    np.positive: "positive",
+    np.square: "square",
+    np.conjugate: "conjugate",
+    np.absolute: "norm",
+}
+# Returned by a native shortcut that does not apply to its operands
+_MISS = object()
+_ONE_BYTE = bytes(1)
+_INT = frozenset((int,))
+
+
 def extended(parent: Any) -> bool:
     """Return whether a parent explicitly selected a nonlegacy coefficient field."""
 
@@ -64,14 +143,14 @@ def field_shape(parent: Any) -> tuple[int, ...]:
 def is_field(parent: Any) -> bool:
     """Distinguish a coefficient scalar parent from a containing CD algebra."""
 
-    from ._field import FiniteField
-
     return isinstance(parent, FiniteField)
 
 
 def algorithm_code(name: Any) -> int:
     """Validate an algorithm name for a complex or finite-field parent."""
 
+    if type(name) is str and name == "auto":
+        return _AUTO
     # Reuse the real API's name parsing at dimension one, where every real
     # algorithm is valid, so only Cariow--Cariowa needs a field-specific check
     code = _core._algorithm(name, 1)
@@ -83,7 +162,7 @@ def algorithm_code(name: Any) -> int:
 def scalar(value: Any, parent: Any) -> bool:
     """Recognize coefficient scalars without treating full CD records as scalars."""
 
-    if isinstance(value, _core.Element):
+    if isinstance(value, Element):
         return value.algebra is parent.field
     if isinstance(value, (str, bytes, bytearray, memoryview)):
         return False
@@ -119,6 +198,10 @@ def _compatible(a: Any, parent: Any) -> bool:
         return False
     if f and a.shape[-f:] != parent.coefficient_shape:
         return False
+    if a.flags.c_contiguous:
+        # C order makes the record axes contiguous and every stride a
+        # multiple of the item size
+        return True
     stride = a.itemsize
     for k in range(a.ndim - 1, a.ndim - f - 1, -1):
         if a.size and a.shape[k] > 1 and a.strides[k] != stride:
@@ -140,7 +223,7 @@ def _finite_values(parent: Any, values: Any) -> Any:
     Keep native numeric arrays untouched so zero-copy inputs remain views.
     """
 
-    if isinstance(values, _core.Element):
+    if isinstance(values, Element):
         if values.algebra is not parent and values.algebra is not parent.field:
             raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
         return values.coefficients
@@ -161,17 +244,38 @@ def coefficients(
     the native boundary checks it again before every arithmetic call.
     """
 
-    from ._array import ElementArray, _from_dlpack_if_needed
-
+    ElementArray = _array.ElementArray
     if copy is not None and not isinstance(copy, bool):
         raise TypeError("copy must be True, False, or None")
+    if not single and type(values) is np.ndarray and values.dtype == parent.dtype:
+        # Storage of the parent's own dtype needs no conversion, only the
+        # shape, layout and residue checks
+        f = len(parent.coefficient_shape)
+        if values.ndim < f or (f and values.shape[-f:] != parent.coefficient_shape):
+            raise ValueError(
+                f"expected trailing coefficient shape {parent.coefficient_shape}"
+            )
+        canonical = _canonical(parent, values)
+        good = canonical and _compatible(values, parent)
+        if copy is False:
+            if not good:
+                raise ValueError(
+                    "copy=False requires canonical native storage "
+                    "with contiguous coefficient axes"
+                )
+            return values
+        if good and copy is None:
+            return values
+        if not canonical:
+            values = values % parent.char
+        return np.array(values, dtype=parent.dtype, copy=True, order="C")
     original = values
-    if isinstance(values, (_core.Element, ElementArray)):
+    if isinstance(values, (Element, ElementArray)):
         if values.algebra is not parent:
             raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
         values = values.coefficients
     else:
-        values = _from_dlpack_if_needed(values, copy=copy)
+        values = _array._from_dlpack_if_needed(values, copy=copy)
     if isinstance(values, (set, dict, str, bytes)):
         raise TypeError("coefficients must be an ordered numeric input")
     if single and not hasattr(values, "__array__") and not scalar(values, parent):
@@ -220,7 +324,7 @@ def coefficients(
     )
     good = _compatible(a, parent) and canonical
     shareable = not repacked and (
-        isinstance(original, (np.ndarray, _core.Element, ElementArray, memoryview))
+        isinstance(original, (np.ndarray, Element, ElementArray, memoryview))
         or hasattr(original, "__dlpack__")
     )
     if copy is False:
@@ -237,29 +341,79 @@ def coefficients(
     return np.array(a, dtype=parent.dtype, copy=True, order="C")
 
 
+def _canonical(parent: Any, a: Any) -> bool:
+    """Report whether storage of the parent's dtype holds canonical residues."""
+
+    if not parent.char or not a.size:
+        return True
+    if a.flags.c_contiguous and a.flags.aligned:
+        return bool(_domains_core.canonical(parent._ctx, a))
+    return bool(np.all(a < parent.char))
+
+
+def _integer_lists(values: Any, depth: int) -> bool:
+    """Report whether lists or tuples nested to a depth hold only exact ints."""
+
+    if depth == 1:
+        return set(map(type, values)) <= _INT
+    return all(
+        (type(value) is list or type(value) is tuple)
+        and _integer_lists(value, depth - 1)
+        for value in values
+    )
+
+
 def element(parent: Any, value: Any = 0) -> Any:
     """Copy one record into an immutable native Element."""
 
-    if (
-        isinstance(value, _core.Element)
-        and value.algebra is parent.field
-        and not is_field(parent)
-    ):
+    kind = type(value)
+    if kind is Element:
+        owner = value.algebra
+        if owner is parent:
+            return value.copy()
+        if owner is parent.field:
+            a = np.zeros(parent.coefficient_shape, dtype=parent.dtype)
+            a[0] = value.coefficients
+            return _core._extended_element(parent, a)
+    elif kind is np.ndarray:
+        # A record already in native storage needs no coercion; the native
+        # constructor copies it and reduces finite residues
+        if (
+            value.dtype == parent.dtype
+            and value.shape == parent.coefficient_shape
+            and value.flags.c_contiguous
+        ):
+            return _core._extended_element(parent, value)
+    elif kind is int and parent.char:
         a = np.zeros(parent.coefficient_shape, dtype=parent.dtype)
-        a[0] = value.coefficients
-    else:
-        a = coefficients(parent, value, copy=True, single=True)
+        a.flat[0] = value % parent.char
+        return _core._extended_element(parent, a)
+    elif not parent.char and (kind is int or kind is float or kind is complex):
+        a = np.zeros(parent.coefficient_shape, dtype=parent.dtype)
+        a.flat[0] = complex(value)
+        return _core._extended_element(parent, a)
+    elif kind is list or kind is tuple:
+        # A record written as numbers converts as in the general path, which
+        # is still needed for field scalars, which NumPy must not read as
+        # buffers, and for every other kind of content
+        shape = parent.coefficient_shape
+        if not parent.char or (shape and _integer_lists(value, len(shape))):
+            a = np.asarray(value)
+            if a.shape == shape and a.dtype.kind in ("iu" if parent.char else "iufc"):
+                if parent.char:
+                    a = a % parent.char
+                return _core._extended_element(
+                    parent, a.astype(parent.dtype, order="C")
+                )
     return _core._extended_element(
-        parent, a.tobytes(), parent.coefficient_shape, not bool(parent.char)
+        parent, coefficients(parent, value, copy=True, single=True)
     )
 
 
 def array(parent: Any, values: Any, *, copy: bool | None) -> Any:
     """Wrap validated coefficient storage in an ElementArray."""
 
-    from ._array import ElementArray
-
-    return ElementArray._from_coefficients(
+    return _array.ElementArray._from_coefficients(
         parent, coefficients(parent, values, copy=copy)
     )
 
@@ -267,9 +421,7 @@ def array(parent: Any, values: Any, *, copy: bool | None) -> Any:
 def _result(parent: Any, a: Any, batched: bool) -> Any:
     """Choose a scalar or array wrapper without changing its coefficient parent."""
 
-    from ._array import ElementArray
-
-    return ElementArray._from_coefficients(parent, a) if batched else element(parent, a)
+    return _array.ElementArray._wrap(parent, a) if batched else element(parent, a)
 
 
 def _operand(
@@ -282,14 +434,15 @@ def _operand(
     Operators decline raw records so NumPy dispatch stays unambiguous.
     """
 
-    from ._array import ElementArray
-
-    if isinstance(value, (_core.Element, ElementArray)):
+    ElementArray = _array.ElementArray
+    if isinstance(value, (Element, ElementArray)):
         if value.algebra is parent:
-            return value.coefficients
+            if type(value) is ElementArray:
+                return value._coefficients
+            return np.asarray(value)
         if allow_scalars and value.algebra is parent.field:
-            if isinstance(value, _core.Element):
-                return element(parent, value).coefficients
+            if isinstance(value, Element):
+                return np.asarray(element(parent, value))
             a = np.zeros(
                 value.batch_shape + parent.coefficient_shape, dtype=parent.dtype
             )
@@ -300,7 +453,7 @@ def _operand(
             return a
         raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
     if allow_scalars and scalar(value, parent):
-        return element(parent, value).coefficients
+        return np.asarray(element(parent, value))
     if coerce:
         return coefficients(parent, value, copy=None)
     return None
@@ -313,14 +466,22 @@ def _broadcast(
 
     A scale operand and a full CD record have different trailing shapes;
     including either feature axis in broadcast_shapes would mix coordinates.
+    The native bridge repeats an operand that has no batch axes, so operands
+    are expanded here only when two different batch shapes must be combined.
     """
 
-    batch = np.broadcast_shapes(
-        *(
-            a.shape[: -len(s)] if s else a.shape
-            for a, s in zip(arrays, shapes, strict=True)
-        )
-    )
+    batches = [
+        a.shape[: a.ndim - len(s)] for a, s in zip(arrays, shapes, strict=True)
+    ]
+    batch: tuple[int, ...] = ()
+    for candidate in batches:
+        if candidate:
+            if batch and candidate != batch:
+                break
+            batch = candidate
+    else:
+        return arrays, batch
+    batch = np.broadcast_shapes(*batches)
     return [
         np.broadcast_to(a, batch + s) for a, s in zip(arrays, shapes, strict=True)
     ], batch
@@ -347,21 +508,34 @@ def apply(
     raise for unsupported operands rather than returning NotImplemented.
     """
 
-    from ._array import ElementArray
-
     code = algorithm_code(algorithm)
-    reduction = op in ("inner", "quadratic_norm")
-    scaling = op in ("scale", "divide")
+    scaling = op == "scale" or op == "divide"
+    if out is None and not scaling:
+        # Elements of this parent need no coercion, broadcasting or buffers
+        for value in values:
+            if type(value) is not Element or value.algebra is not parent:
+                break
+        else:
+            return _core._apply_elements(_OPS[op], code, index, *values)
+    ElementArray = _array.ElementArray
+    reduction = op == "inner" or op == "quadratic_norm"
     arrays = []
     shapes = []
     for k, value in enumerate(values):
         if scaling and k == 1:
             if parent.char:
                 if (
-                    isinstance(value, (_core.Element, ElementArray))
+                    isinstance(value, (Element, ElementArray))
                     and value.algebra is parent.field
                 ):
-                    a = value.coefficients
+                    a = (
+                        value._coefficients
+                        if type(value) is ElementArray
+                        else np.asarray(value)
+                    )
+                elif type(value) is int:
+                    a = np.zeros(parent.field.coefficient_shape, dtype=parent.dtype)
+                    a.flat[0] = value % parent.char
                 else:
                     a = coefficients(parent.field, value, copy=None, single=True)
             else:
@@ -388,7 +562,7 @@ def apply(
     shape = batch + output_tail
     batched = bool(batch) or any(
         isinstance(v, ElementArray)
-        or (coerce and not isinstance(v, _core.Element) and not scalar(v, parent))
+        or (coerce and not isinstance(v, Element) and not scalar(v, parent))
         for v in values
     )
     if out is None:
@@ -440,9 +614,37 @@ def multiply(
 ) -> Any:
     """Select scalar scaling or a complete CD product, including field arrays."""
 
-    from ._array import ElementArray
-
-    algorithm_code(algorithm)
+    code = algorithm_code(algorithm)
+    if (
+        out is None
+        and type(x) is Element
+        and type(y) is Element
+        and x.algebra is parent
+        and y.algebra is parent
+    ):
+        # Field scalars multiply as coefficients, which the operator does
+        if isinstance(parent, FiniteField):
+            return x * y
+        return _core._apply_elements(_MULTIPLY, code, 0, x, y)
+    ElementArray = _array.ElementArray
+    if (
+        type(x) is ElementArray
+        and type(y) is ElementArray
+        and x._algebra is parent
+        and y._algebra is parent
+        and not isinstance(parent, FiniteField)
+    ):
+        return apply(
+            parent,
+            "multiply",
+            x,
+            y,
+            out=out,
+            algorithm=algorithm,
+            coerce=coerce,
+            allow_scalars=True,
+            defer=defer,
+        )
     if scalar(y, parent) or (isinstance(y, ElementArray) and y.algebra is parent.field):
         return apply(
             parent,
@@ -483,9 +685,7 @@ def multiply(
 def _parent(value: Any) -> Any:
     """Return a wrapped value's parent without inferring one from raw arrays."""
 
-    from ._array import ElementArray
-
-    if isinstance(value, (_core.Element, ElementArray)):
+    if isinstance(value, (Element, _array.ElementArray)):
         return value.algebra
     return None
 
@@ -506,8 +706,30 @@ def _binary_parent(left: Any, right: Any) -> Any:
 def element_binary(name: str, left: Any, right: Any) -> Any:
     """Implement shared element/array operators with strict parent selection."""
 
-    from ._array import ElementArray
-
+    ElementArray = _array.ElementArray
+    if name in _FORWARD:
+        result = _MISS
+        if type(left) is ElementArray:
+            result = _array_binary(
+                _FORWARD[name], left._algebra, left._coefficients, right
+            )
+        elif type(right) is ElementArray and name in _REFLECTED:
+            result = _array_binary(
+                _REFLECTED[name], right._algebra, right._coefficients, left
+            )
+        if result is not _MISS:
+            return result
+    elif (
+        type(left) is ElementArray
+        and type(right) is ElementArray
+        and left._algebra is right._algebra
+        and left._coefficients.shape == right._coefficients.shape
+    ):
+        f = len(left._algebra.coefficient_shape)
+        same = left._coefficients == right._coefficients
+        if f:
+            same = same.all(axis=tuple(range(-f, 0)))
+        return np.logical_not(same) if name == "ne" else same
     parent = _binary_parent(left, right)
     if parent is None:
         return NotImplemented
@@ -535,14 +757,13 @@ def equal(parent: Any, left: Any, right: Any, *, invert: bool = False) -> Any:
     integers that floating-point NumPy promotion would otherwise round.
     """
 
-    from ._array import ElementArray
-
+    ElementArray = _array.ElementArray
     receiver = left if _parent(left) is not None else right
     other = right if receiver is left else left
     a = receiver.coefficients
     tail = receiver.algebra.coefficient_shape
     f = len(tail)
-    if isinstance(other, (_core.Element, ElementArray)):
+    if isinstance(other, (Element, ElementArray)):
         if (receiver.algebra is parent and other.algebra is parent.field) or (
             receiver.algebra is parent.field and other.algebra is parent
         ):
@@ -598,8 +819,7 @@ def equal(parent: Any, left: Any, right: Any, *, invert: bool = False) -> Any:
 def _power(value: Any, exponent: Any, modulus: Any = None) -> Any:
     """Use reciprocal and repeated squaring with explicit nonassociative grouping."""
 
-    from ._array import ElementArray
-
+    ElementArray = _array.ElementArray
     if modulus is not None:
         raise TypeError(
             "modular exponentiation is not defined for Cayley--Dickson elements"
@@ -625,16 +845,18 @@ def _power(value: Any, exponent: Any, modulus: Any = None) -> Any:
 
 
 def element_dispatch(name: str, value: Any, extra: Any = None) -> Any:
-    """Handle native Element slots for complex and finite-field parents.
+    """Handle the Element slots that _core leaves to Python.
 
-    Real elements never reach this function. Coefficient access, hashes and
-    reductions keep the selected field.
+    Real elements never reach this function. Over C and finite fields, _core
+    answers arithmetic on same-parent operands and plain coefficient access
+    itself; representation, hashing, pickling, slices, powers, ufunc
+    dispatch and every operand it does not recognize arrive here.
     """
 
     parent = value.algebra
     a = np.asarray(value)
-    if name == "copy" or name == "positive":
-        return element(parent, a)
+    if name == "positive":
+        return value.copy()
     if name == "repr":
         return f"Element({a.tolist()!r}, algebra={parent!r})"
     if name == "len":
@@ -664,34 +886,10 @@ def element_dispatch(name: str, value: Any, extra: Any = None) -> Any:
                 for i in range(element_dispatch("len", value))
             )
         )
-    if name == "bool":
-        return bool(np.any(a != 0))
-    if name == "hash":
-        if not parent.char and bool(np.any(np.isnan(a))):
-            # Fresh NaN scalar objects hash by identity, but the value's hash
-            # must be stable over repeated calls
-            return parent.dimension
-        flat = tuple(a.flat)
-        if parent.char:
-            if not is_field(parent) and bool(np.all(a[1:] == 0)):
-                # A constant CD element compares equal to its matching field
-                # scalar, including non-prime extension coefficients
-                flat = tuple(np.asarray(a[0]).flat)
-                parent = parent.field
-            pure = all(v == 0 for v in flat[1:])
-            return hash(int(flat[0])) if pure else hash((parent, flat))
-        pure = all(v == 0 for v in flat[1:])
-        return hash(complex(flat[0])) if pure else hash((parent, flat))
     if name == "reduce":
         return (parent, (a.copy(),))
-    if name == "dimension" or name == "level" or name == "dtype":
-        return getattr(parent, name)
-    if name == "shape":
-        return parent.coefficient_shape
-    if name == "real":
-        if is_field(parent):
-            return element(parent, a)
-        return parent.field(a[0]) if parent.char else complex(a[0])
+    if name == "dtype":
+        return parent.dtype
     if name in ("norm", "absolute", "normalized"):
         raise TypeError(
             "Euclidean norm operations require real coefficients; use quadratic_norm()"
@@ -701,17 +899,13 @@ def element_dispatch(name: str, value: Any, extra: Any = None) -> Any:
     if name == "associator":
         if len(extra) != 2:
             raise TypeError("associator requires exactly two operands")
-        if not all(isinstance(operand, _core.Element) for operand in extra):
+        if not all(isinstance(operand, Element) for operand in extra):
             raise TypeError("associator operands must be pyfastcd.Element objects")
         return apply(parent, name, value, *extra)
     if name == "inner" or name in ("imag_cross", "commutator", "anticommutator"):
-        if not isinstance(extra, _core.Element):
+        if not isinstance(extra, Element):
             raise TypeError("operand must be a pyfastcd.Element")
         return apply(parent, name, value, extra)
-    if name in ("norm_squared", "quadratic_norm"):
-        name = "quadratic_norm"
-    if name == "imag":
-        name = "imag_part"
     return apply(parent, name, value)
 
 
@@ -743,32 +937,28 @@ def ufunc(value: Any, u: Any, method: str, *inputs: Any, **kwargs: Any) -> Any:
         if result is NotImplemented:
             return NotImplemented
         return target if isinstance(target, np.ndarray) else result
-    binary = {
-        np.add: "add",
-        np.subtract: "subtract",
-        np.multiply: "multiply",
-        np.true_divide: "divide",
-        np.equal: "eq",
-        np.not_equal: "ne",
-    }
-    if u in binary:
-        return element_binary(binary[u], *inputs)
+    name = _UFUNC_BINARY.get(u)
+    if name is not None:
+        return element_binary(name, *inputs)
     if u is np.power:
         return _power(*inputs)
-    unary = {
-        np.negative: "negative",
-        np.positive: "positive",
-        np.square: "square",
-        np.conjugate: "conjugate",
-        np.absolute: "norm",
-    }
-    if u in unary:
+    name = _UFUNC_UNARY.get(u)
+    if name is not None:
         return (
-            array_dispatch(unary[u], value)
+            array_dispatch(name, value)
             if hasattr(value, "batch_shape")
-            else element_dispatch(unary[u], value)
+            else element_dispatch(name, value)
         )
     return NotImplemented
+
+
+def array_operator(name: str, value: Any, other: Any) -> Any:
+    """Run a binary ElementArray method, natively when no operand needs coercion."""
+
+    result = _array_binary(name, value._algebra, value._coefficients, other)
+    if result is not _MISS:
+        return result
+    return array_dispatch(name, value, other)
 
 
 def array_dispatch(name: str, value: Any, *args: Any, **kwargs: Any) -> Any:
@@ -778,8 +968,25 @@ def array_dispatch(name: str, value: Any, *args: Any, **kwargs: Any) -> Any:
     remains intact, including an extension's polynomial coordinate axis.
     """
 
-    parent = value.algebra
+    parent = value._algebra
     a = value._coefficients
+    if not kwargs:
+        # Operands that need no coercion go straight to the native bridge,
+        # which validates their storage on every call
+        if not args:
+            code = _ARRAY_UNARY.get(name)
+            if code is not None:
+                destination = np.empty(a.shape, dtype=a.dtype)
+                _domains_core.apply(
+                    parent._ctx, code, destination, a, None, None, _AUTO, 0
+                )
+                return _array.ElementArray._wrap(parent, destination)
+            if name == "quadratic_norm" or name == "norm_squared":
+                return _array_reduce(parent, _QUADRATIC_NORM, a, None)
+        elif len(args) == 1 and name not in _ARRAY_OPERATORS:
+            result = _array_binary(name, parent, a, args[0])
+            if result is not _MISS:
+                return result
     f = len(parent.coefficient_shape)
     batch = a.shape[:-f] if f else a.shape
     if name == "batch_shape":
@@ -800,8 +1007,13 @@ def array_dispatch(name: str, value: Any, *args: Any, **kwargs: Any) -> Any:
         return apply(parent, "imag_part", value)
     if name == "__getitem__":
         key = args[0]
-        # A key applies only to batch axes, so coefficients stay complete
-        dummy = np.broadcast_to(np.empty((), dtype=np.uint8), batch)
+        if type(key) is int and batch:
+            return _result(parent, a[key], len(batch) > 1)
+        # A key applies only to batch axes, so coefficients stay complete; a
+        # one-byte array with zero strides has the batch shape for any size
+        dummy = np.ndarray(
+            batch, dtype=np.uint8, buffer=_ONE_BYTE, strides=(0,) * len(batch)
+        )
         selected = dummy[key]
         result = a[_batch_key(key, len(batch), f)]
         return _result(parent, result, np.ndim(selected) != 0)
@@ -839,29 +1051,102 @@ def array_dispatch(name: str, value: Any, *args: Any, **kwargs: Any) -> Any:
         raise TypeError(
             "Euclidean norm operations require real coefficients; use quadratic_norm()"
         )
-    binary = {
-        "__add__": "add",
-        "__radd__": "add",
-        "__sub__": "subtract",
-        "__rsub__": "subtract",
-        "__mul__": "multiply",
-        "__rmul__": "multiply",
-        "__truediv__": "divide",
-        "__eq__": "eq",
-        "__ne__": "ne",
-    }
-    if name in binary:
+    operator_name = _ARRAY_OPERATORS.get(name)
+    if operator_name is not None:
         left, right = (
             (args[0], value)
             if name in ("__radd__", "__rsub__", "__rmul__")
             else (value, args[0])
         )
-        return element_binary(binary[name], left, right)
+        return element_binary(operator_name, left, right)
     if name in ("__neg__", "negative"):
         name = "negative"
     if name in ("norm_squared", "quadratic_norm"):
         name = "quadratic_norm"
     return apply(parent, name, value, *args, **kwargs)
+
+
+def _array_reduce(parent: Any, code: int, a: Any, b: Any) -> Any:
+    """Reduce complete records to coefficients over the batch axes."""
+
+    batch = a.shape[: a.ndim - len(parent.coefficient_shape)]
+    destination = np.empty(batch + field_shape(parent), dtype=a.dtype)
+    _domains_core.apply(parent._ctx, code, destination, a, b, None, _AUTO, 0)
+    if parent.char:
+        return _array.ElementArray._wrap(parent.field, destination)
+    return destination
+
+
+def _array_binary(name: str, parent: Any, a: Any, other: Any) -> Any:
+    """Run a binary array method natively when no operand needs coercion.
+
+    ``a`` is the storage of an array of ``parent``, and ``other`` is the
+    other operand as written. The shortcut covers an array of the same parent
+    and shape, an Element of the parent, a scalar of its coefficient field,
+    and scalars of exact builtin types. It returns ``_MISS`` for any other
+    operand, which the general path then coerces or rejects.
+    """
+
+    entry = _ARRAY_BINARY.get(name)
+    if entry is None:
+        return _MISS
+    code, reflected = entry
+    kind = type(other)
+    if kind is _array.ElementArray:
+        if (
+            reflected
+            or code == _DIVIDE
+            or other._algebra is not parent
+            or other._coefficients.shape != a.shape
+        ):
+            return _MISS
+        b = other._coefficients
+        # Field scalars multiply as coefficients
+        if code == _MULTIPLY and isinstance(parent, FiniteField):
+            code = _SCALE
+    elif kind is Element:
+        owner = other.algebra
+        b = other
+        if owner is parent:
+            if isinstance(parent, FiniteField):
+                if code == _MULTIPLY:
+                    code, reflected = _SCALE, False
+            elif code == _DIVIDE:
+                return _MISS
+        elif parent.char and owner is parent.field:
+            if code == _MULTIPLY:
+                code, reflected = _SCALE, False
+            elif code == _ADD or code == _SUBTRACT:
+                b = element(parent, other)
+            elif code != _DIVIDE:
+                return _MISS
+        else:
+            return _MISS
+    elif kind is int if parent.char else (
+        kind is int or kind is float or kind is complex
+    ):
+        if code == _MULTIPLY or code == _DIVIDE:
+            if code == _MULTIPLY:
+                code, reflected = _SCALE, False
+            if parent.char:
+                b = np.zeros(parent.field.coefficient_shape, dtype=a.dtype)
+                b.flat[0] = other % parent.char
+            else:
+                b = np.asarray(complex(other), dtype=a.dtype)
+        elif code == _ADD or code == _SUBTRACT:
+            b = element(parent, other)
+        else:
+            return _MISS
+    else:
+        return _MISS
+    if code == _INNER:
+        return _array_reduce(parent, code, a, b)
+    destination = np.empty(a.shape, dtype=a.dtype)
+    if reflected:
+        _domains_core.apply(parent._ctx, code, destination, b, a, None, _AUTO, 0)
+    else:
+        _domains_core.apply(parent._ctx, code, destination, a, b, None, _AUTO, 0)
+    return _array.ElementArray._wrap(parent, destination)
 
 
 def _batch_key(key: Any, rank: int, features: int) -> tuple[Any, ...]:
@@ -879,3 +1164,9 @@ def _batch_key(key: Any, rank: int, features: int) -> tuple[Any, ...]:
     if not any(k is Ellipsis for k in expanded):
         expanded += (slice(None),) * (rank - consumed)
     return expanded + (slice(None),) * features
+
+
+
+# The array module imports these adapters while it loads, so it is bound here
+# only after every name above exists
+from . import _array  # noqa: E402

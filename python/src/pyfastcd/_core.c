@@ -11,6 +11,8 @@
 
 #include "fastcd/fastcd.h"
 
+#include "_domain.h"
+
 /* Messages shared verbatim with pyfastcd._validation, so the C and Python
  * layers report identical conditions identically. */
 #define PYFASTCD_DIFFERENT_ALGEBRA_MESSAGE "operands belong to different algebras"
@@ -38,11 +40,14 @@ typedef struct {
 
 /* Only complex and finite-field Elements reserve this trailer after their
  * coefficient storage; real Elements have none. A negative buffer_stride marks
- * a trailer, and real buffers always have stride 8. The trailer owns no Python
- * references and shares the element's lifetime. */
+ * a trailer, and real buffers always have stride 8. The trailer shares the
+ * element's lifetime and owns one reference, to the context capsule of the
+ * parent, which keeps the arithmetic context alive for native operations. */
 typedef struct {
     Py_ssize_t shape[2], strides[2], length;
     int ndim, complex;
+    PyObject* context;
+    const PyFastCDDomain* domain;
 } PyFastCDDomainStorage;
 
 _Static_assert(sizeof(PyFastCDDomainStorage) % sizeof(double) == 0,
@@ -100,39 +105,42 @@ static int pyfastcd_is_extended(PyObject* o) {
             ((PyFastCDElement*)o)->buffer_stride < 0;
 }
 
+// Borrow the Python adapter module for complex and finite-field parents
+static PyObject* pyfastcd_domains_module(void) {
+    static PyObject* module = NULL;
+
+    // The adapters import this extension, so they load on first use, not at
+    // initialization, and the reference is then kept for the process lifetime
+    if (module == NULL) module = PyImport_ImportModule("pyfastcd._domains");
+    return module;
+}
+
 // Route a complex or finite-field slot to Python parent/shape handling and the
 // native bridge
 static PyObject* pyfastcd_domain_call(
         const char* name, PyObject* self, PyObject* extra) {
-    PyObject* module = PyImport_ImportModule("pyfastcd._domains");
+    PyObject* module = pyfastcd_domains_module();
     if (!module) return NULL;
-    PyObject* result = PyObject_CallMethod(
+    return PyObject_CallMethod(
             module, "element_dispatch", "sOO", name, self, extra ? extra : Py_None);
-    Py_DECREF(module);
-    return result;
 }
 
 // Let the adapter select a containing CD parent for mixed field-scalar operands
 static PyObject* pyfastcd_domain_binary(
         const char* name, PyObject* left, PyObject* right) {
-    PyObject* module = PyImport_ImportModule("pyfastcd._domains");
+    PyObject* module = pyfastcd_domains_module();
     if (!module) return NULL;
-    PyObject* result =
-            PyObject_CallMethod(module, "element_binary", "sOO", name, left, right);
-    Py_DECREF(module);
-    return result;
+    return PyObject_CallMethod(module, "element_binary", "sOO", name, left, right);
 }
 
 // Forward keyword-capable complex and finite-field slots; real Elements are
 // handled natively
 static PyObject* pyfastcd_domain_keywords(
         const char* name, PyObject* self, PyObject* args, PyObject* kwargs) {
-    PyObject* module = PyImport_ImportModule("pyfastcd._domains");
+    PyObject* module = pyfastcd_domains_module();
     if (!module) return NULL;
-    PyObject* result = PyObject_CallMethod(module, "element_keywords", "sOOO", name,
-            self, args, kwargs ? kwargs : Py_None);
-    Py_DECREF(module);
-    return result;
+    return PyObject_CallMethod(module, "element_keywords", "sOOO", name, self, args,
+            kwargs ? kwargs : Py_None);
 }
 
 /* ---------- Error and allocation helpers ---------- */
@@ -217,11 +225,12 @@ static PyFastCDElement* pyfastcd_element_allocate(PyObject* algebra,
     return result;
 }
 
+static PyFastCDElement* pyfastcd_extended_copy(PyFastCDElement* source);
+
 // Copy an element while retaining its algebra parent
-static PyFastCDElement* pyfastcd_element_copy(const PyFastCDElement* source) {
+static PyFastCDElement* pyfastcd_element_copy(PyFastCDElement* source) {
     if (pyfastcd_is_extended((PyObject*)source))
-        return (PyFastCDElement*)pyfastcd_domain_call("copy", (PyObject*)source,
-                                                       NULL);
+        return pyfastcd_extended_copy(source);
 
     size_t dimension = (size_t)Py_SIZE(source);
     PyFastCDElement* result = pyfastcd_element_allocate(source->algebra,
@@ -736,6 +745,778 @@ static PyObject* pyfastcd_basis_element(PyObject* Py_UNUSED(module),
     return (PyObject*)result;
 }
 
+/* ---------- Complex and finite-field elements ---------- */
+
+/* Elements over C and finite fields store their coefficients inline, like
+ * real ones, and carry the arithmetic context of their parent in the trailer.
+ * Operations whose operands share one parent therefore run here without
+ * calling Python, and so do operations that combine an element with a scalar
+ * of an exact builtin type or of the coefficient field. Every other operand
+ * combination goes to the Python adapters, which also own all coercion rules
+ * and error reporting. An element over a finite field holds canonical
+ * residues by construction and is immutable, so these paths need none of the
+ * layout and residue checks that array storage requires. */
+
+// Attribute names of the private parent slots read by native operations
+static PyObject* pyfastcd_context_name;
+static PyObject* pyfastcd_field_name;
+
+// One coefficient-field scalar in native storage
+typedef union {
+    uint32_t words[FASTCD_FF_MAX_DEGREE];
+    FastCDComplexF64 complex;
+} PyFastCDDomainScalar;
+
+// Scratch for one record operation, on the stack when it is small enough
+typedef struct {
+    union {
+        double doubles[PYFASTCD_STACK_WORKSPACE_LENGTH];
+        uint32_t words[2 * PYFASTCD_STACK_WORKSPACE_LENGTH];
+    } stack;
+    void* data;
+    size_t length;
+    bool heap_allocated;
+} PyFastCDDomainWorkspace;
+
+// Return the arithmetic context stored with a complex or finite-field element
+static const PyFastCDDomain* pyfastcd_element_domain(PyFastCDElement* element) {
+    return pyfastcd_domain_storage(element)->domain;
+}
+
+// View the storage of a finite-field element as its residue words
+static uint32_t* pyfastcd_element_words(PyFastCDElement* element) {
+    return (uint32_t*)(void*)element->coefficients;
+}
+
+// Return a new reference to a parent's context capsule and borrow its context
+static const PyFastCDDomain* pyfastcd_parent_domain(PyObject* parent,
+        PyObject** context) {
+    const PyFastCDDomain* domain;
+
+    *context = PyObject_GetAttr(parent, pyfastcd_context_name);
+    if (*context == NULL) return NULL;
+    domain = PyCapsule_GetPointer(*context, PYFASTCD_DOMAIN_CAPSULE);
+    if (domain == NULL) Py_CLEAR(*context);
+    return domain;
+}
+
+// Allocate zero-filled storage for one element of a complex or finite parent
+static PyFastCDElement* pyfastcd_extended_allocate(PyObject* parent,
+        PyObject* context, const PyFastCDDomain* domain) {
+    size_t item = domain->finite ? sizeof(uint32_t) : sizeof(FastCDComplexF64);
+    // Round coefficient bytes up to double alignment, then reserve the trailer
+    // inside the same variable allocation
+    size_t units = (domain->bytes + sizeof(double) - 1) / sizeof(double)
+        + sizeof(PyFastCDDomainStorage) / sizeof(double);
+    PyFastCDElement* element = pyfastcd_element_allocate(parent, units);
+    PyFastCDDomainStorage* storage;
+    Py_ssize_t stride = (Py_ssize_t)item;
+
+    if (element == NULL) return NULL;
+    storage = pyfastcd_domain_storage(element);
+    storage->ndim = domain->features;
+    storage->complex = !domain->finite;
+    storage->length = (Py_ssize_t)domain->bytes;
+    for (int axis = domain->features - 1; axis >= 0; axis--) {
+        storage->shape[axis] = domain->shape[axis];
+        storage->strides[axis] = stride;
+        stride *= domain->shape[axis];
+    }
+    storage->context = Py_NewRef(context);
+    storage->domain = domain;
+    // Publish the domain marker only after the trailer is complete
+    element->buffer_stride = -1;
+    return element;
+}
+
+// Allocate an element with the parent and context of an existing element
+static PyFastCDElement* pyfastcd_extended_like(PyFastCDElement* source) {
+    PyFastCDDomainStorage* storage = pyfastcd_domain_storage(source);
+
+    return pyfastcd_extended_allocate(source->algebra, storage->context,
+            storage->domain);
+}
+
+// Allocate an element of the coefficient field of a finite-field element
+static PyFastCDElement* pyfastcd_field_allocate(PyFastCDElement* source) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(source);
+    const PyFastCDDomain* field_domain;
+    PyFastCDElement* result;
+    PyObject* field;
+    PyObject* context;
+
+    // A field scalar is its own coefficient, with its own parent
+    if (domain->field_scalar) return pyfastcd_extended_like(source);
+    field = PyObject_GetAttr(source->algebra, pyfastcd_field_name);
+    if (field == NULL) return NULL;
+    field_domain = pyfastcd_parent_domain(field, &context);
+    if (field_domain == NULL) {
+        Py_DECREF(field);
+        return NULL;
+    }
+    result = pyfastcd_extended_allocate(field, context, field_domain);
+    Py_DECREF(context);
+    Py_DECREF(field);
+    return result;
+}
+
+// Size scratch for one operation of a complex or finite-field context
+static int pyfastcd_domain_workspace(PyFastCDDomainWorkspace* workspace,
+        const PyFastCDDomain* domain, FastCDOperation operation) {
+    size_t item = domain->finite ? sizeof(uint32_t) : sizeof(double);
+    size_t length = 0;
+
+    if (domain->finite) {
+        if (pyfastcd_domain_ff_error(fastcd_apply_workspace_size_ff(
+                        &domain->plan, operation, &length)) < 0) {
+            return -1;
+        }
+    } else if (pyfastcd_domain_complex_error(fastcd_workspace_size_c128(
+                    domain->n, operation, &length)) < 0) {
+        return -1;
+    }
+    workspace->length = length;
+    workspace->heap_allocated = false;
+    workspace->data = length == 0 ? NULL : (void*)&workspace->stack;
+    if (length > sizeof(workspace->stack) / item) {
+        if (length > SIZE_MAX / item) {
+            PyErr_SetString(PyExc_OverflowError, "workspace size overflow");
+            return -1;
+        }
+        workspace->data = PyMem_Malloc(length * item);
+        if (workspace->data == NULL) {
+            PyErr_NoMemory();
+            return -1;
+        }
+        workspace->heap_allocated = true;
+    }
+    return 0;
+}
+
+// Run one record operation of a complex or finite-field context
+static int pyfastcd_domain_run(const PyFastCDDomain* domain,
+        FastCDOperation operation, void* out, const void* x, const void* y,
+        const void* z, FastCDAlgorithm algorithm, size_t basis_index) {
+    PyFastCDDomainWorkspace workspace;
+    int result;
+
+    if (pyfastcd_domain_workspace(&workspace, domain, operation) < 0) {
+        return -1;
+    }
+    if (domain->finite) {
+        result = pyfastcd_domain_ff_error(fastcd_apply_ff((uint32_t*)out,
+                    (const uint32_t*)x, (const uint32_t*)y,
+                    (const uint32_t*)z, &domain->plan, operation,
+                    basis_index, algorithm, (uint32_t*)workspace.data,
+                    workspace.length));
+    } else {
+        FastCDWorkspaceF64 scratch = {(double*)workspace.data,
+            workspace.length};
+
+        result = pyfastcd_domain_complex_error(fastcd_apply_c128(
+                    (FastCDComplexF64*)out, (const FastCDComplexF64*)x,
+                    (const FastCDComplexF64*)y, (const FastCDComplexF64*)z,
+                    domain->n, operation, basis_index, algorithm, &scratch));
+    }
+    if (workspace.heap_allocated) PyMem_Free(workspace.data);
+    return result;
+}
+
+// Reject a zero scalar divisor, or a zero quadratic norm when scalar is NULL
+static int pyfastcd_domain_require_denominator(const PyFastCDDomain* domain,
+        const void* x, const PyFastCDDomainScalar* scalar) {
+    PyFastCDDomainScalar value;
+    bool is_zero = true;
+
+    if (scalar != NULL) {
+        value = *scalar;
+    } else if (pyfastcd_domain_run(domain, FASTCD_OP_QUADRATIC_NORM, &value,
+                x, NULL, NULL, FASTCD_ALGORITHM_AUTO, 0) < 0) {
+        return -1;
+    }
+    if (domain->finite) {
+        for (size_t i = 0; i < domain->d; i++) {
+            if (value.words[i] != 0) is_zero = false;
+        }
+    } else {
+        is_zero = value.complex.real == 0 && value.complex.imag == 0;
+    }
+    if (is_zero) {
+        PyErr_SetString(PyExc_ZeroDivisionError,
+                PYFASTCD_ZERO_DIVISOR_MESSAGE);
+        return -1;
+    }
+    return 0;
+}
+
+// Apply a kernel operation to elements of one complex or finite-field parent
+static PyObject* pyfastcd_extended_apply(FastCDOperation operation,
+        PyFastCDElement* x, PyFastCDElement* y, PyFastCDElement* z,
+        FastCDAlgorithm algorithm, size_t basis_index) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(x);
+    PyFastCDElement* result;
+
+    if (operation == FASTCD_OP_INNER
+            || operation == FASTCD_OP_QUADRATIC_NORM) {
+        // Complex reductions are Python scalars, and finite reductions are
+        // elements of the coefficient field
+        if (!domain->finite) {
+            FastCDComplexF64 value;
+
+            if (pyfastcd_domain_run(domain, operation, &value,
+                        x->coefficients, y ? y->coefficients : NULL, NULL,
+                        algorithm, basis_index) < 0) {
+                return NULL;
+            }
+            return PyComplex_FromDoubles(value.real, value.imag);
+        }
+        result = pyfastcd_field_allocate(x);
+    } else {
+        // Nonzero elements can have zero quadratic norm over these fields
+        if (operation == FASTCD_OP_RECIPROCAL
+                && pyfastcd_domain_require_denominator(domain,
+                    x->coefficients, NULL) < 0) {
+            return NULL;
+        }
+        result = pyfastcd_extended_like(x);
+    }
+    if (result == NULL) return NULL;
+    if (pyfastcd_domain_run(domain, operation, result->coefficients,
+                x->coefficients, y ? y->coefficients : NULL,
+                z ? z->coefficients : NULL, algorithm, basis_index) < 0) {
+        Py_DECREF(result);
+        return NULL;
+    }
+    return (PyObject*)result;
+}
+
+// Scale or divide every coefficient of an element by one field scalar
+static PyObject* pyfastcd_extended_scale(FastCDOperation operation,
+        PyFastCDElement* x, const PyFastCDDomainScalar* scalar) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(x);
+    PyFastCDElement* result;
+
+    if (operation == FASTCD_OP_DIVIDE
+            && pyfastcd_domain_require_denominator(domain, NULL, scalar) < 0) {
+        return NULL;
+    }
+    result = pyfastcd_extended_like(x);
+    if (result == NULL) return NULL;
+    if (pyfastcd_domain_run(domain, operation, result->coefficients,
+                x->coefficients, scalar, NULL, FASTCD_ALGORITHM_AUTO, 0) < 0) {
+        Py_DECREF(result);
+        return NULL;
+    }
+    return (PyObject*)result;
+}
+
+// Add or subtract a field scalar embedded in coordinate zero
+static PyObject* pyfastcd_extended_shift(FastCDOperation operation,
+        PyFastCDElement* x, const PyFastCDDomainScalar* scalar,
+        bool scalar_on_left) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(x);
+    size_t item = domain->finite ? sizeof(uint32_t) : sizeof(FastCDComplexF64);
+    PyFastCDElement* result = pyfastcd_extended_like(x);
+
+    if (result == NULL) return NULL;
+    /* The new storage is zero, so writing coordinate zero embeds the scalar.
+     * Addition and subtraction accept an output that is exactly one of their
+     * operands, and the full coordinatewise kernel keeps the rounding and
+     * signed zeros of adding the embedded record. */
+    memcpy(result->coefficients, scalar, domain->d * item);
+    if (pyfastcd_domain_run(domain, operation, result->coefficients,
+                scalar_on_left ? result->coefficients : x->coefficients,
+                scalar_on_left ? x->coefficients : result->coefficients,
+                NULL, FASTCD_ALGORITHM_AUTO, 0) < 0) {
+        Py_DECREF(result);
+        return NULL;
+    }
+    return (PyObject*)result;
+}
+
+// Report whether two finite contexts have the same field presentation
+static bool pyfastcd_same_field(const PyFastCDDomain* left,
+        const PyFastCDDomain* right) {
+    const FastCDField* a = &left->plan.field;
+    const FastCDField* b = &right->plan.field;
+
+    // Fields are cached by characteristic and modulus, so equal presentations
+    // identify one FiniteField object
+    return a->prime == b->prime && a->degree == b->degree
+        && memcmp(a->modulus, b->modulus,
+                (a->degree + 1) * sizeof(uint32_t)) == 0;
+}
+
+// Read a scalar of an exact builtin type; other values use the adapters
+static bool pyfastcd_builtin_scalar(const PyFastCDDomain* domain,
+        PyObject* value, PyFastCDDomainScalar* scalar) {
+    memset(scalar, 0, sizeof(*scalar));
+    if (domain->finite) {
+        long long prime = (long long)domain->plan.field.prime;
+        long long residue;
+        int overflow;
+
+        // Integers embed in the prime subfield, reduced to a canonical residue
+        if (!PyLong_CheckExact(value) && !PyBool_Check(value)) return false;
+        residue = PyLong_AsLongLongAndOverflow(value, &overflow);
+        if (overflow != 0) return false;
+        residue %= prime;
+        scalar->words[0] = (uint32_t)(residue < 0 ? residue + prime : residue);
+        return true;
+    }
+    if (PyFloat_CheckExact(value)) {
+        scalar->complex.real = PyFloat_AS_DOUBLE(value);
+        return true;
+    }
+    if (PyComplex_CheckExact(value)) {
+        scalar->complex.real = PyComplex_RealAsDouble(value);
+        scalar->complex.imag = PyComplex_ImagAsDouble(value);
+        return true;
+    }
+    if (PyLong_CheckExact(value) || PyBool_Check(value)) {
+        double converted = PyLong_AsDouble(value);
+
+        // An integer beyond binary64 range is reported by the adapters
+        if (converted == -1.0 && PyErr_Occurred()) {
+            PyErr_Clear();
+            return false;
+        }
+        scalar->complex.real = converted;
+        return true;
+    }
+    return false;
+}
+
+/* Run a binary operator on complex or finite-field operands natively when
+ * the pair is one of the supported kinds. Return false, with no exception
+ * set, when the Python adapters must handle the pair instead. Otherwise
+ * *result holds the outcome, which is NULL when an exception is set. */
+static bool pyfastcd_extended_operator(FastCDOperation operation,
+        PyObject* left_object, PyObject* right_object, PyObject** result) {
+    bool left_extended = pyfastcd_is_extended(left_object);
+    bool right_extended = pyfastcd_is_extended(right_object);
+    PyFastCDElement* element;
+    PyFastCDDomainScalar scalar;
+    bool scalar_on_left;
+
+    if (left_extended && right_extended) {
+        PyFastCDElement* left = (PyFastCDElement*)left_object;
+        PyFastCDElement* right = (PyFastCDElement*)right_object;
+        const PyFastCDDomain* left_domain = pyfastcd_element_domain(left);
+        const PyFastCDDomain* right_domain = pyfastcd_element_domain(right);
+
+        if (left->algebra == right->algebra) {
+            if (operation == FASTCD_OP_ADD
+                    || operation == FASTCD_OP_SUBTRACT) {
+                *result = pyfastcd_extended_apply(operation, left, right,
+                        NULL, FASTCD_ALGORITHM_AUTO, 0);
+                return true;
+            }
+            if (!left_domain->field_scalar) {
+                // Division by a complete Cayley--Dickson element is undefined
+                if (operation != FASTCD_OP_MULTIPLY) return false;
+                *result = pyfastcd_extended_apply(operation, left, right,
+                        NULL, FASTCD_ALGORITHM_AUTO, 0);
+                return true;
+            }
+            // Field scalars multiply and divide as coefficients
+            memcpy(&scalar, right->coefficients, right_domain->bytes);
+            *result = pyfastcd_extended_scale(
+                    operation == FASTCD_OP_MULTIPLY ? FASTCD_OP_SCALE
+                        : FASTCD_OP_DIVIDE, left, &scalar);
+            return true;
+        }
+        // A scalar of the coefficient field combines with a containing element
+        if (!left_domain->finite || !right_domain->finite
+                || left_domain->field_scalar == right_domain->field_scalar
+                || !pyfastcd_same_field(left_domain, right_domain)) {
+            return false;
+        }
+        scalar_on_left = left_domain->field_scalar;
+        element = scalar_on_left ? right : left;
+        memcpy(&scalar, (scalar_on_left ? left : right)->coefficients,
+                (scalar_on_left ? left_domain : right_domain)->bytes);
+    } else {
+        scalar_on_left = right_extended;
+        element = (PyFastCDElement*)(scalar_on_left ? right_object
+                : left_object);
+        if (!pyfastcd_builtin_scalar(pyfastcd_element_domain(element),
+                    scalar_on_left ? left_object : right_object, &scalar)) {
+            return false;
+        }
+    }
+    switch (operation) {
+        case FASTCD_OP_MULTIPLY:
+            *result = pyfastcd_extended_scale(FASTCD_OP_SCALE, element,
+                    &scalar);
+            return true;
+        case FASTCD_OP_DIVIDE:
+            // A scalar dividend is converted by the adapters
+            if (scalar_on_left) return false;
+            *result = pyfastcd_extended_scale(FASTCD_OP_DIVIDE, element,
+                    &scalar);
+            return true;
+        default:
+            *result = pyfastcd_extended_shift(operation, element, &scalar,
+                    scalar_on_left);
+            return true;
+    }
+}
+
+// Report whether all operands are complex or finite elements of one parent
+static bool pyfastcd_same_extended_parent(PyObject* x, PyObject* y,
+        PyObject* z) {
+    if (!pyfastcd_is_extended(x)) return false;
+    if (y != NULL && (!pyfastcd_is_extended(y)
+                || ((PyFastCDElement*)y)->algebra
+                    != ((PyFastCDElement*)x)->algebra)) {
+        return false;
+    }
+    return z == NULL || (pyfastcd_is_extended(z)
+            && ((PyFastCDElement*)z)->algebra
+                == ((PyFastCDElement*)x)->algebra);
+}
+
+// Apply an operation to same-parent operands, or return NULL without an error
+static PyObject* pyfastcd_extended_method(FastCDOperation operation,
+        PyObject* x, PyObject* y, PyObject* z) {
+    if (!pyfastcd_same_extended_parent(x, y, z)) return NULL;
+    return pyfastcd_extended_apply(operation, (PyFastCDElement*)x,
+            (PyFastCDElement*)y, (PyFastCDElement*)z, FASTCD_ALGORITHM_AUTO,
+            0);
+}
+
+// Copy a complex or finite-field element
+static PyFastCDElement* pyfastcd_extended_copy(PyFastCDElement* source) {
+    PyFastCDElement* result = pyfastcd_extended_like(source);
+
+    if (result == NULL) return NULL;
+    memcpy(result->coefficients, source->coefficients,
+            pyfastcd_element_domain(source)->bytes);
+    return result;
+}
+
+// Return one coefficient of a complex or finite-field element
+static PyObject* pyfastcd_extended_coefficient(PyFastCDElement* element,
+        size_t index) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(element);
+    PyFastCDElement* result;
+
+    if (!domain->finite) {
+        const FastCDComplexF64* values
+            = (const FastCDComplexF64*)element->coefficients;
+
+        return PyComplex_FromDoubles(values[index].real, values[index].imag);
+    }
+    result = pyfastcd_field_allocate(element);
+    if (result == NULL) return NULL;
+    memcpy(result->coefficients,
+            pyfastcd_element_words(element) + index * domain->d,
+            domain->d * sizeof(uint32_t));
+    return (PyObject*)result;
+}
+
+// Compare two complex or finite-field elements of one parent exactly
+static bool pyfastcd_extended_equal(PyFastCDElement* left,
+        PyFastCDElement* right) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(left);
+
+    if (domain->finite) {
+        return memcmp(left->coefficients, right->coefficients,
+                domain->bytes) == 0;
+    }
+    // Compare values, so that NaN differs from itself and zeros of either
+    // sign agree
+    for (size_t i = 0; i < 2 * domain->n; i++) {
+        if (!(left->coefficients[i] == right->coefficients[i])) return false;
+    }
+    return true;
+}
+
+// Report whether any coefficient of a complex or finite element is nonzero
+static bool pyfastcd_extended_nonzero(PyFastCDElement* element) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(element);
+
+    if (domain->finite) {
+        const uint32_t* words = pyfastcd_element_words(element);
+
+        for (size_t i = 0; i < domain->n * domain->d; i++) {
+            if (words[i] != 0) return true;
+        }
+        return false;
+    }
+    for (size_t i = 0; i < 2 * domain->n; i++) {
+        if (element->coefficients[i] != 0.0) return true;
+    }
+    return false;
+}
+
+/* Raise a complex or finite-field element to an integer power by repeated
+ * squaring. The product order is the written one, starting from the identity,
+ * because multiplication is not associative in general. */
+static PyObject* pyfastcd_extended_power(PyFastCDElement* value,
+        long long exponent) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(value);
+    PyFastCDElement* result;
+    PyObject* base;
+    PyObject* next;
+
+    if (exponent < 0) {
+        base = pyfastcd_extended_apply(FASTCD_OP_RECIPROCAL, value, NULL,
+                NULL, FASTCD_ALGORITHM_AUTO, 0);
+        if (base == NULL) return NULL;
+        exponent = -exponent;
+    } else {
+        base = Py_NewRef((PyObject*)value);
+    }
+    if (exponent == 1 || exponent == 2) {
+        next = exponent == 1
+            ? (PyObject*)pyfastcd_extended_copy((PyFastCDElement*)base)
+            : pyfastcd_extended_apply(FASTCD_OP_SQUARE,
+                    (PyFastCDElement*)base, NULL, NULL,
+                    FASTCD_ALGORITHM_AUTO, 0);
+        Py_DECREF(base);
+        return next;
+    }
+    result = pyfastcd_extended_like(value);
+    if (result == NULL) {
+        Py_DECREF(base);
+        return NULL;
+    }
+    // New storage is zero, so setting coordinate zero gives the identity
+    if (domain->finite) {
+        pyfastcd_element_words(result)[0] = 1;
+    } else {
+        result->coefficients[0] = 1.0;
+    }
+    while (exponent != 0) {
+        if ((exponent & 1) != 0) {
+            if (domain->field_scalar) {
+                PyFastCDDomainScalar scalar;
+
+                memcpy(&scalar, ((PyFastCDElement*)base)->coefficients,
+                        domain->bytes);
+                next = pyfastcd_extended_scale(FASTCD_OP_SCALE, result,
+                        &scalar);
+            } else {
+                next = pyfastcd_extended_apply(FASTCD_OP_MULTIPLY, result,
+                        (PyFastCDElement*)base, NULL, FASTCD_ALGORITHM_AUTO,
+                        0);
+            }
+            Py_DECREF(result);
+            result = (PyFastCDElement*)next;
+            if (result == NULL) break;
+        }
+        exponent >>= 1;
+        if (exponent != 0) {
+            next = pyfastcd_extended_apply(FASTCD_OP_SQUARE,
+                    (PyFastCDElement*)base, NULL, NULL,
+                    FASTCD_ALGORITHM_AUTO, 0);
+            Py_DECREF(base);
+            base = next;
+            if (base == NULL) {
+                Py_DECREF(result);
+                return NULL;
+            }
+        }
+    }
+    Py_DECREF(base);
+    return (PyObject*)result;
+}
+
+// Hash a key and release it; a NULL key reports a pending exception
+static Py_hash_t pyfastcd_hash_key(PyObject* key) {
+    Py_hash_t result;
+
+    if (key == NULL) return -1;
+    result = PyObject_Hash(key);
+    Py_DECREF(key);
+    return result;
+}
+
+// Build a tuple of the first count coefficient words or complex values
+static PyObject* pyfastcd_extended_tuple(PyFastCDElement* element,
+        size_t count) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(element);
+    PyObject* tuple = PyTuple_New((Py_ssize_t)count);
+
+    if (tuple == NULL) return NULL;
+    for (size_t i = 0; i < count; i++) {
+        PyObject* item = domain->finite
+            ? PyLong_FromUnsignedLong(pyfastcd_element_words(element)[i])
+            : PyComplex_FromDoubles(element->coefficients[2 * i],
+                    element->coefficients[2 * i + 1]);
+
+        if (item == NULL) {
+            Py_DECREF(tuple);
+            return NULL;
+        }
+        PyTuple_SET_ITEM(tuple, (Py_ssize_t)i, item);
+    }
+    return tuple;
+}
+
+/* Hash a complex or finite-field element consistently with equality. An
+ * element that embeds a coefficient scalar hashes like that scalar: a
+ * complex number, an integer of the prime subfield, or otherwise a scalar of
+ * the coefficient field. Every other element hashes its parent together with
+ * its coefficients. */
+static Py_hash_t pyfastcd_extended_hash(PyFastCDElement* self) {
+    const PyFastCDDomain* domain = pyfastcd_element_domain(self);
+    size_t count = domain->finite ? domain->n * domain->d : domain->n;
+    PyObject* parent = self->algebra;
+    PyObject* field = NULL;
+    PyObject* values;
+    bool scalar = true;
+    bool pure = true;
+    Py_hash_t result;
+
+    if (!domain->finite) {
+        for (size_t i = 0; i < 2 * domain->n; i++) {
+            /* NaN never compares equal, so any fixed value is consistent
+             * with equality, while a fresh complex number would hash by
+             * identity and change between calls. */
+            if (isnan(self->coefficients[i])) return (Py_hash_t)domain->n;
+            if (i >= 2 && self->coefficients[i] != 0.0) pure = false;
+        }
+        if (pure) {
+            return pyfastcd_hash_key(PyComplex_FromDoubles(
+                        self->coefficients[0], self->coefficients[1]));
+        }
+    } else {
+        const uint32_t* words = pyfastcd_element_words(self);
+
+        for (size_t i = domain->d; i < count; i++) {
+            if (words[i] != 0) scalar = false;
+        }
+        if (scalar) {
+            // The element equals a scalar of its coefficient field
+            count = domain->d;
+            if (!domain->field_scalar) {
+                field = PyObject_GetAttr(self->algebra, pyfastcd_field_name);
+                if (field == NULL) return -1;
+                parent = field;
+            }
+        }
+        for (size_t i = 1; i < count; i++) {
+            if (words[i] != 0) pure = false;
+        }
+        if (pure) {
+            Py_XDECREF(field);
+            return pyfastcd_hash_key(PyLong_FromUnsignedLong(words[0]));
+        }
+    }
+    values = pyfastcd_extended_tuple(self, count);
+    if (values == NULL) {
+        Py_XDECREF(field);
+        return -1;
+    }
+    result = pyfastcd_hash_key(PyTuple_Pack(2, parent, values));
+    Py_DECREF(values);
+    Py_XDECREF(field);
+    return result;
+}
+
+// Construct an element of a complex or finite-field parent from one record
+static PyObject* pyfastcd_extended_element(PyObject* Py_UNUSED(module),
+        PyObject* args) {
+    PyObject* parent;
+    PyObject* payload;
+    PyObject* context;
+    const PyFastCDDomain* domain;
+    PyFastCDElement* element;
+    Py_buffer view;
+
+    if (!PyArg_ParseTuple(args, "OO:_extended_element", &parent, &payload)) {
+        return NULL;
+    }
+    domain = pyfastcd_parent_domain(parent, &context);
+    if (domain == NULL) return NULL;
+    if (PyObject_GetBuffer(payload, &view, PyBUF_C_CONTIGUOUS) < 0) {
+        Py_DECREF(context);
+        return NULL;
+    }
+    if ((size_t)view.len != domain->bytes) {
+        PyBuffer_Release(&view);
+        Py_DECREF(context);
+        PyErr_SetString(PyExc_ValueError, "coefficient byte length mismatch");
+        return NULL;
+    }
+    element = pyfastcd_extended_allocate(parent, context, domain);
+    Py_DECREF(context);
+    if (element == NULL) {
+        PyBuffer_Release(&view);
+        return NULL;
+    }
+    memcpy(element->coefficients, view.buf, domain->bytes);
+    PyBuffer_Release(&view);
+    if (domain->finite) {
+        /* Native Element arithmetic relies on canonical residues, so reduce
+         * here whatever the caller checked; canonical words are unchanged. */
+        uint32_t* words = pyfastcd_element_words(element);
+        uint32_t prime = domain->plan.field.prime;
+
+        for (size_t i = 0; i < domain->n * domain->d; i++) {
+            if (words[i] >= prime) words[i] %= prime;
+        }
+    }
+    return (PyObject*)element;
+}
+
+// Apply one operation to complex or finite-field elements of one parent
+static PyObject* pyfastcd_apply_elements_entry(PyObject* Py_UNUSED(module),
+        PyObject* args) {
+    int operation_value;
+    int algorithm_value;
+    Py_ssize_t basis_index;
+    PyObject* x;
+    PyObject* y = NULL;
+    PyObject* z = NULL;
+    FastCDOperation operation;
+    bool binary;
+    bool ternary;
+
+    if (!PyArg_ParseTuple(args, "iinO|OO:_apply_elements", &operation_value,
+                &algorithm_value, &basis_index, &x, &y, &z)) {
+        return NULL;
+    }
+    if (operation_value < FASTCD_OP_MULTIPLY
+            || operation_value > FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR
+            || operation_value == FASTCD_OP_SCALE
+            || operation_value == FASTCD_OP_DIVIDE || basis_index < 0) {
+        PyErr_SetString(PyExc_ValueError, "invalid operation or basis index");
+        return NULL;
+    }
+    if (algorithm_value != FASTCD_ALGORITHM_AUTO
+            && algorithm_value != FASTCD_ALGORITHM_DIRECT
+            && algorithm_value != FASTCD_ALGORITHM_QUASILINEAR) {
+        PyErr_SetString(PyExc_ValueError,
+                "unsupported multiplication algorithm");
+        return NULL;
+    }
+    operation = (FastCDOperation)operation_value;
+    ternary = operation == FASTCD_OP_ASSOCIATOR
+        || operation == FASTCD_OP_LEFT_OPERATOR_COMMUTATOR
+        || operation == FASTCD_OP_RIGHT_OPERATOR_COMMUTATOR;
+    binary = ternary || operation == FASTCD_OP_MULTIPLY
+        || operation == FASTCD_OP_ADD || operation == FASTCD_OP_SUBTRACT
+        || operation == FASTCD_OP_INNER || operation == FASTCD_OP_IMAG_CROSS
+        || operation == FASTCD_OP_COMMUTATOR
+        || operation == FASTCD_OP_ANTICOMMUTATOR;
+    if (binary != (y != NULL) || ternary != (z != NULL)) {
+        PyErr_SetString(PyExc_TypeError, "wrong number of operands");
+        return NULL;
+    }
+    if (!pyfastcd_same_extended_parent(x, y, z)) {
+        PyErr_SetString(PyExc_TypeError,
+                "operands must be complex or finite-field elements of one parent");
+        return NULL;
+    }
+    return pyfastcd_extended_apply(operation, (PyFastCDElement*)x,
+            (PyFastCDElement*)y, (PyFastCDElement*)z,
+            (FastCDAlgorithm)algorithm_value, (size_t)basis_index);
+}
+
 /* ---------- Element protocol methods ---------- */
 
 // Visit the algebra reference held by an element for cyclic garbage collection
@@ -754,6 +1535,10 @@ static int pyfastcd_element_clear(PyFastCDElement* self) {
 // Untrack, clear, and free an element object
 static void pyfastcd_element_dealloc(PyFastCDElement* self) {
     PyObject_GC_UnTrack(self);
+    // A context capsule refers to no Python object, so it needs no traversal
+    if (self->buffer_stride < 0) {
+        Py_CLEAR(pyfastcd_domain_storage(self)->context);
+    }
     pyfastcd_element_clear(self);
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
@@ -770,6 +1555,11 @@ static PyObject* pyfastcd_element_new_forbidden(PyTypeObject* type,
 // Return the number of real coefficients in an element
 static Py_ssize_t pyfastcd_element_length(PyObject* self) {
     if (pyfastcd_is_extended(self)) {
+        const PyFastCDDomain* domain
+            = pyfastcd_element_domain((PyFastCDElement*)self);
+
+        if (!domain->field_scalar) return (Py_ssize_t)domain->n;
+        // A field scalar has no length, which the adapter reports
         PyObject* result = pyfastcd_domain_call("len", self, NULL);
         if (!result)
             return -1;
@@ -784,6 +1574,15 @@ static Py_ssize_t pyfastcd_element_length(PyObject* self) {
 // Return one coefficient using Python sequence index semantics
 static PyObject* pyfastcd_element_item(PyObject* self, Py_ssize_t index) {
     if (pyfastcd_is_extended(self)) {
+        const PyFastCDDomain* domain
+            = pyfastcd_element_domain((PyFastCDElement*)self);
+
+        if (!domain->field_scalar && index >= 0
+                && (size_t)index < domain->n) {
+            return pyfastcd_extended_coefficient((PyFastCDElement*)self,
+                    (size_t)index);
+        }
+        // The adapter reports field scalars and indices that are out of range
         PyObject* key = PyLong_FromSsize_t(index);
         if (!key)
             return NULL;
@@ -825,8 +1624,27 @@ static PyObject* pyfastcd_element_iter(PyObject* self) {
 
 // Return an indexed coefficient or a tuple for a coefficient slice
 static PyObject* pyfastcd_element_subscript(PyObject* self, PyObject* key) {
-    if (pyfastcd_is_extended(self))
+    if (pyfastcd_is_extended(self)) {
+        const PyFastCDDomain* domain
+            = pyfastcd_element_domain((PyFastCDElement*)self);
+
+        // Slices, other index types and every error go to the adapter
+        if (!domain->field_scalar && PyLong_CheckExact(key)) {
+            Py_ssize_t index = PyLong_AsSsize_t(key);
+
+            if (index == -1 && PyErr_Occurred()) {
+                // An index beyond the Py_ssize_t range is out of range
+                PyErr_Clear();
+            } else {
+                if (index < 0) index += (Py_ssize_t)domain->n;
+                if (index >= 0 && (size_t)index < domain->n) {
+                    return pyfastcd_extended_coefficient(
+                            (PyFastCDElement*)self, (size_t)index);
+                }
+            }
+        }
         return pyfastcd_domain_call("getitem", self, key);
+    }
 
     PyFastCDElement* element = (PyFastCDElement*)self;
     Py_ssize_t dimension = Py_SIZE(element);
@@ -962,6 +1780,12 @@ static PyObject* pyfastcd_element_richcompare(PyObject* left_object,
     if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object)) {
         if (operation != Py_EQ && operation != Py_NE)
             Py_RETURN_NOTIMPLEMENTED;
+        if (pyfastcd_same_extended_parent(left_object, right_object, NULL)) {
+            bool same = pyfastcd_extended_equal((PyFastCDElement*)left_object,
+                    (PyFastCDElement*)right_object);
+
+            return PyBool_FromLong(operation == Py_EQ ? same : !same);
+        }
         return pyfastcd_domain_binary(operation == Py_EQ ? "eq" : "ne", left_object,
                                       right_object);
     }
@@ -1017,14 +1841,8 @@ static PyObject* pyfastcd_element_richcompare(PyObject* left_object,
 
 // Hash an element consistently with equality against elements and real scalars
 static Py_hash_t pyfastcd_element_hash(PyObject* self_object) {
-    if (pyfastcd_is_extended(self_object)) {
-        PyObject* result = pyfastcd_domain_call("hash", self_object, NULL);
-        if (!result)
-            return -1;
-        Py_hash_t hash = PyLong_AsSsize_t(result);
-        Py_DECREF(result);
-        return hash;
-    }
+    if (pyfastcd_is_extended(self_object))
+        return pyfastcd_extended_hash((PyFastCDElement*)self_object);
 
     PyFastCDElement* self = (PyFastCDElement*)self_object;
     Py_ssize_t dimension = Py_SIZE(self);
@@ -1068,14 +1886,8 @@ static Py_hash_t pyfastcd_element_hash(PyObject* self_object) {
 
 // Report whether any coefficient of an element is nonzero
 static int pyfastcd_element_bool(PyObject* self) {
-    if (pyfastcd_is_extended(self)) {
-        PyObject* result = pyfastcd_domain_call("bool", self, NULL);
-        if (!result)
-            return -1;
-        int truth = PyObject_IsTrue(result);
-        Py_DECREF(result);
-        return truth;
-    }
+    if (pyfastcd_is_extended(self))
+        return pyfastcd_extended_nonzero((PyFastCDElement*)self);
 
     PyFastCDElement* element = (PyFastCDElement*)self;
 
@@ -1090,8 +1902,15 @@ static int pyfastcd_element_bool(PyObject* self) {
 // Add compatible elements or add an embedded real scalar
 static PyObject* pyfastcd_element_add(PyObject* left_object,
         PyObject* right_object) {
-    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object))
+    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object)) {
+        PyObject* native;
+
+        if (pyfastcd_extended_operator(FASTCD_OP_ADD, left_object,
+                    right_object, &native)) {
+            return native;
+        }
         return pyfastcd_domain_binary("add", left_object, right_object);
+    }
 
     PyFastCDElement* element;
     PyFastCDElement* result;
@@ -1142,8 +1961,15 @@ static PyObject* pyfastcd_element_add(PyObject* left_object,
 // Subtract compatible elements or an embedded real scalar in either order
 static PyObject* pyfastcd_element_subtract(PyObject* left_object,
         PyObject* right_object) {
-    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object))
+    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object)) {
+        PyObject* native;
+
+        if (pyfastcd_extended_operator(FASTCD_OP_SUBTRACT, left_object,
+                    right_object, &native)) {
+            return native;
+        }
         return pyfastcd_domain_binary("subtract", left_object, right_object);
+    }
 
     if (PyObject_TypeCheck(left_object, &PyFastCDElementType)
             && PyObject_TypeCheck(right_object, &PyFastCDElementType)) {
@@ -1205,8 +2031,15 @@ static PyObject* pyfastcd_element_subtract(PyObject* left_object,
 // Multiply compatible elements or scale an element by a real scalar
 static PyObject* pyfastcd_element_multiply(PyObject* left_object,
         PyObject* right_object) {
-    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object))
+    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object)) {
+        PyObject* native;
+
+        if (pyfastcd_extended_operator(FASTCD_OP_MULTIPLY, left_object,
+                    right_object, &native)) {
+            return native;
+        }
         return pyfastcd_domain_binary("multiply", left_object, right_object);
+    }
 
     if (PyObject_TypeCheck(left_object, &PyFastCDElementType)
             && PyObject_TypeCheck(right_object, &PyFastCDElementType)) {
@@ -1272,7 +2105,7 @@ static PyObject* pyfastcd_element_multiply(PyObject* left_object,
 // Return the coordinatewise negation of an element
 static PyObject* pyfastcd_element_negative(PyObject* self_object) {
     if (pyfastcd_is_extended(self_object))
-        return pyfastcd_domain_call("negative", self_object, NULL);
+        return pyfastcd_extended_method(FASTCD_OP_NEGATE, self_object, NULL, NULL);
 
     PyFastCDElement* self = (PyFastCDElement*)self_object;
     PyFastCDElement* result = pyfastcd_element_allocate(self->algebra,
@@ -1316,8 +2149,15 @@ static PyObject* pyfastcd_element_absolute(PyObject* self_object) {
 // Divide an element coordinatewise by a nonzero real scalar
 static PyObject* pyfastcd_element_true_divide(PyObject* left_object,
         PyObject* right_object) {
-    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object))
+    if (pyfastcd_is_extended(left_object) || pyfastcd_is_extended(right_object)) {
+        PyObject* native;
+
+        if (pyfastcd_extended_operator(FASTCD_OP_DIVIDE, left_object,
+                    right_object, &native)) {
+            return native;
+        }
         return pyfastcd_domain_binary("divide", left_object, right_object);
+    }
 
     PyFastCDElement* left;
     PyFastCDElement* result;
@@ -1350,6 +2190,17 @@ static PyObject* pyfastcd_element_true_divide(PyObject* left_object,
 static PyObject* pyfastcd_element_power(PyObject* base_object,
         PyObject* exponent_object, PyObject* modulus) {
     if (pyfastcd_is_extended(base_object)) {
+        // Other exponent types, huge exponents and every error use the adapter
+        if (modulus == Py_None && PyLong_CheckExact(exponent_object)) {
+            int overflow;
+            long long exponent = PyLong_AsLongLongAndOverflow(exponent_object,
+                    &overflow);
+
+            if (overflow == 0 && exponent != LLONG_MIN) {
+                return pyfastcd_extended_power((PyFastCDElement*)base_object,
+                        exponent);
+            }
+        }
         PyObject* pair = PyTuple_Pack(2, exponent_object, modulus ? modulus : Py_None);
         if (!pair)
             return NULL;
@@ -1600,9 +2451,6 @@ static PyObject* pyfastcd_binary_element_result(PyFastCDElement* self,
 // Expose element copying through the Python method table
 static PyObject* pyfastcd_element_copy_method(PyObject* self,
         PyObject* Py_UNUSED(arguments)) {
-    if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("copy", self, NULL);
-
     return (PyObject*)pyfastcd_element_copy((PyFastCDElement*)self);
 }
 
@@ -1619,7 +2467,7 @@ PyDoc_STRVAR(pyfastcd_element_copy_doc,
 static PyObject* pyfastcd_element_conjugate(PyObject* self,
         PyObject* Py_UNUSED(arguments)) {
     if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("conjugate", self, NULL);
+        return pyfastcd_extended_method(FASTCD_OP_CONJUGATE, self, NULL, NULL);
 
     return pyfastcd_unary_element_result((PyFastCDElement*)self,
             PYFASTCD_UNARY_CONJUGATE);
@@ -1639,7 +2487,7 @@ PyDoc_STRVAR(pyfastcd_element_conjugate_doc,
 static PyObject* pyfastcd_element_imag_part(PyObject* self,
         PyObject* Py_UNUSED(arguments)) {
     if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("imag_part", self, NULL);
+        return pyfastcd_extended_method(FASTCD_OP_IMAG_PART, self, NULL, NULL);
 
     return pyfastcd_unary_element_result((PyFastCDElement*)self,
             PYFASTCD_UNARY_IMAG_PART);
@@ -1658,8 +2506,13 @@ PyDoc_STRVAR(pyfastcd_element_imag_part_doc,
 // Return the Euclidean coefficient inner product of two elements
 static PyObject* pyfastcd_element_inner(PyObject* self_object,
         PyObject* other_object) {
-    if (pyfastcd_is_extended(self_object) || pyfastcd_is_extended(other_object))
+    if (pyfastcd_is_extended(self_object) || pyfastcd_is_extended(other_object)) {
+        PyObject* native = pyfastcd_extended_method(FASTCD_OP_INNER,
+                self_object, other_object, NULL);
+
+        if (native != NULL || PyErr_Occurred()) return native;
         return pyfastcd_domain_call("inner", self_object, other_object);
+    }
 
     PyFastCDElement* self = (PyFastCDElement*)self_object;
     PyFastCDElement* other;
@@ -1714,7 +2567,8 @@ PyDoc_STRVAR(
 static PyObject* pyfastcd_element_norm_squared(PyObject* self_object,
         PyObject* Py_UNUSED(arguments)) {
     if (pyfastcd_is_extended(self_object))
-        return pyfastcd_domain_call("quadratic_norm", self_object, NULL);
+        return pyfastcd_extended_method(FASTCD_OP_QUADRATIC_NORM, self_object,
+                NULL, NULL);
 
     PyFastCDElement* self = (PyFastCDElement*)self_object;
     double value;
@@ -1809,7 +2663,7 @@ PyDoc_STRVAR(pyfastcd_element_normalized_doc,
 static PyObject* pyfastcd_element_reciprocal(PyObject* self,
         PyObject* Py_UNUSED(arguments)) {
     if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("reciprocal", self, NULL);
+        return pyfastcd_extended_method(FASTCD_OP_RECIPROCAL, self, NULL, NULL);
 
     return pyfastcd_unary_element_result((PyFastCDElement*)self,
             PYFASTCD_UNARY_RECIPROCAL);
@@ -1842,7 +2696,7 @@ PyDoc_STRVAR(pyfastcd_element_reciprocal_doc,
 static PyObject* pyfastcd_element_square(PyObject* self,
         PyObject* Py_UNUSED(arguments)) {
     if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("square", self, NULL);
+        return pyfastcd_extended_method(FASTCD_OP_SQUARE, self, NULL, NULL);
 
     return pyfastcd_unary_element_result((PyFastCDElement*)self,
             PYFASTCD_UNARY_SQUARE);
@@ -1865,8 +2719,13 @@ PyDoc_STRVAR(pyfastcd_element_square_doc,
 // Return the alternating product of the imaginary parts of two elements
 static PyObject* pyfastcd_element_imag_cross(PyObject* self,
         PyObject* other) {
-    if (pyfastcd_is_extended(self) || pyfastcd_is_extended(other))
+    if (pyfastcd_is_extended(self) || pyfastcd_is_extended(other)) {
+        PyObject* native = pyfastcd_extended_method(FASTCD_OP_IMAG_CROSS, self,
+                other, NULL);
+
+        if (native != NULL || PyErr_Occurred()) return native;
         return pyfastcd_domain_call("imag_cross", self, other);
+    }
 
     return pyfastcd_binary_element_result((PyFastCDElement*)self, other,
             PYFASTCD_BINARY_IMAG_CROSS);
@@ -1905,8 +2764,13 @@ PyDoc_STRVAR(pyfastcd_element_imag_cross_doc,
 // Return the multiplication commutator of two elements
 static PyObject* pyfastcd_element_commutator(PyObject* self,
         PyObject* other) {
-    if (pyfastcd_is_extended(self) || pyfastcd_is_extended(other))
+    if (pyfastcd_is_extended(self) || pyfastcd_is_extended(other)) {
+        PyObject* native = pyfastcd_extended_method(FASTCD_OP_COMMUTATOR, self,
+                other, NULL);
+
+        if (native != NULL || PyErr_Occurred()) return native;
         return pyfastcd_domain_call("commutator", self, other);
+    }
 
     return pyfastcd_binary_element_result((PyFastCDElement*)self, other,
             PYFASTCD_BINARY_COMMUTATOR);
@@ -1943,8 +2807,13 @@ PyDoc_STRVAR(pyfastcd_element_commutator_doc,
 // Return the multiplication anticommutator of two elements
 static PyObject* pyfastcd_element_anticommutator(PyObject* self,
         PyObject* other) {
-    if (pyfastcd_is_extended(self) || pyfastcd_is_extended(other))
+    if (pyfastcd_is_extended(self) || pyfastcd_is_extended(other)) {
+        PyObject* native = pyfastcd_extended_method(FASTCD_OP_ANTICOMMUTATOR, self,
+                other, NULL);
+
+        if (native != NULL || PyErr_Occurred()) return native;
         return pyfastcd_domain_call("anticommutator", self, other);
+    }
 
     return pyfastcd_binary_element_result((PyFastCDElement*)self, other,
             PYFASTCD_BINARY_ANTICOMMUTATOR);
@@ -1982,6 +2851,13 @@ PyDoc_STRVAR(pyfastcd_element_anticommutator_doc,
 static PyObject* pyfastcd_element_associator(PyObject* self_object,
         PyObject* args) {
     if (pyfastcd_is_extended(self_object)) {
+        if (PyTuple_GET_SIZE(args) == 2) {
+            PyObject* native = pyfastcd_extended_method(FASTCD_OP_ASSOCIATOR,
+                    self_object, PyTuple_GET_ITEM(args, 0),
+                    PyTuple_GET_ITEM(args, 1));
+
+            if (native != NULL || PyErr_Occurred()) return native;
+        }
         return pyfastcd_domain_call("associator", self_object, args);
     }
 
@@ -2146,23 +3022,32 @@ static PyObject* pyfastcd_element_get_algebra(PyObject* self, void* closure) {
 // Return the element coefficient dimension exposed by the descriptor
 static PyObject* pyfastcd_element_get_dimension(PyObject* self,
         void* closure) {
-    if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("dimension", self, NULL);
-
     (void)closure;
+    if (pyfastcd_is_extended(self)) {
+        const PyFastCDDomain* domain
+            = pyfastcd_element_domain((PyFastCDElement*)self);
+
+        return PyLong_FromSize_t(domain->field_scalar ? 1 : domain->n);
+    }
+
     return PyLong_FromSsize_t(Py_SIZE((PyFastCDElement*)self));
 }
 
 // Return the doubling level exposed by the element descriptor
 static PyObject* pyfastcd_element_get_level(PyObject* self, void* closure) {
-    if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("level", self, NULL);
-
+    size_t dimension = (size_t)Py_SIZE((PyFastCDElement*)self);
     size_t level;
     FastCDStatus status;
 
     (void)closure;
-    status = fastcd_level((size_t)Py_SIZE((PyFastCDElement*)self), &level);
+    if (pyfastcd_is_extended(self)) {
+        const PyFastCDDomain* domain
+            = pyfastcd_element_domain((PyFastCDElement*)self);
+
+        // A coefficient-field scalar is at level zero
+        dimension = domain->field_scalar ? 1 : domain->n;
+    }
+    status = fastcd_level(dimension, &level);
     if (status != FASTCD_SUCCESS) {
         pyfastcd_set_status_error(status);
         return NULL;
@@ -2172,19 +3057,26 @@ static PyObject* pyfastcd_element_get_level(PyObject* self, void* closure) {
 
 // Return the scalar coordinate exposed by the element descriptor
 static PyObject* pyfastcd_element_get_real(PyObject* self, void* closure) {
-    if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("real", self, NULL);
-
     (void)closure;
+    if (pyfastcd_is_extended(self)) {
+        PyFastCDElement* element = (PyFastCDElement*)self;
+
+        // A field scalar is its own scalar coordinate
+        if (pyfastcd_element_domain(element)->field_scalar) {
+            return (PyObject*)pyfastcd_extended_copy(element);
+        }
+        return pyfastcd_extended_coefficient(element, 0);
+    }
+
     return PyFloat_FromDouble(((PyFastCDElement*)self)->coefficients[0]);
 }
 
 // Return the imaginary part exposed by the element descriptor
 static PyObject* pyfastcd_element_get_imag(PyObject* self, void* closure) {
-    if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("imag", self, NULL);
-
     (void)closure;
+    if (pyfastcd_is_extended(self))
+        return pyfastcd_extended_method(FASTCD_OP_IMAG_PART, self, NULL, NULL);
+
     return pyfastcd_unary_element_result((PyFastCDElement*)self,
             PYFASTCD_UNARY_IMAG_PART);
 }
@@ -2205,10 +3097,25 @@ static PyObject* pyfastcd_element_get_coefficients(PyObject* self,
 
 // Return the one-dimensional coefficient shape exposed to NumPy
 static PyObject* pyfastcd_element_get_shape(PyObject* self, void* closure) {
-    if (pyfastcd_is_extended(self))
-        return pyfastcd_domain_call("shape", self, NULL);
-
     (void)closure;
+    if (pyfastcd_is_extended(self)) {
+        PyFastCDDomainStorage* storage
+            = pyfastcd_domain_storage((PyFastCDElement*)self);
+        PyObject* shape = PyTuple_New(storage->ndim);
+
+        if (shape == NULL) return NULL;
+        for (int axis = 0; axis < storage->ndim; axis++) {
+            PyObject* extent = PyLong_FromSsize_t(storage->shape[axis]);
+
+            if (extent == NULL) {
+                Py_DECREF(shape);
+                return NULL;
+            }
+            PyTuple_SET_ITEM(shape, axis, extent);
+        }
+        return shape;
+    }
+
     return Py_BuildValue("(n)", Py_SIZE((PyFastCDElement*)self));
 }
 
@@ -2243,22 +3150,23 @@ static PyObject* pyfastcd_element_array_ufunc(PyObject* self,
     if (pyfastcd_is_extended(self))
         return pyfastcd_domain_keywords("__array_ufunc__", self, args, keywords);
 
+    static PyObject* function = NULL;
     PyObject* module;
-    PyObject* function;
     PyObject* full_arguments;
     PyObject* result;
     Py_ssize_t argument_count = PyTuple_GET_SIZE(args);
 
-    module = PyImport_ImportModule("pyfastcd._operators");
-    if (module == NULL) return NULL;
-    function = PyObject_GetAttrString(module, "_element_array_ufunc");
-    Py_DECREF(module);
-    if (function == NULL) return NULL;
-    full_arguments = PyTuple_New(argument_count + 1);
-    if (full_arguments == NULL) {
-        Py_DECREF(function);
-        return NULL;
+    // The dispatcher imports this extension, so it loads on first use and
+    // the reference is then kept for the process lifetime
+    if (function == NULL) {
+        module = PyImport_ImportModule("pyfastcd._operators");
+        if (module == NULL) return NULL;
+        function = PyObject_GetAttrString(module, "_element_array_ufunc");
+        Py_DECREF(module);
+        if (function == NULL) return NULL;
     }
+    full_arguments = PyTuple_New(argument_count + 1);
+    if (full_arguments == NULL) return NULL;
     PyTuple_SET_ITEM(full_arguments, 0, Py_NewRef(self));
     for (Py_ssize_t i = 0; i < argument_count; i++) {
         PyTuple_SET_ITEM(full_arguments, i + 1,
@@ -2266,7 +3174,6 @@ static PyObject* pyfastcd_element_array_ufunc(PyObject* self,
     }
     result = PyObject_Call(function, full_arguments, keywords);
     Py_DECREF(full_arguments);
-    Py_DECREF(function);
     return result;
 }
 
@@ -2824,12 +3731,32 @@ static int pyfastcd_matching_scalar_output(const Py_buffer* input,
     return 0;
 }
 
-// Compute the number of coefficient records in an element buffer
-static int pyfastcd_batch_count(const Py_buffer* input, size_t* count) {
+// Require an input to match the output shape or to hold one broadcast record
+static int pyfastcd_matching_input(const Py_buffer* output,
+        const Py_buffer* input, const char* argument_name) {
+    // Acquisition has already checked the length of a single record
+    if (input->ndim == 1) return 0;
+    return pyfastcd_matching_element_buffers(output, input, argument_name);
+}
+
+// Require a scalar-valued input to match the batch or to hold one record
+static int pyfastcd_matching_scalar_input(const Py_buffer* input,
+        const Py_buffer* output) {
+    if (input->ndim == 1) return 0;
+    return pyfastcd_matching_scalar_output(input, output);
+}
+
+// Compute the number of records over the leading batch axes of a buffer
+static int pyfastcd_batch_count(const Py_buffer* buffer, int batch_ndim,
+        size_t* count) {
     size_t result = 1;
 
-    for (int axis = 0; axis < input->ndim - 1; axis++) {
-        size_t extent = (size_t)input->shape[axis];
+    if (batch_ndim > PyBUF_MAX_NDIM) {
+        PyErr_SetString(PyExc_ValueError, "too many batch axes");
+        return -1;
+    }
+    for (int axis = 0; axis < batch_ndim; axis++) {
+        size_t extent = (size_t)buffer->shape[axis];
         if (extent != 0 && result > SIZE_MAX / extent) {
             PyErr_SetString(PyExc_OverflowError,
                     "batch element count overflow");
@@ -2841,19 +3768,57 @@ static int pyfastcd_batch_count(const Py_buffer* input, size_t* count) {
     return 0;
 }
 
-// Resolve a flat batch index to its record address in a strided buffer
-static char* pyfastcd_record_pointer(const Py_buffer* view, size_t flat_index,
-        int batch_ndim, const Py_ssize_t* batch_shape) {
-    Py_ssize_t offset = 0;
-    size_t remaining = flat_index;
+/* The record pointers of an output and its inputs at one C-order batch
+ * index. Stepping adds strides like an odometer, so strided, reversed and
+ * broadcast layouts are visited without dividing a flat index. An input with
+ * no batch axes holds one record, which every step reuses. */
+typedef struct {
+    char* at[4];
+    const Py_ssize_t* strides[4];
+    const Py_ssize_t* shape;
+    int batch_ndim;
+    int buffers;
+    Py_ssize_t index[PyBUF_MAX_NDIM];
+} PyFastCDCursor;
 
-    for (int axis = batch_ndim - 1; axis >= 0; axis--) {
-        size_t extent = (size_t)batch_shape[axis];
-        size_t index = extent == 0 ? 0 : remaining % extent;
-        if (extent != 0) remaining /= extent;
-        offset += (Py_ssize_t)index * view->strides[axis];
+// Strides of an input that repeats one record along every batch axis
+static const Py_ssize_t pyfastcd_repeat_strides[PyBUF_MAX_NDIM] = {0};
+
+// Add a buffer whose leading axes are the batch axes, or that has none
+static void pyfastcd_cursor_add(PyFastCDCursor* cursor,
+        const Py_buffer* buffer, int batch_ndim) {
+    cursor->at[cursor->buffers] = (char*)buffer->buf;
+    cursor->strides[cursor->buffers] = batch_ndim == cursor->batch_ndim
+        ? buffer->strides : pyfastcd_repeat_strides;
+    cursor->buffers++;
+}
+
+// Point a cursor at the first record of an output with the given batch axes
+static void pyfastcd_cursor_start(PyFastCDCursor* cursor,
+        const Py_buffer* output, int batch_ndim) {
+    cursor->shape = output->shape;
+    cursor->batch_ndim = batch_ndim;
+    cursor->buffers = 0;
+    for (int axis = 0; axis < batch_ndim; axis++) cursor->index[axis] = 0;
+    pyfastcd_cursor_add(cursor, output, batch_ndim);
+}
+
+// Step a cursor to the next batch index in C order
+static void pyfastcd_cursor_next(PyFastCDCursor* cursor) {
+    for (int axis = cursor->batch_ndim - 1; axis >= 0; axis--) {
+        Py_ssize_t extent = cursor->shape[axis];
+
+        if (++cursor->index[axis] < extent) {
+            for (int i = 0; i < cursor->buffers; i++) {
+                cursor->at[i] += cursor->strides[i][axis];
+            }
+            return;
+        }
+        cursor->index[axis] = 0;
+        for (int i = 0; i < cursor->buffers; i++) {
+            cursor->at[i] -= (extent - 1) * cursor->strides[i][axis];
+        }
     }
-    return (char*)view->buf + offset;
 }
 
 // Report whether every batch axis broadcasts one coefficient record
@@ -3264,7 +4229,7 @@ static PyObject* pyfastcd_apply_unary_into(PyObject* Py_UNUSED(module),
         return NULL;
     }
     if (pyfastcd_matching_element_buffers(&out, &x, "input") < 0
-            || pyfastcd_batch_count(&x, &count) < 0
+            || pyfastcd_batch_count(&out, out.ndim - 1, &count) < 0
             || pyfastcd_require_disjoint_output(&out, false, &x, count,
                 dimension, "input") < 0
             || pyfastcd_unary_workspace(dimension,
@@ -3276,13 +4241,14 @@ static PyObject* pyfastcd_apply_unary_into(PyObject* Py_UNUSED(module),
 
 #define PYFASTCD_RUN_UNARY_LOOP() \
     do { \
-        for (size_t record = 0; record < count; record++) { \
-            double* out_pointer = (double*)pyfastcd_record_pointer(&out, \
-                    record, x.ndim - 1, x.shape); \
-            const double* x_pointer = (const double*) \
-                pyfastcd_record_pointer(&x, record, x.ndim - 1, x.shape); \
-            status = pyfastcd_apply_unary_record(out_pointer, x_pointer, \
-                    dimension, (PyFastCDUnaryOperation)operation_value, \
+        PyFastCDCursor cursor; \
+        pyfastcd_cursor_start(&cursor, &out, out.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &x, x.ndim - 1); \
+        for (size_t record = 0; record < count; \
+                record++, pyfastcd_cursor_next(&cursor)) { \
+            status = pyfastcd_apply_unary_record((double*)cursor.at[0], \
+                    (const double*)cursor.at[1], dimension, \
+                    (PyFastCDUnaryOperation)operation_value, \
                     &workspace.value); \
             if (status != FASTCD_SUCCESS) break; \
         } \
@@ -3333,10 +4299,9 @@ static PyObject* pyfastcd_multiply_into(PyObject* out_object,
         PyBuffer_Release(&out);
         return NULL;
     }
-    if (pyfastcd_matching_element_buffers(&out, &x, "left input") < 0
-            || pyfastcd_matching_element_buffers(&out, &y,
-                "right input") < 0
-            || pyfastcd_batch_count(&x, &count) < 0
+    if (pyfastcd_matching_input(&out, &x, "left input") < 0
+            || pyfastcd_matching_input(&out, &y, "right input") < 0
+            || pyfastcd_batch_count(&out, out.ndim - 1, &count) < 0
             || pyfastcd_require_disjoint_output(&out, false, &x, count,
                 dimension, "left input") < 0
             || pyfastcd_require_disjoint_output(&out, false, &y, count,
@@ -3382,18 +4347,15 @@ static PyObject* pyfastcd_multiply_into(PyObject* out_object,
     } else {
 #define PYFASTCD_RUN_MULTIPLY_LOOP() \
         do { \
-            for (size_t record = 0; record < count; record++) { \
-                double* out_pointer = (double*) \
-                    pyfastcd_record_pointer(&out, record, x.ndim - 1, \
-                            x.shape); \
-                const double* x_pointer = (const double*) \
-                    pyfastcd_record_pointer(&x, record, x.ndim - 1, \
-                            x.shape); \
-                const double* y_pointer = (const double*) \
-                    pyfastcd_record_pointer(&y, record, x.ndim - 1, \
-                            x.shape); \
-                status = fastcd_mul_with_algorithm_f64(out_pointer, \
-                        x_pointer, y_pointer, dimension, algorithm, \
+            PyFastCDCursor cursor; \
+            pyfastcd_cursor_start(&cursor, &out, out.ndim - 1); \
+            pyfastcd_cursor_add(&cursor, &x, x.ndim - 1); \
+            pyfastcd_cursor_add(&cursor, &y, y.ndim - 1); \
+            for (size_t record = 0; record < count; \
+                    record++, pyfastcd_cursor_next(&cursor)) { \
+                status = fastcd_mul_with_algorithm_f64( \
+                        (double*)cursor.at[0], (const double*)cursor.at[1], \
+                        (const double*)cursor.at[2], dimension, algorithm, \
                         &workspace.value); \
                 if (status != FASTCD_SUCCESS) break; \
             } \
@@ -3464,10 +4426,9 @@ static PyObject* pyfastcd_apply_binary_into(PyObject* Py_UNUSED(module),
         PyBuffer_Release(&out);
         return NULL;
     }
-    if (pyfastcd_matching_element_buffers(&out, &x, "left input") < 0
-            || pyfastcd_matching_element_buffers(&out, &y,
-                "right input") < 0
-            || pyfastcd_batch_count(&x, &count) < 0
+    if (pyfastcd_matching_input(&out, &x, "left input") < 0
+            || pyfastcd_matching_input(&out, &y, "right input") < 0
+            || pyfastcd_batch_count(&out, out.ndim - 1, &count) < 0
             || pyfastcd_require_disjoint_output(&out, false, &x, count,
                 dimension, "left input") < 0
             || pyfastcd_require_disjoint_output(&out, false, &y, count,
@@ -3482,18 +4443,15 @@ static PyObject* pyfastcd_apply_binary_into(PyObject* Py_UNUSED(module),
 
 #define PYFASTCD_RUN_BINARY_LOOP() \
         do { \
-            for (size_t record = 0; record < count; record++) { \
-                double* out_pointer = (double*) \
-                    pyfastcd_record_pointer(&out, record, x.ndim - 1, \
-                            x.shape); \
-                const double* x_pointer = (const double*) \
-                    pyfastcd_record_pointer(&x, record, x.ndim - 1, \
-                            x.shape); \
-                const double* y_pointer = (const double*) \
-                    pyfastcd_record_pointer(&y, record, x.ndim - 1, \
-                            x.shape); \
-                status = pyfastcd_apply_binary_record(out_pointer, x_pointer, \
-                        y_pointer, dimension, \
+            PyFastCDCursor cursor; \
+            pyfastcd_cursor_start(&cursor, &out, out.ndim - 1); \
+            pyfastcd_cursor_add(&cursor, &x, x.ndim - 1); \
+            pyfastcd_cursor_add(&cursor, &y, y.ndim - 1); \
+            for (size_t record = 0; record < count; \
+                    record++, pyfastcd_cursor_next(&cursor)) { \
+                status = pyfastcd_apply_binary_record((double*)cursor.at[0], \
+                        (const double*)cursor.at[1], \
+                        (const double*)cursor.at[2], dimension, \
                         (PyFastCDBinaryOperation)operation_value, \
                         &workspace.value); \
                 if (status != FASTCD_SUCCESS) break; \
@@ -3584,10 +4542,9 @@ static PyObject* pyfastcd_apply_scalar_into(PyObject* Py_UNUSED(module),
         PyBuffer_Release(&out);
         return NULL;
     }
-    if (pyfastcd_matching_scalar_output(&x, &out) < 0
-            || (has_y && pyfastcd_matching_element_buffers(&x, &y,
-                "right input") < 0)
-            || pyfastcd_batch_count(&x, &count) < 0
+    if (pyfastcd_matching_scalar_input(&x, &out) < 0
+            || (has_y && pyfastcd_matching_scalar_input(&y, &out) < 0)
+            || pyfastcd_batch_count(&out, out.ndim, &count) < 0
             || pyfastcd_require_disjoint_output(&out, true, &x, count,
                 dimension, "left input") < 0
             || (has_y && pyfastcd_require_disjoint_output(&out, true, &y,
@@ -3600,18 +4557,18 @@ static PyObject* pyfastcd_apply_scalar_into(PyObject* Py_UNUSED(module),
 
 #define PYFASTCD_RUN_SCALAR_LOOP() \
     do { \
-        for (size_t record = 0; record < count; record++) { \
-            double* out_pointer = (double*)pyfastcd_record_pointer(&out, \
-                    record, x.ndim - 1, x.shape); \
-            const double* x_pointer = (const double*) \
-                pyfastcd_record_pointer(&x, record, x.ndim - 1, x.shape); \
+        PyFastCDCursor cursor; \
+        pyfastcd_cursor_start(&cursor, &out, out.ndim); \
+        pyfastcd_cursor_add(&cursor, &x, x.ndim - 1); \
+        if (has_y) pyfastcd_cursor_add(&cursor, &y, y.ndim - 1); \
+        for (size_t record = 0; record < count; \
+                record++, pyfastcd_cursor_next(&cursor)) { \
+            double* out_pointer = (double*)cursor.at[0]; \
+            const double* x_pointer = (const double*)cursor.at[1]; \
             if ((PyFastCDScalarOperation)operation_value \
                     == PYFASTCD_SCALAR_INNER) { \
-                const double* y_pointer = (const double*) \
-                    pyfastcd_record_pointer(&y, record, x.ndim - 1, \
-                            x.shape); \
-                status = fastcd_inner_f64(out_pointer, x_pointer, y_pointer, \
-                        dimension); \
+                status = fastcd_inner_f64(out_pointer, x_pointer, \
+                        (const double*)cursor.at[2], dimension); \
             } else if ((PyFastCDScalarOperation)operation_value \
                     == PYFASTCD_SCALAR_NORM_SQUARED) { \
                 status = fastcd_norm_squared_f64(out_pointer, x_pointer, \
@@ -3677,12 +4634,10 @@ static PyObject* pyfastcd_apply_associator_into(
                 "second input") < 0) goto associator_release_x;
     if (pyfastcd_acquire_element_buffer(z_object, &z, dimension, false,
                 "third input") < 0) goto associator_release_y;
-    if (pyfastcd_matching_element_buffers(&out, &x, "first input") < 0
-            || pyfastcd_matching_element_buffers(&out, &y,
-                "second input") < 0
-            || pyfastcd_matching_element_buffers(&out, &z,
-                "third input") < 0
-            || pyfastcd_batch_count(&x, &count) < 0
+    if (pyfastcd_matching_input(&out, &x, "first input") < 0
+            || pyfastcd_matching_input(&out, &y, "second input") < 0
+            || pyfastcd_matching_input(&out, &z, "third input") < 0
+            || pyfastcd_batch_count(&out, out.ndim - 1, &count) < 0
             || pyfastcd_require_disjoint_output(&out, false, &x, count,
                 dimension, "first input") < 0
             || pyfastcd_require_disjoint_output(&out, false, &y, count,
@@ -3696,17 +4651,18 @@ static PyObject* pyfastcd_apply_associator_into(
 
 #define PYFASTCD_RUN_ASSOCIATOR_LOOP() \
     do { \
-        for (size_t record = 0; record < count; record++) { \
-            double* out_pointer = (double*)pyfastcd_record_pointer(&out, \
-                    record, x.ndim - 1, x.shape); \
-            const double* x_pointer = (const double*) \
-                pyfastcd_record_pointer(&x, record, x.ndim - 1, x.shape); \
-            const double* y_pointer = (const double*) \
-                pyfastcd_record_pointer(&y, record, x.ndim - 1, x.shape); \
-            const double* z_pointer = (const double*) \
-                pyfastcd_record_pointer(&z, record, x.ndim - 1, x.shape); \
-            status = fastcd_associator_f64(out_pointer, x_pointer, y_pointer, \
-                    z_pointer, dimension, &workspace.value); \
+        PyFastCDCursor cursor; \
+        pyfastcd_cursor_start(&cursor, &out, out.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &x, x.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &y, y.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &z, z.ndim - 1); \
+        for (size_t record = 0; record < count; \
+                record++, pyfastcd_cursor_next(&cursor)) { \
+            status = fastcd_associator_f64((double*)cursor.at[0], \
+                    (const double*)cursor.at[1], \
+                    (const double*)cursor.at[2], \
+                    (const double*)cursor.at[3], dimension, \
+                    &workspace.value); \
             if (status != FASTCD_SUCCESS) break; \
         } \
     } while (0)
@@ -3775,7 +4731,7 @@ static PyObject* pyfastcd_apply_basis_into(PyObject* Py_UNUSED(module),
         return NULL;
     }
     if (pyfastcd_matching_element_buffers(&out, &x, "input") < 0
-            || pyfastcd_batch_count(&x, &count) < 0
+            || pyfastcd_batch_count(&out, out.ndim - 1, &count) < 0
             || pyfastcd_require_disjoint_output(&out, false, &x, count,
                 dimension, "input") < 0) {
         PyBuffer_Release(&x);
@@ -3785,11 +4741,13 @@ static PyObject* pyfastcd_apply_basis_into(PyObject* Py_UNUSED(module),
 
 #define PYFASTCD_RUN_BASIS_LOOP() \
     do { \
-        for (size_t record = 0; record < count; record++) { \
-            double* out_pointer = (double*)pyfastcd_record_pointer(&out, \
-                    record, x.ndim - 1, x.shape); \
-            const double* x_pointer = (const double*) \
-                pyfastcd_record_pointer(&x, record, x.ndim - 1, x.shape); \
+        PyFastCDCursor cursor; \
+        pyfastcd_cursor_start(&cursor, &out, out.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &x, x.ndim - 1); \
+        for (size_t record = 0; record < count; \
+                record++, pyfastcd_cursor_next(&cursor)) { \
+            double* out_pointer = (double*)cursor.at[0]; \
+            const double* x_pointer = (const double*)cursor.at[1]; \
             status = left_action \
                 ? fastcd_basis_lmul_f64(out_pointer, (size_t)index_value, \
                         x_pointer, dimension) \
@@ -3851,10 +4809,10 @@ static PyObject* pyfastcd_apply_operator_into(PyObject* Py_UNUSED(module),
                 "b") < 0) goto operator_release_a;
     if (pyfastcd_acquire_element_buffer(x_object, &x, dimension, false,
                 "x") < 0) goto operator_release_b;
-    if (pyfastcd_matching_element_buffers(&out, &a, "a") < 0
-            || pyfastcd_matching_element_buffers(&out, &b, "b") < 0
-            || pyfastcd_matching_element_buffers(&out, &x, "x") < 0
-            || pyfastcd_batch_count(&x, &count) < 0
+    if (pyfastcd_matching_input(&out, &a, "a") < 0
+            || pyfastcd_matching_input(&out, &b, "b") < 0
+            || pyfastcd_matching_input(&out, &x, "x") < 0
+            || pyfastcd_batch_count(&out, out.ndim - 1, &count) < 0
             || pyfastcd_require_disjoint_output(&out, false, &a, count,
                 dimension, "a") < 0
             || pyfastcd_require_disjoint_output(&out, false, &b, count,
@@ -3869,15 +4827,17 @@ static PyObject* pyfastcd_apply_operator_into(PyObject* Py_UNUSED(module),
 
 #define PYFASTCD_RUN_OPERATOR_LOOP() \
     do { \
-        for (size_t record = 0; record < count; record++) { \
-            double* out_pointer = (double*)pyfastcd_record_pointer(&out, \
-                    record, x.ndim - 1, x.shape); \
-            const double* a_pointer = (const double*) \
-                pyfastcd_record_pointer(&a, record, x.ndim - 1, x.shape); \
-            const double* b_pointer = (const double*) \
-                pyfastcd_record_pointer(&b, record, x.ndim - 1, x.shape); \
-            const double* x_pointer = (const double*) \
-                pyfastcd_record_pointer(&x, record, x.ndim - 1, x.shape); \
+        PyFastCDCursor cursor; \
+        pyfastcd_cursor_start(&cursor, &out, out.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &a, a.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &b, b.ndim - 1); \
+        pyfastcd_cursor_add(&cursor, &x, x.ndim - 1); \
+        for (size_t record = 0; record < count; \
+                record++, pyfastcd_cursor_next(&cursor)) { \
+            double* out_pointer = (double*)cursor.at[0]; \
+            const double* a_pointer = (const double*)cursor.at[1]; \
+            const double* b_pointer = (const double*)cursor.at[2]; \
+            const double* x_pointer = (const double*)cursor.at[3]; \
             status = left_operator \
                 ? fastcd_lop_commutator_apply_f64(out_pointer, a_pointer, \
                         b_pointer, x_pointer, dimension, &workspace.value) \
@@ -4026,62 +4986,11 @@ static PyObject* pyfastcd_comparison_scalar_entry(PyObject* Py_UNUSED(module),
     return pyfastcd_comparison_scalar(value);
 }
 
-// Allocate an immutable complex or finite-field Element and its trailer
-static PyObject* pyfastcd_extended_element(PyObject* module, PyObject* args) {
-    (void)module;
-    PyObject* parent, *payload, *shape;
-    int complex;
-    if (!PyArg_ParseTuple(args, "OOOi", &parent, &payload, &shape, &complex))
-        return NULL;
-    if (!PyBytes_Check(payload) || !PyTuple_Check(shape) ||
-            PyTuple_GET_SIZE(shape) > 2) {
-        PyErr_SetString(
-                PyExc_TypeError, "expected immutable bytes and coefficient shape");
-        return NULL;
-    }
-    Py_ssize_t length = PyBytes_GET_SIZE(payload), count = 1, item = complex ? 16 : 4;
-    int ndim = (int)PyTuple_GET_SIZE(shape);
-    Py_ssize_t dimensions[2] = {0, 0};
-    for (int i = 0; i < ndim; i++) {
-        dimensions[i] = PyLong_AsSsize_t(PyTuple_GET_ITEM(shape, i));
-        if (PyErr_Occurred()) return NULL;
-        if (dimensions[i] < 1 || count > PY_SSIZE_T_MAX / dimensions[i]) {
-            PyErr_SetString(PyExc_OverflowError, "coefficient shape overflow");
-            return NULL;
-        }
-        count *= dimensions[i];
-    }
-    if (count > PY_SSIZE_T_MAX / item || count * item != length ||
-            length > PY_SSIZE_T_MAX - (Py_ssize_t)sizeof(PyFastCDDomainStorage) - 7) {
-        PyErr_SetString(PyExc_ValueError, "coefficient byte length mismatch");
-        return NULL;
-    }
-    // Round coefficient bytes up to double alignment, then reserve metadata
-    // inside the same variable allocation, which real allocations skip
-    size_t units =
-            (size_t)(length + 7) / 8 + sizeof(PyFastCDDomainStorage) / sizeof(double);
-    PyFastCDElement* e = pyfastcd_element_allocate(parent, units);
-    if (!e) return NULL;
-    PyFastCDDomainStorage* storage = pyfastcd_domain_storage(e);
-    memset(storage, 0, sizeof(*storage));
-    storage->ndim = ndim;
-    storage->complex = complex;
-    storage->length = length;
-    Py_ssize_t stride = item;
-    for (int i = ndim - 1; i >= 0; i--) {
-        storage->shape[i] = dimensions[i];
-        storage->strides[i] = stride;
-        stride *= dimensions[i];
-    }
-    memcpy(e->coefficients, PyBytes_AS_STRING(payload), (size_t)length);
-    // Publish the domain marker only after payload and buffer metadata agree
-    e->buffer_stride = -1;
-    return (PyObject*)e;
-}
-
 static PyMethodDef pyfastcd_module_methods[] = {
     {"_extended_element", pyfastcd_extended_element, METH_VARARGS,
-     "Construct immutable field-aware inline storage."},
+     "Construct an Element of a complex or finite-field parent from one record."},
+    {"_apply_elements", pyfastcd_apply_elements_entry, METH_VARARGS,
+     "Apply an operation to complex or finite-field Elements of one parent."},
     {"_version", pyfastcd_version, METH_NOARGS,
      "Return the linked fastCD library version."},
     {"_comparison_scalar", pyfastcd_comparison_scalar_entry, METH_O,
@@ -4139,6 +5048,11 @@ PyMODINIT_FUNC PyInit__core(void) {
     PyObject* module;
 
     if (PyType_Ready(&PyFastCDElementType) < 0) return NULL;
+    pyfastcd_context_name = PyUnicode_InternFromString("_ctx");
+    pyfastcd_field_name = PyUnicode_InternFromString("_field");
+    if (pyfastcd_context_name == NULL || pyfastcd_field_name == NULL) {
+        return NULL;
+    }
     module = PyModule_Create(&pyfastcd_module);
     if (module == NULL) return NULL;
     Py_INCREF(&PyFastCDElementType);

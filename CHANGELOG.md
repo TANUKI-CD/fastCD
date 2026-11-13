@@ -5,6 +5,36 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
+## [Unreleased]
+
+### Changed
+
+- `pyfastcd` runs `Element` arithmetic over C and finite fields inside the
+  extension module, as it does over R. Operators, named methods, integer
+  powers, comparison, hashing and coefficient access no longer pass through
+  the Python layer when the operands share one parent, or when an element is
+  combined with a builtin scalar or a scalar of its coefficient field. In
+  interpreter timings on the Dell PowerEdge T440 on 2026-11-12, a product of
+  two elements at dimension 8 took about 0.22 µs over C and 0.24 µs over
+  F_7, against 41 µs and 51 µs in 1.3.1 and 0.13 µs for the C kernel call.
+- `ElementArray` operations over every coefficient field spend less time
+  outside the kernels. Operands are expanded with NumPy only when two
+  different batch shapes are combined, the kernels repeat an operand that
+  holds one record, and contiguous finite-field batches are validated in one
+  pass. In the same timings, a product of two one-record arrays at dimension
+  8 took about 1.9 µs over R and 2.3 µs over C and F_7, against 23 µs, 30 µs
+  and 32 µs, and batches of 4096 products at dimension 8 ran within 4% of
+  the batch kernels over every coefficient field.
+- Results, including floating-point rounding, and exception types and
+  messages are those of 1.3.1.
+
+### Added
+
+- `python/tests/test_domain_elements.py`, which requires `Element` and
+  `ElementArray` arithmetic over C and finite fields to agree record for
+  record, and tests single-record operands, strided storage, residue checks
+  and shared storage for batches.
+
 ## [1.3.1] - 2026-11-10
 
 ### Added

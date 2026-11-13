@@ -124,8 +124,11 @@ snapshots.
 
 Complex and finite-field arithmetic use caller-owned contexts and scratch,
 with no heap allocation or global mutable state in the C library. Every
-finite buffer contains canonical `uint32_t` residues; the Python boundary
-validates this on every call, since callers may have mutated an array.
+finite buffer contains canonical `uint32_t` residues. The Python boundary
+validates array storage on every call, since callers may have mutated an
+array; an `Element` is immutable and is created with canonical residues.
+The two extension modules of `pyfastcd` share the layout of the arithmetic
+context in `python/src/pyfastcd/_domain.h`.
 
 Run the coefficient-field tests (`tests/test_domains.c` and
 `python/tests/test_domains.py`) in the default build, with
