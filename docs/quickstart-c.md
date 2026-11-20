@@ -155,8 +155,8 @@ not overlap either input.
 To add up the products of `count` pairs without storing them, use
 `fastcd_mul_sum_f64`. It accumulates the multiplications of the algorithm
 over the pairs and applies the algorithm's additions once. For some tens of
-pairs or more this is two to five times faster than a batch followed by a
-sum on a processor with AVX2 or AVX-512; for a handful of pairs the batch is
+pairs or more this can be faster than a batch followed by a sum on a
+processor with AVX2 or AVX-512. For a handful of pairs the batch can be
 faster. `fastcd_covariance_f64` uses the same sum for the covariance of two
 samples:
 

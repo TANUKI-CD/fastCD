@@ -144,9 +144,8 @@ FASTCD_API FastCDStatus fastcd_default_algorithm(size_t dimension,
 FASTCD_API FastCDStatus fastcd_default_batch_algorithm(size_t dimension,
         FastCDAlgorithm* algorithm);
 
-/* A fused sum runs the direct algorithm through dimension 8, where the
- * quasilinear algorithm uses as many products, and the quasilinear algorithm
- * above. */
+/* A fused sum runs the direct algorithm through dimension 8 and the
+ * quasilinear algorithm above. */
 // Write the algorithm that FASTCD_ALGORITHM_AUTO selects for a fused sum
 FASTCD_API FastCDStatus fastcd_default_sum_algorithm(size_t dimension,
         FastCDAlgorithm* algorithm);
@@ -354,10 +353,9 @@ FASTCD_API FastCDStatus fastcd_mul_sum_planes_with_algorithm_f64(double* out,
  * coordinates of their real covariances. The means are subtracted and the
  * conjugate is taken as the records are read, and the sum is a fused sum.
  * Each mean is held as the first record plus the mean of the differences
- * from it, and a sample whose magnitudes lie outside 2^-256 to 2^256 is
- * first scaled by a power of two, so the result does not depend on where
- * the samples lie or on their unit. count must exceed ddof; otherwise the
- * call returns FASTCD_INVALID_COUNT, also for a count of zero.
+ * from it. Samples of extreme magnitude are first scaled by a power
+ * of two to reduce intermediate overflow and underflow. A count that does
+ * not exceed ddof returns FASTCD_INVALID_COUNT, including a count of zero.
  */
 // Set out to the covariance of two strided samples of count records
 FASTCD_API FastCDStatus fastcd_covariance_f64(double* out, const double* x,

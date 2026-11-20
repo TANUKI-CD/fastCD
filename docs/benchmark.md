@@ -532,12 +532,11 @@ which costs the AVX-512 kernel that margin at dimension 16. Above dimension
 as long as the quasilinear sum at dimension 32 with AVX-512.
 
 With the portable kernel the fused sum of records was faster than a batch
-of products followed by a sum only at dimension 2 (1.34 to 1.41). At
+of products followed by a sum at dimension 2 (1.34 to 1.41). At
 dimensions 4 to 32 it took between 0.99 and 1.36 times as long, from 64 to
 256 it was within 4%, and at 512 and 1024 it took 1.11 to 1.19 times as
-long. On such builds the fused sums save the storage of the products and
-are more accurate (see [stability.md](stability.md#fused-sums)), but they
-save no time.
+long. At dimension 4 the direct sum of planes reached 2.03 times the batch
+speed. See [stability.md](stability.md#fused-sums) for accuracy.
 
 The archive was measured from a working tree with uncommitted changes on
 commit `793c36f`; its JSON files record the hash of every measured source

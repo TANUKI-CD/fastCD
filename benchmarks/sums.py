@@ -120,6 +120,8 @@ def _ratio(ratios: dict[str, Any], name: str) -> str:
 def report(path: Path, document: dict[str, Any]) -> None:
     configuration = document["configuration"]
     blas = document["blas"]
+    exact = sum(run["exact_samples"] for run in document["runs"])
+    samples = sum(run["samples"] for run in document["runs"])
     lines = [
         "# Fused-sum benchmark",
         "",
@@ -164,16 +166,10 @@ def report(path: Path, document: dict[str, Any]) -> None:
         )
     lines += [
         "",
-        (
-            f"The first {configuration['verify_samples']} sample(s) of every "
-            "cell were verified against a long double contraction of the cross "
-            "moments, and every sample"
-            if configuration["verify_samples"]
-            else "No sample was verified against an independent evaluation "
-            "(`--verify-samples 0`); every sample was checked"
-        )
-        + " for agreement between the tasks, outside timing. The two fused "
-        "layouts returned identical bits wherever they ran the same algorithm.",
+        f"A long double contraction of the cross moments verified {exact} of "
+        f"{samples} {'sample' if samples == 1 else 'samples'}. Every sample "
+        "was checked for agreement between the tasks, outside timing. The two "
+        "fused layouts returned identical bits wherever they ran the same algorithm.",
         "",
         "Raw observations, corpus hashes, the runner, build and source hashes "
         "and the BLAS library are recorded in the adjacent JSON.",

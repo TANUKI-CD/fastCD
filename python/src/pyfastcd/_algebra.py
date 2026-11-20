@@ -735,8 +735,7 @@ class Algebra:
     def default_sum_algorithm(self) -> str:
         """str: Algorithm that ``"auto"`` selects for :meth:`multiply_sum`.
 
-        ``"direct"`` through dimension 8, where the quasilinear algorithm
-        uses as many products, and ``"quasilinear"`` above.
+        ``"direct"`` through dimension 8 and ``"quasilinear"`` above.
         """
 
         self._require_real_sums()
@@ -789,9 +788,9 @@ class Algebra:
         -----
         The result differs in rounding from ``(x * y)`` summed over its
         records.  The two layouts return the same bits for the same records.
-        A two-dimensional float64 array whose rows are contiguous and a
-        whole number of doubles apart, such as ``a[::2]``, is read in place;
-        other layouts are copied first.
+        A two-dimensional array of aligned float64 records with contiguous
+        coordinates, such as ``a[::2]``, can be read in place.  Other layouts
+        are copied as needed.
         """
 
         self._require_real_sums()
@@ -850,7 +849,7 @@ class Algebra:
         are read, and the sum is a fused sum as in :meth:`multiply_sum`.
         In dimension 2, with each sample stored as ``[real, imag]``, the
         result is the ordinary covariance of complex samples,
-        ``numpy.cov(z, w)[0, 1]``.  A parent with complex coefficients
+        ``numpy.cov(z, w, ddof=ddof)[0, 1]``.  A parent with complex coefficients
         (``char=0, deg=2``) is a different algebra and raises ``TypeError``.
         """
 

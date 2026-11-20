@@ -296,7 +296,8 @@ def sum_case(library: Library, family: str, n: int, count: int,
         "cross_moments": moments_sum(x, y),
     }
     layouts_agree = all(
-        np.array_equal(library.planes(x, y, a), results[m])
+        np.array_equal(library.planes(x, y, a).view(np.uint64),
+                       results[m].view(np.uint64))
         for a, m in (("auto", "fused"), ("direct", "fused_direct"),
                      ("quasilinear", "fused_quasilinear"))
     )

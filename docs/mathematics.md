@@ -592,7 +592,7 @@ loop over the `N^2` products that merges each of them separately, so its
 `B` is `8 N^2`; it serves explicit requests and is never selected
 automatically.
 
-The two algorithms cost the same through `N = 8`, and the quasilinear sum
+The per-element `M + I` counts agree through `N = 8`, and the quasilinear sum
 has fewer operations from `N = 16` on. `tools/check_fused_sum_counts.py`
 instruments the kernel source and checks `M`, `I` and `B` through dimension
 1024.
@@ -635,8 +635,7 @@ with elements `(real, imag)`, it is the covariance
 `E[(z - mean(z)) conjugate(w - mean(w))]` of complex samples.
 
 The centering and the conjugate are an affine map of the records, applied as
-they are read, and the sum is a fused sum. Two details make the result
-independent of where the samples lie and of their unit:
+they are read, and the sum is a fused sum. Two details reduce rounding error.
 
 - **The mean is kept in two parts.** With `r` the first record and `d` the
   mean of the differences `x_p - r`, the mean is `r + d`, but that sum is
@@ -644,13 +643,10 @@ independent of where the samples lie and of their unit:
   `2^53` with a spread of a few units, it would round away the part that
   matters. Each record is centered as `(x_p - r) - d`.
 - **Extreme magnitudes are scaled.** A first pass finds the largest
-  magnitude of each sample. If it lies outside `2^-256` to `2^256`, the
-  sample is multiplied by the power of two that brings it into `[1/2, 1)`
-  before any other arithmetic, and the result is multiplied by the inverse
-  powers at the end. The scaling is exact unless it makes a coordinate
-  subnormal, so ordinary samples are not affected and samples near the ends
-  of the exponent range reach a representable covariance without overflow
-  or underflow on the way.
+  magnitude of each sample. If this nonzero magnitude lies outside
+  `[2^-257, 2^256)`, the sample is scaled toward unit magnitude by a power
+  of two and the result is scaled back at the end. Small coordinates can
+  underflow when the range of magnitudes is wide.
 
 ## Real-coefficient implementation
 

@@ -521,13 +521,12 @@ FastCDStatus fastcd_mul_workspace_size(size_t dimension, size_t* length) {
             FASTCD_ALGORITHM_AUTO, length);
 }
 
-/* The fused sums run the direct algorithm through dimension 8, where the
- * quasilinear algorithm has as many products, and the quasilinear algorithm
- * above. At dimension 16 the direct sum is faster with the AVX-512 kernel,
- * level with the AVX2 kernel and nearly twice as slow with the portable
- * kernel, so one rule for every kernel uses the quasilinear sum there. The
- * plane tasks of benchmarks/sums.py are the measurement to repeat before
- * editing this rule. */
+/* The fused sums run the direct algorithm through dimension 8 and the
+ * quasilinear algorithm above. At dimension 16 the direct sum is faster
+ * with the AVX-512 kernel, level with the AVX2 kernel and nearly twice as
+ * slow with the portable kernel, so one rule for every kernel uses the
+ * quasilinear sum there. The plane tasks of benchmarks/sums.py are the
+ * measurement to repeat before editing this rule. */
 // Return the algorithm that AUTO selects for a fused sum at a valid dimension
 static FastCDAlgorithm default_sum_algorithm_unchecked(size_t dimension) {
     return dimension <= 8 ? FASTCD_ALGORITHM_DIRECT
@@ -1260,9 +1259,8 @@ FastCDStatus fastcd_mul_sum_planes_f64(double* out, const double* x,
 /*
  * Choose the power of two by which the covariance multiplies a sample
  * before any other arithmetic, and write the exponent it must restore.
- * Samples of ordinary magnitude are not scaled. A sample whose largest
- * magnitude lies outside 2^-256 to 2^256 is scaled to bring that magnitude
- * into [1/2, 1), which is exact unless it makes a coordinate subnormal.
+ * Samples of ordinary magnitude are not scaled. Extreme samples are scaled
+ * toward unit magnitude by a power of two.
  */
 static double sample_prescale(const double* x, size_t stride, size_t count,
         size_t dimension, int* exponent) {

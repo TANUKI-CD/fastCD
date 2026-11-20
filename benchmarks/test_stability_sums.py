@@ -67,13 +67,24 @@ def test_plan_and_summary_cover_every_method():
     assert summary["layouts_agree"]
 
 
-def test_library_results_are_within_a_few_units():
+@pytest.fixture
+def library():
     path = os.environ.get("FASTCD_SHARED_LIBRARY")
     if path is None:
         pytest.skip("FASTCD_SHARED_LIBRARY does not name a shared build")
-    library = study.Library(Path(path))
+    return study.Library(Path(path))
+
+
+def test_library_results_are_within_a_few_units(library):
     row = study.sum_case(library, "gaussian", 16, 200, [1, 2, 3])
     assert row["layouts_agree"]
     assert all(0 <= v < 8 for v in row["eta"].values())
     row = study.covariance_case(library, "offset", 8, 128, [4, 5, 6])
     assert 0 <= row["eta"]["covariance"] < 8
+
+
+def test_layout_check_distinguishes_signed_zero(library, monkeypatch):
+    zeros = np.zeros((8, 1))
+    monkeypatch.setattr(study, "make_inputs", lambda *args: (zeros, zeros))
+    monkeypatch.setattr(library, "planes", lambda *args: np.array([-0.0]))
+    assert not study.sum_case(library, "gaussian", 1, 8, [1])["layouts_agree"]

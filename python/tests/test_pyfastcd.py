@@ -2899,20 +2899,19 @@ class FusedSumTests(unittest.TestCase):
         np.testing.assert_array_equal(np.asarray(one_row), want)
 
     def test_multiply_sum_reads_strided_rows_without_copying(self) -> None:
-        import tracemalloc
+        from unittest import mock
 
         rng = np.random.default_rng(14)
         algebra = fcd.Algebra(dimension=32)
         x = self._dyadic(rng, (4096, 32))
         y = self._dyadic(rng, (4096, 32))
         want = np.asarray(algebra.multiply_sum(x[::2].copy(), y[::2].copy()))
-        tracemalloc.start()
-        got = algebra.multiply_sum(x[::2], y[::2])
-        _, peak = tracemalloc.get_traced_memory()
-        tracemalloc.stop()
+        with mock.patch.object(_core, "_mul_sum", wraps=_core._mul_sum) as native:
+            got = algebra.multiply_sum(x[::2], y[::2])
+        xa, ya = native.call_args.args[3:5]
+        self.assertTrue(np.shares_memory(xa, x[::2]))
+        self.assertTrue(np.shares_memory(ya, y[::2]))
         np.testing.assert_array_equal(np.asarray(got), want)
-        # Each view holds 512 KiB; a copy of either would exceed this bound
-        self.assertLess(peak, 300 * 1024)
         # Rows that are reversed, or not contiguous inside, are copied instead
         for a, b in ((x[::-2], y[::-2]), (x[:, ::-1], y[:, ::-1])):
             products = np.asarray(algebra.multiply(a, b))

@@ -221,7 +221,7 @@ static size_t parse(const char* value) {
     char* end;
     errno = 0;
     unsigned long long parsed = strtoull(value, &end, 10);
-    if (errno || end == value || *end || parsed > SIZE_MAX) {
+    if (errno || end == value || *end || strchr(value, '-') != NULL || parsed > SIZE_MAX) {
         fprintf(stderr, "invalid number: %s\n", value);
         exit(EXIT_FAILURE);
     }
@@ -292,6 +292,8 @@ int main(int argc, char** argv) {
     t.pitch = t.count + 8;
     if (blas) {
 #if defined(_WIN32)
+        (void)symbol;
+        (void)ilp64;
         fprintf(stderr, "--blas is not available on this platform\n");
         return EXIT_FAILURE;
 #else

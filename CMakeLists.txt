@@ -204,6 +204,14 @@ if(BUILD_TESTING)
     # each of them and compare their results bit for bit.
     add_executable(fastcd_sum_tests tests/test_fused_sum.c src/fused_sum.c)
     target_include_directories(fastcd_sum_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    # Keep the comparison kernels distinct from those in the static library.
+    target_compile_definitions(fastcd_sum_tests PRIVATE
+        fastcd_fused_sum=test_fused_sum
+        fastcd_fused_sum_kernels=test_fused_sum_kernels
+        fastcd_fused_sum_workspace=test_fused_sum_workspace
+        fastcd_fused_sum_portable=test_fused_sum_portable
+        fastcd_fused_sum_avx2=test_fused_sum_avx2
+        fastcd_fused_sum_avx512=test_fused_sum_avx512)
     if(FASTCD_HAVE_SUM_SIMD)
         target_sources(fastcd_sum_tests PRIVATE src/fused_sum_avx2.c
             src/fused_sum_avx512.c)

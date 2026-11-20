@@ -137,7 +137,7 @@ total = O.multiply_sum(s, t)               # s[0] * t[0] + ... + s[999] * t[999]
 cov = O.covariance(s, t)                   # sum((s - mean) * conjugate(t - mean)) / 999
 ```
 
-At dimension 2, with each sample stored as `[real, imag]`, `covariance` is the ordinary covariance of complex samples, `numpy.cov(z, w)[0, 1]`.
+At dimension 2, with each sample stored as `[real, imag]`, `covariance` is the ordinary complex covariance, `numpy.cov(z, w, ddof=ddof)[0, 1]`.
 
 An `Element` is one immutable Cayley–Dickson element. An `ElementArray` holds a batch of elements in a NumPy coefficient array of shape `(..., N)`
 (or `(..., N, d)` over an extension field) and evaluates batch operations in compiled code. See the [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
@@ -225,7 +225,7 @@ The table gives mean nanoseconds per element for samples of 1,024 elements, from
 
 With this kernel the fused sum is faster than a batch of products followed by a sum at every dimension, and faster than the matrix product from dimension 32 upward; below that the matrix product is faster for samples of this size. Samples of 64 and of 4,096 elements, and elements stored as coordinate planes, which `fastcd_mul_sum_planes_f64` reads without rearranging them, are in [sums.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/sums-t440-20261120/sums.md) in the archive.
 
-The speed depends on the kernel that the processor selects. With the AVX2 kernel the fused sum is 1.64 to 2.55 times as fast as the products at dimensions 8 to 64. Builds without either kernel use a portable one, which is not faster than the products and offers only the saved storage and the accuracy described under [Numerical stability](#numerical-stability). Automatic selection uses the direct sum through dimension 8 and the quasilinear sum above: at dimension 16 the direct sum takes 4% to 17% less time with AVX-512, between 5% less and 10% more with AVX2, and 1.8 times as much with the portable kernel, so the quasilinear sum is the choice that serves every kernel.
+The speed depends on the kernel that the processor selects. With the AVX2 kernel the fused sum is 1.64 to 2.55 times as fast as the products at dimensions 8 to 64. Builds without either kernel use a portable one, whose speed depends on dimension and layout. It saves product storage (see [Numerical stability](#numerical-stability) for accuracy). Automatic selection uses the direct sum through dimension 8 and the quasilinear sum above: at dimension 16 the direct sum takes 4% to 17% less time with AVX-512, between 5% less and 10% more with AVX2, and 1.8 times as much with the portable kernel, so the quasilinear sum is the choice that serves every kernel.
 
 ### Finite fields and complex coefficients
 

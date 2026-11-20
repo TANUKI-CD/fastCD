@@ -223,9 +223,8 @@ benchmark reported in the README:
 `fastcd_imag_cross_f64` and `fastcd_commutator_f64` always use the
 quasilinear recursion.
 
-[Fused sums](#fused-sums) use direct through `N = 8`, where the quasilinear
-algorithm has as many multiplications, and quasilinear at every larger
-dimension. At `N = 16` the direct sum is slightly faster with the AVX-512
+[Fused sums](#fused-sums) use direct through `N = 8` and quasilinear above.
+At `N = 16` the direct sum is slightly faster with the AVX-512
 kernel, but level with the AVX2 kernel and much slower with the portable
 one, so the rule is the same for every kernel; see the
 [sums benchmark](benchmark.md#fused-sums).
@@ -508,13 +507,10 @@ rounds differently from a batch of products followed by a sum.
   records are read, and the sum is a fused sum with the automatic algorithm.
 
   Each mean is held in two parts, the first record and the mean of the
-  differences from it, and both are subtracted from every record, so adding
-  one exactly representable element to all records of a sample leaves the
-  result unchanged. A sample whose largest magnitude lies outside `2^-256`
-  to `2^256` is first multiplied by a power of two that brings it into
-  `[1/2, 1)`, and the result is scaled back; samples near the ends of the
-  exponent range therefore do not overflow or underflow on the way to a
-  representable covariance.
+  differences from it. Subtracting both can reduce rounding error when
+  centering. A finite sample whose largest magnitude is nonzero and lies
+  outside `[2^-257, 2^256)` is scaled by a power of two, and the result is
+  scaled back. Small coordinates can underflow during scaling.
 
   At dimension 2, with records `[real, imag]`, the result is the ordinary
   covariance of two complex samples, `E[(z - mean(z)) conjugate(w - mean(w))]`
@@ -549,8 +545,9 @@ disjoint from the output and the workspace.
   [sums benchmark](benchmark.md#fused-sums).
 - A call has a fixed cost: it clears the accumulated sums, completes the last
   group of eight elements and applies the output additions. For a handful of
-  elements a batch of products followed by a sum is faster. Both layouts cut the elements into the same blocks and
-  return the same bits for the same elements.
+  elements a batch of products followed by a sum can be faster. Both layouts
+  cut the elements into the same blocks and return the same bits for the
+  same elements.
 
 **Kernels**
 
@@ -559,12 +556,11 @@ a second holds it in two 256-bit registers; GCC and Clang builds for x86
 contain both and choose at run time by the AVX-512 and the AVX2 and FMA
 processor features. Other builds use a portable kernel. All kernels perform
 the same operations in the same order, eight elements at a time, and each
-accumulation is a fused multiply-add. The two x86 kernels return identical
+accumulation is a multiply-add. The two x86 kernels return identical
 bits, and so does the portable kernel on targets with a fused multiply-add
 instruction, such as AArch64. On other targets the portable kernel rounds
 the product and the addition separately, and its results differ in the last
-bits. There it is also no faster than a batch of products followed by a
-sum; the fused sums then save only the storage of the products.
+bits. Its speed relative to a batch depends on dimension and layout.
 
 ---
 

@@ -80,21 +80,23 @@ def test_report_states_what_was_verified(tmp_path):
         "cpu": "test", "blas": None,
         "configuration": {"trials": 64, "blocks": 60, "verify_samples": 0},
         "runs": [{
-            "dimension": 8, "count": 64,
+            "dimension": 8, "count": 64, "exact_samples": 0, "samples": 1,
             "summary": {"ns_per_element": {"products": stats, "records": stats},
                         "ratios": {"products/records": ratio}},
         }],
     }
     driver.report(tmp_path / "r.md", document)
-    assert "No sample was verified" in (tmp_path / "r.md").read_text()
-    document["configuration"]["verify_samples"] = 1
+    assert "verified 0 of 1 sample." in (tmp_path / "r.md").read_text()
+    document["configuration"]["verify_samples"] = 8
+    document["runs"][0]["exact_samples"] = 1
+    document["runs"].append(dict(document["runs"][0], count=4, samples=16, exact_samples=8))
     driver.report(tmp_path / "r.md", document)
     text = (tmp_path / "r.md").read_text()
-    assert "first 1 sample(s)" in text and "No sample" not in text
+    assert "verified 9 of 17 samples" in text
 
 
-@pytest.mark.parametrize("n,count", [(1, 8), (2, 5), (8, 16), (16, 24), (64, 8), (128, 8)])
-def test_native_runner_verifies_and_balances_tasks(tmp_path, n, count):
+@pytest.fixture
+def runner():
     root = Path(__file__).resolve().parents[1]
     runner = Path(
         os.environ.get("FASTCD_SUMS_RUNNER", root / "build/fastcd_sums_benchmark")
@@ -103,11 +105,25 @@ def test_native_runner_verifies_and_balances_tasks(tmp_path, n, count):
         if "FASTCD_SUMS_RUNNER" in os.environ:
             pytest.fail(f"FASTCD_SUMS_RUNNER is not a file: {runner}")
         pytest.skip("native sum runner is not built here")
+    return str(runner.resolve())
+
+
+@pytest.mark.parametrize("option,value", [
+    ("--verify-samples", "-1"), ("--warmup", " -1"), ("--blocks", "-2"),
+])
+def test_native_runner_rejects_negative_counts(runner, option, value):
+    result = subprocess.run([runner, option, value], capture_output=True, text=True)
+    assert result.returncode != 0
+    assert "invalid number" in result.stderr
+
+
+@pytest.mark.parametrize("n,count", [(1, 8), (2, 5), (8, 16), (16, 24), (64, 8), (128, 8)])
+def test_native_runner_verifies_and_balances_tasks(tmp_path, runner, n, count):
     path = tmp_path / "elements.bin"
     trials = 3 * count
     driver.corpus(path, n, trials, 17)
     command = [
-        str(runner.resolve()),
+        runner,
         "--corpus",
         str(path),
         "--dimension",

@@ -24,9 +24,8 @@ All notable changes to fastCD are recorded in this file. The project follows
   covariance `sum_p (x_p - mean(x)) conjugate(y_p - mean(y)) / (count - ddof)`
   of two samples of elements, computed as a fused sum. Each mean is held as
   the first record plus the mean of the differences from it, and samples of
-  extreme magnitude are scaled by a power of two, so the result does not
-  change when an exactly representable element is added to every record and
-  does not overflow on the way to a representable value. At dimension 2,
+  extreme magnitude are scaled by a power of two to reduce intermediate
+  overflow and underflow. At dimension 2,
   with records `[real, imag]`, it is the covariance of complex samples. The
   status `FASTCD_INVALID_COUNT` reports a count that does not exceed `ddof`.
 - AVX-512 and AVX2 kernels for the fused sums, chosen at run time in GCC and
@@ -35,8 +34,8 @@ All notable changes to fastCD are recorded in this file. The project follows
 - `Algebra.multiply_sum`, `Algebra.covariance` and
   `Algebra.default_sum_algorithm` in `pyfastcd`, for parents with real
   coefficients. `Algebra(dimension=2).covariance` on arrays of
-  `[real, imag]` rows equals `numpy.cov(z, w)[0, 1]`; the parent with
-  `complex128` coefficients (`char=0, deg=2`) raises `TypeError`.
+  `[real, imag]` rows corresponds to `numpy.cov(z, w, ddof=ddof)[0, 1]`.
+  The parent with `complex128` coefficients (`char=0, deg=2`) raises `TypeError`.
 - The `sums` benchmark protocol (`benchmarks/sums.py`, runner
   `fastcd_sums_benchmark`), which times the fused sums against a batch of
   products and, with `--blas`, against one `dgemm` of a BLAS library loaded

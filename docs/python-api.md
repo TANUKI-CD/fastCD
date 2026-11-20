@@ -219,10 +219,10 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   row `i` holds coordinate `i` of every record, the layout the kernels work
   in. `algorithm` is `"auto"`, `"direct"` or `"quasilinear"`. Operands
   without records give the zero element, also against a single record. A
-  two-dimensional `float64` array whose rows are contiguous and a whole
-  number of doubles apart, such as `a[::2]`, is read in place; other layouts
-  are copied first. The result differs in rounding
-  from `(x * y)` summed over its records. Real coefficients only; other
+  two-dimensional array of aligned `float64` records with contiguous
+  coordinates, such as `a[::2]`, can be read in place. Other layouts are
+  copied as needed. The result differs in rounding from `(x * y)` summed
+  over its records. Real coefficients only; other
   parents raise `TypeError`.
 
 - `covariance(x, y, *, ddof=1) -> Element`
@@ -232,16 +232,15 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   all records `p`. Its scalar coordinate is the sum over the coordinates of
   their real covariances. `ddof=1` gives the unbiased estimate; a count that
   does not exceed `ddof`, or a negative `ddof`, raises `ValueError`. A
-  single record is not repeated. The result is unchanged when one exactly
-  representable element is added to every record of a sample, and samples
-  near the ends of the exponent range are scaled internally. Real
+  single record is not repeated. A two-part mean reduces rounding error
+  when centering, and samples of extreme magnitude are scaled internally. Real
   coefficients only.
 
   At dimension 2 this is the covariance of complex samples stored as
   `[real, imag]`: for complex arrays `z` and `w`,
   `Algebra(dimension=2).covariance(np.column_stack((z.real, z.imag)),
-  np.column_stack((w.real, w.imag)))` has the coordinates of
-  `numpy.cov(z, w)[0, 1]`. The parent with `complex128` coefficients,
+  np.column_stack((w.real, w.imag)), ddof=ddof)` has the coordinates of
+  `numpy.cov(z, w, ddof=ddof)[0, 1]`. The parent with `complex128` coefficients,
   `Algebra(dimension=1, char=0, deg=2)`, is a different algebra and raises
   `TypeError`.
 
