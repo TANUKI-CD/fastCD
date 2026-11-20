@@ -84,6 +84,8 @@ jobs:
           python -m pytest -q benchmarks
         env:
           FASTCD_DOMAINS_RUNNER: ${{ github.workspace }}/build/fastcd_domains_benchmark
+          FASTCD_SUMS_RUNNER: ${{ github.workspace }}/build/fastcd_sums_benchmark
+          FASTCD_SHARED_LIBRARY: ${{ github.workspace }}/build/libfastcd.so
           FASTCD_FLINT_RUNNER: ${{ github.workspace }}/build/fastcd_flint_benchmark
 
   generated-kernels:
@@ -103,6 +105,8 @@ jobs:
         run: python3 tools/check_quasilinear_counts.py
       - name: Check Cariow-Cariowa arithmetic counts
         run: python3 tools/check_cariow_counts.py
+      - name: Check fused sum arithmetic counts
+        run: python3 tools/check_fused_sum_counts.py
 
   stability-archives:
     name: Stability studies
