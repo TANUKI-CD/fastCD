@@ -1,4 +1,5 @@
-"""Run the finite-field and FLINT protocols, alone or with the real-coefficient run."""
+"""Run the finite-field, FLINT and fused-sum protocols, alone or, for the first
+two, with the real-coefficient run."""
 
 from __future__ import annotations
 
@@ -11,11 +12,12 @@ from typing import Any
 
 try:
     from . import benchmark as common
-    from . import domains, flint
+    from . import domains, flint, sums
 except ImportError:
     import benchmark as common
     import domains
     import flint
+    import sums
 
 
 def commands(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
@@ -36,6 +38,50 @@ def commands(args: argparse.Namespace) -> list[tuple[str, list[str]]]:
         runners[args.protocol] = (
             args.flint_runner if args.protocol == "flint" else args.domain_runner
         ) or args.runner
+    if args.protocol == "sums":
+        command = [
+            sys.executable,
+            str(directory / "sums.py"),
+            "--runner",
+            str(args.runner),
+            "--output",
+            str(args.output),
+            "--dimensions",
+            args.dimensions,
+            "--counts",
+            args.counts,
+            "--trials",
+            str(args.trials),
+            "--blocks",
+            str(args.blocks),
+            "--warmup",
+            str(args.warmup),
+            "--min-time-ms",
+            f"{args.min_time_ms:g}",
+            "--seed",
+            str(args.seed),
+            "--corpora",
+            str(args.corpora / "sums"),
+            "--subprocess-timeout",
+            str(args.subprocess_timeout),
+            "--max-direct-dimension",
+            str(args.max_direct_dimension),
+            "--blas-symbol",
+            args.blas_symbol,
+        ]
+        if args.cpu is not None:
+            command += ["--cpu", str(args.cpu)]
+        if args.build_metadata is not None:
+            command += ["--build-metadata", str(args.build_metadata)]
+        if args.verify_trials is not None:
+            command += ["--verify-samples", str(args.verify_trials)]
+        if args.blas is not None:
+            command += ["--blas", str(args.blas)]
+        if args.blas_ilp64:
+            command += ["--blas-ilp64"]
+        if args.blas_name:
+            command += ["--blas-name", args.blas_name]
+        return [("sums", command)]
     result = []
     for protocol in selected:
         output = (
@@ -138,6 +184,14 @@ def preflight(args: argparse.Namespace, selected: list[tuple[str, list[str]]]) -
         options = command[2:]
         if protocol == "flint":
             flint.preflight(flint.parse_arguments(options))
+        elif protocol == "sums":
+            sum_args = sums.parse_arguments(options)
+            metadata = common.run_json(
+                [str(runner.resolve()), "--metadata"], args.subprocess_timeout
+            )
+            if metadata.get("schema") != "fastcd-sums-1":
+                raise ValueError("sum runner must name fastcd_sums_benchmark")
+            common.provenance(sum_args)
         elif protocol == "domains":
             domain_args = domains.parse_arguments(options)
             metadata = common.run_json(

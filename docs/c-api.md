@@ -31,8 +31,9 @@ typedef enum {
     FASTCD_INVALID_STRIDE,         /* batch stride smaller than dimension */
     FASTCD_SIZE_OVERFLOW,          /* an extent does not fit size_t */
     FASTCD_NULL_POINTER,           /* required pointer is null */
-    FASTCD_UNSUPPORTED_ALGORITHM   /* unknown algorithm or operation, or an
+    FASTCD_UNSUPPORTED_ALGORITHM,  /* unknown algorithm or operation, or an
                                       algorithm unavailable for the call */
+    FASTCD_INVALID_COUNT           /* too few elements for the operation */
 } FastCDStatus;
 
 typedef enum {
@@ -46,6 +47,13 @@ typedef enum {
 
 typedef struct FastCDWorkspaceF64 { double* data; size_t length; } FastCDWorkspaceF64;
 typedef struct FastCDBasisProduct { size_t index; int sign; } FastCDBasisProduct;
+
+typedef struct FastCDSumMapF64 {
+    const double* x_shift;
+    const double* x_scale;
+    const double* y_shift;
+    const double* y_scale;
+} FastCDSumMapF64;
 ```
 
 ---
@@ -215,6 +223,10 @@ benchmark reported in the README:
 `fastcd_imag_cross_f64` and `fastcd_commutator_f64` always use the
 quasilinear recursion.
 
+[Fused sums](#fused-sums) use direct through `N = 16` and quasilinear at
+every larger dimension, set from the
+[sums benchmark](benchmark.md#fused-sums).
+
 **Functions**
 
 - `FastCDStatus fastcd_default_algorithm(size_t dimension, FastCDAlgorithm* algorithm)`
@@ -225,6 +237,10 @@ quasilinear recursion.
   algorithm)`
 
   Write the concrete algorithm selected by `AUTO` for a batch of at least two products.
+
+- `FastCDStatus fastcd_default_sum_algorithm(size_t dimension, FastCDAlgorithm* algorithm)`
+
+  Write the concrete algorithm selected by `AUTO` for a fused sum.
 
 - `bool fastcd_algorithm_supports_dimension(FastCDAlgorithm algorithm, size_t dimension)`
 
@@ -239,8 +255,8 @@ Each query writes a scratch length in doubles. Errors are
 `FASTCD_NULL_POINTER`, `FASTCD_INVALID_DIMENSION`, `FASTCD_SIZE_OVERFLOW`,
 and, where an algorithm is involved, `FASTCD_UNSUPPORTED_ALGORITHM`.
 
-Lengths are `O(N)` doubles and do not depend on the batch count. With the
-default leaf cutoffs:
+Lengths do not depend on the batch count. Those of the products are `O(N)`
+doubles. With the default leaf cutoffs:
 
 - Direct needs nothing for `N <= 16` and `2N - 32` doubles above that.
 - Quasilinear needs nothing for `N <= 16`. Above that it needs `5N - 63`
@@ -249,6 +265,9 @@ default leaf cutoffs:
   kernels, and `2N` doubles above that, where its table-driven kernel runs.
 - The associator and the operator commutators need `2N` doubles more than
   their products.
+- A fused sum needs one length for both layouts and both algorithms. It
+  grows like `N log N`: 1,487 doubles at `N = 8`, 2,991 at 16, 13,551 at 64
+  and 60,399 at 256. The covariance needs `11N` doubles more.
 
 These lengths can change between releases (see [Compatibility](#compatibility)),
 so obtain them from the queries. [Workspace](mathematics.md#workspace)
@@ -264,6 +283,14 @@ explains where the terms come from.
 
   Size the workspace for `fastcd_mul_with_algorithm_f64` and
   `fastcd_mul_batch_with_algorithm_f64`.
+
+- `FastCDStatus fastcd_mul_sum_workspace_size(size_t dimension, size_t* length)`
+
+  Size the workspace for the four `fastcd_mul_sum` functions.
+
+- `FastCDStatus fastcd_covariance_workspace_size(size_t dimension, size_t* length)`
+
+  Size the workspace for `fastcd_covariance_f64`.
 
 - `FastCDStatus fastcd_imag_cross_workspace_size(size_t dimension, size_t* length)`
 
@@ -419,6 +446,102 @@ one broadcasts a record of the other or both are windows of one array, as
 long as every pair of same-index records is identical or disjoint; a
 partially overlapping record pair is rejected. Output padding is unchanged,
 and one workspace is reused serially.
+
+---
+
+### Fused sums
+
+A fused sum is `x_0 y_0 + x_1 y_1 + ... + x_(count-1) y_(count-1)`, computed
+without forming the products. Every multiplication of the algorithm is
+accumulated over the elements, and the algorithm's output additions are
+applied once, to the accumulated values; see
+[Fused sums of products](mathematics.md#fused-sums-of-products). The result
+rounds differently from a batch of products followed by a sum.
+
+- `FastCDStatus fastcd_mul_sum_f64(double* out, const double* x, size_t x_stride, const
+  double* y, size_t y_stride, size_t count, size_t dimension, const FastCDSumMapF64*
+  map, const FastCDWorkspaceF64* workspace)`
+
+  Set `out` to the sum of the products of `count` pairs of records, using the
+  automatic algorithm. The strides follow the rules of the batch functions:
+  each is zero, to broadcast one record, or at least `N`, and both are
+  ignored when `count == 1`. `map` may be `NULL`.
+
+- `FastCDStatus fastcd_mul_sum_with_algorithm_f64(double* out, const double* x, size_t
+  x_stride, const double* y, size_t y_stride, size_t count, size_t dimension, const
+  FastCDSumMapF64* map, FastCDAlgorithm algorithm, const FastCDWorkspaceF64* workspace)`
+
+  The same sum using `algorithm`: `AUTO`, direct or quasilinear.
+  Cariow–Cariowa returns `FASTCD_UNSUPPORTED_ALGORITHM`.
+
+- `FastCDStatus fastcd_mul_sum_planes_f64(double* out, const double* x, const double* y,
+  size_t pitch, size_t count, size_t dimension, const FastCDWorkspaceF64* workspace)`
+
+  The same sum of elements stored as coordinate planes: coordinate `i` of
+  element `p` is `x[i * pitch + p]`, so each coordinate of the elements is
+  one contiguous row. `pitch` must be at least `count`; a smaller value
+  returns `FASTCD_INVALID_STRIDE`.
+
+- `FastCDStatus fastcd_mul_sum_planes_with_algorithm_f64(double* out, const double* x,
+  const double* y, size_t pitch, size_t count, size_t dimension, FastCDAlgorithm
+  algorithm, const FastCDWorkspaceF64* workspace)`
+
+  The sum of planes using `algorithm`.
+
+- `FastCDStatus fastcd_covariance_f64(double* out, const double* x, size_t x_stride,
+  const double* y, size_t y_stride, size_t count, size_t dimension, size_t ddof, const
+  FastCDWorkspaceF64* workspace)`
+
+  Set `out` to the covariance of two samples of `count` records,
+
+  ```text
+  (1 / (count - ddof)) sum_p (x_p - mean(x)) conjugate(y_p - mean(y)),
+  ```
+
+  an element of the algebra whose scalar coordinate is the sum over the
+  coordinates of their real covariances. `ddof = 1` gives the unbiased
+  estimate. `count <= ddof` returns `FASTCD_INVALID_COUNT`. The means are
+  subtracted and the conjugate is taken as the records are read, and the sum
+  is a fused sum with the automatic algorithm.
+
+**Maps**
+
+A `FastCDSumMapF64` applies an affine map to every record as it is read:
+coordinate `i` of an element of `x` enters the sum as
+`(value - x_shift[i]) * x_scale[i]`, and likewise for `y`. Each member is an
+array of `N` doubles or `NULL`; a null shift subtracts nothing and a null
+scale multiplies by nothing. Centering a sample, scaling its coordinates and
+conjugating an operand (scales `1, -1, ..., -1`) are maps, so a sum of
+products of normalized records needs no copy of the data. The arrays must be
+disjoint from the output and the workspace.
+
+**Parameters and layouts**
+
+- `count == 0` writes the zero element. The inputs and the workspace are not
+  read and may be null.
+- The output must be disjoint from the inputs and the workspace. The inputs
+  are only read and may overlap each other in any way, including `x == y`.
+- If a coordinate that is read is NaN or infinite, which output coordinates
+  are non-finite is unspecified.
+- The kernels work on planes. Records are rewritten into planes 64 elements
+  at a time inside the workspace, which costs a few operations per
+  coordinate. Below dimension 32 a matrix product of the same samples
+  followed by a contraction with the basis signs is faster than the record
+  functions; see the [sums benchmark](benchmark.md#fused-sums). Both layouts cut the elements into the same blocks and
+  return the same bits for the same elements.
+
+**Kernels**
+
+One kernel holds one coordinate of eight elements in a 512-bit register, and
+a second holds it in two 256-bit registers; GCC and Clang builds for x86
+contain both and choose at run time by the AVX-512 and the AVX2 and FMA
+processor features. Other builds use a portable kernel. All kernels perform
+the same operations in the same order, eight elements at a time, and each
+accumulation is a fused multiply-add. The two x86 kernels return identical
+bits, and so does the portable kernel on targets with a fused multiply-add
+instruction, such as AArch64. On other targets the portable kernel rounds
+the product and the addition separately, and its results differ in the last
+bits.
 
 ---
 

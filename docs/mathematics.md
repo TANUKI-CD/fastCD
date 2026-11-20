@@ -503,6 +503,123 @@ sign-correction tables, which need gathered loads. Fewer arithmetic
 operations do not make this access pattern faster; see
 [benchmark.md](benchmark.md).
 
+## Fused sums of products
+
+A fused sum computes `S = x_0 y_0 + ... + x_(P-1) y_(P-1)` for `P` pairs of
+real-coefficient elements without forming the products. `fastcd_mul_sum_f64`
+and `fastcd_covariance_f64` are built on it.
+
+### The sum schedule
+
+Every multiplication algorithm above is bilinear: it applies linear maps `A`
+and `B` to the operands, multiplies the results coordinate by coordinate,
+and applies a linear map `C` to the products,
+
+```text
+x y = C((A x) o (B y)),
+```
+
+where `o` is the coordinatewise product. Summing over the elements gives
+
+```text
+S = C(sum_p (A x_p) o (B y_p)).
+```
+
+Each multiplication is accumulated over the elements, and `C` is applied
+once, to the accumulated sums. For one element that leaves the additions
+inside `A` and `B` and one multiply-add per multiplication; the additions of
+`C`, which are about half of the quasilinear total, no longer depend on `P`.
+
+For the direct algorithm `A` and `B` only select coordinates, the
+accumulated sums are the entries `sum_p x_p[i] y_p[j]` of the matrix of real
+cross moments, and `C` adds them with the basis signs. For the quasilinear
+algorithm the accumulated sums are those of the nonrecursive maps: the map
+`B_n` at the root and the three real evaluations `Delta`, `Omega` and `W` at
+every node below. `C` then consists of the complex recovery, the half-sums
+`(Z_+ ± Z_-)/2` and the additions of `f`, `lambda` and `g`, applied from the
+leaves to the root.
+
+### The leaf
+
+The single-product kernel ends in the octonion leaf, which has 72
+multiplications and 58 input additions for `C_3`. Its 36 accumulated sums
+exceed the registers of one loop, so the fused sums evaluate `C_3` instead
+as a complex seven-dimensional cross product by the three-product formula:
+three real seven-dimensional cross products, of the real parts, of the
+imaginary parts and of their sums. Each has 42 multiplications and 7
+accumulated sums, and the sums of the third cost 14 additions, so the leaf
+has 126 multiplications and 14 input additions.
+
+### Operation counts
+
+For one element, `M` counts multiply-adds and `I` the additions of the input
+maps. Additions spent on accumulated sums are not counted: they do not
+depend on `P`.
+
+- **Root:** the splitting (1) and the real map `B_n` use `6N - 8`
+  multiplications and no additions.
+- **Node `C_k`, `k >= 4`:** with `m = K/2 - 1`, the three real nonrecursive
+  maps use `18m` multiplications. The operands of the two children cost `8m`
+  additions, and the sums of real and imaginary parts cost `6m`: four for
+  the coordinates and two for `gamma` and `delta`, which this schedule forms
+  again for every coordinate.
+- **Leaf `C_3`:** 126 multiplications and 14 additions. At `N = 8` the
+  recursion ends in `C_2`, the complex nonrecursive map alone, with 18
+  multiplications and 6 additions.
+
+| N | Direct `M` | Quasilinear `M` | Quasilinear `I` | Quasilinear `M + I` |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | 4 | 4 | 0 | 4 |
+| 4 | 16 | 16 | 0 | 16 |
+| 8 | 64 | 58 | 6 | 64 |
+| 16 | 256 | 214 | 14 | 228 |
+| 32 | 1024 | 562 | 126 | 688 |
+| 64 | 4096 | 1402 | 462 | 1864 |
+| 128 | 16384 | 3370 | 1358 | 4728 |
+| 256 | 65536 | 7882 | 3598 | 11480 |
+| 512 | 262144 | 18058 | 8974 | 27032 |
+| 1024 | 1048576 | 40714 | 21518 | 62232 |
+
+The two algorithms cost the same through `N = 8`, and the quasilinear sum
+has fewer operations from `N = 16` on. `tools/check_fused_sum_counts.py` instruments the
+kernel source and checks these counts through dimension 1024.
+
+### Layout and kernels
+
+The kernels hold one coordinate of eight elements in a vector, so they work
+on coordinate planes: row `i` of an operand holds coordinate `i` of
+consecutive elements. Elements are taken 64 at a time. For each such block,
+one pass accumulates the root together with the top node `C_(n-1)` and
+writes the operands of that node's two children into the workspace; every
+lower node overwrites its operand rows with the operands of its children
+while it accumulates its own nonrecursive map; and the leaves accumulate
+their cross products. Partial sums stay in registers during a pass over one
+coordinate and are then added to the accumulated sums in the workspace.
+After the last block, the output additions run once, still on vectors of
+eight partial sums, and each output coordinate is the sum of its eight
+lanes.
+
+Records are rewritten into planes one block at a time, and an affine map of
+the coordinates, if one is given, is applied in the same step. The
+workspace holds the accumulated sums, `N + 3 n N / 2` vectors to leading
+order, one block of `2N` rows and the temporaries of the output additions,
+so it grows like `N log N` and does not depend on `P`.
+
+### Covariance
+
+For two samples of `P` elements, `fastcd_covariance_f64` returns
+
+```text
+cov(x, y) = (1 / (P - ddof)) sum_p (x_p - mean(x)) conjugate(y_p - mean(y)).
+```
+
+Its scalar coordinate is `sum_i cov(x[i], y[i])`, the sum of the real
+covariances of the coordinates, and `cov(x, x)` has scalar coordinate equal
+to the total variance and vanishing imaginary part. The means are computed
+first, as the first element plus the mean of the differences from it. The
+centering and the conjugate are then an affine map of the records, and the
+sum is a fused sum.
+
 ## Real-coefficient implementation
 
 ### Workspace
@@ -523,6 +640,8 @@ cutoffs:
   for the two transformed operands.
 - **Associator and operator commutators:** `2N` more, for two intermediate
   elements.
+- **Fused sums:** see [Layout and kernels](#layout-and-kernels); the length
+  grows like `N log N`.
 
 Programs should obtain these sizes from the
 [workspace queries](c-api.md#workspace-queries) rather than from these
@@ -556,6 +675,11 @@ because the two modes rank the algorithms differently below dimension 32:
 | 16 | direct | Cariow–Cariowa |
 | 32 and above | quasilinear | quasilinear |
 
+Fused sums use direct through `N = 16` and quasilinear above. At `N = 16`
+the quasilinear sum has fewer operations (see
+[Fused sums of products](#fused-sums-of-products)), but the direct sum,
+one loop without input additions, was faster in the
+[sums benchmark](benchmark.md#fused-sums).
 Builds without SIMD pairing use the single-product choices for batches.
 `fastcd_default_algorithm` and `fastcd_default_batch_algorithm` report the
 choices. To check them on your CPU, the [benchmark](benchmark.md) times all
@@ -639,6 +763,14 @@ For real coefficients, the algorithms add their terms in these orders:
   into blocks of 256 indices. Within a block, the terms go to four
   interleaved partial sums that are combined pairwise; above dimension 256,
   a balanced tree combines the block totals.
+
+- **Fused sums:** element `p` contributes to lane `p mod 8` of every
+  accumulated sum. Within a block of 64 elements a lane adds its terms in
+  sequence; the block totals are added in sequence; the output additions
+  are applied lane by lane; and the eight lanes of an output coordinate are
+  added as `((l0 + l1) + (l2 + l3)) + ((l4 + l5) + (l6 + l7))`. Each term is
+  added by a fused multiply-add, except in portable builds for targets
+  without that instruction.
 
 The complex-coefficient pairing is accumulated in the same way as the
 quasilinear sums. None of these orders changes the operation counts. In the

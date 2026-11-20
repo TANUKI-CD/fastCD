@@ -4,6 +4,7 @@
 
 #include "fastcd/fastcd.h"
 #include "fastcd_internal.h"
+#include "fused_sum.h"
 #include "pair.h"
 
 #define FASTCD_VERSION "1.4.0"
@@ -392,6 +393,8 @@ const char* fastcd_status_string(FastCDStatus status) {
             return "Required pointer is null";
         case FASTCD_UNSUPPORTED_ALGORITHM:
             return "Algorithm is unknown or unavailable at this dimension";
+        case FASTCD_INVALID_COUNT:
+            return "Invalid element count";
         default:
             return "Unknown fastCD status";
     }
@@ -516,6 +519,77 @@ FastCDStatus fastcd_mul_algorithm_workspace_size(size_t dimension,
 FastCDStatus fastcd_mul_workspace_size(size_t dimension, size_t* length) {
     return fastcd_mul_algorithm_workspace_size(dimension,
             FASTCD_ALGORITHM_AUTO, length);
+}
+
+/* The fused sums run the direct algorithm through dimension 16 and the
+ * quasilinear algorithm above. Through dimension 8 the two have the same
+ * number of products; at dimension 16 the quasilinear sum has fewer, but
+ * the direct sum was faster in benchmarks/sums.py, whose plane tasks are
+ * the measurement to repeat before editing this rule. */
+// Return the algorithm that AUTO selects for a fused sum at a valid dimension
+static FastCDAlgorithm default_sum_algorithm_unchecked(size_t dimension) {
+    return dimension <= 16 ? FASTCD_ALGORITHM_DIRECT
+        : FASTCD_ALGORITHM_QUASILINEAR;
+}
+
+// Write the algorithm that FASTCD_ALGORITHM_AUTO selects for a fused sum
+FastCDStatus fastcd_default_sum_algorithm(size_t dimension,
+        FastCDAlgorithm* algorithm) {
+    if (algorithm == NULL) return FASTCD_NULL_POINTER;
+    if (!fastcd_valid_dimension(dimension)) return FASTCD_INVALID_DIMENSION;
+    *algorithm = default_sum_algorithm_unchecked(dimension);
+    return FASTCD_SUCCESS;
+}
+
+// Resolve the algorithm of a fused sum at a valid dimension
+static FastCDStatus resolve_sum_algorithm(size_t dimension,
+        FastCDAlgorithm algorithm, FastCDAlgorithm* effective) {
+    if (algorithm == FASTCD_ALGORITHM_AUTO) {
+        algorithm = default_sum_algorithm_unchecked(dimension);
+    }
+    if (algorithm != FASTCD_ALGORITHM_DIRECT
+            && algorithm != FASTCD_ALGORITHM_QUASILINEAR) {
+        return FASTCD_UNSUPPORTED_ALGORITHM;
+    }
+    *effective = algorithm;
+    return FASTCD_SUCCESS;
+}
+
+// Validate a dimension and return the scratch length of a fused sum
+static FastCDStatus sum_workspace_query(size_t dimension, size_t extra,
+        size_t* length) {
+    size_t bytes;
+    size_t result;
+    FastCDStatus status = validate_element_extent(dimension, &bytes);
+
+    if (status != FASTCD_SUCCESS) return status;
+    // The accumulators number fewer than 4 N log2(N) vectors of eight doubles
+    if (dimension > SIZE_MAX / 4096) return FASTCD_SIZE_OVERFLOW;
+    if (!checked_size_add(fastcd_fused_sum_workspace(dimension), extra, &result)) {
+        return FASTCD_SIZE_OVERFLOW;
+    }
+    status = double_array_bytes(result, &bytes);
+    if (status != FASTCD_SUCCESS) return status;
+    *length = result;
+    return FASTCD_SUCCESS;
+}
+
+// Return the workspace length required by the fastcd_mul_sum functions
+FastCDStatus fastcd_mul_sum_workspace_size(size_t dimension, size_t* length) {
+    if (length == NULL) return FASTCD_NULL_POINTER;
+    return sum_workspace_query(dimension, 0, length);
+}
+
+/* The covariance keeps, after the scratch of the sum, the two means, the
+ * signs of the conjugate and eight partial sums per coordinate. */
+// Return the workspace length required by fastcd_covariance_f64
+FastCDStatus fastcd_covariance_workspace_size(size_t dimension,
+        size_t* length) {
+    size_t extra;
+
+    if (length == NULL) return FASTCD_NULL_POINTER;
+    if (!checked_size_mul(dimension, 11, &extra)) return FASTCD_SIZE_OVERFLOW;
+    return sum_workspace_query(dimension, extra, length);
 }
 
 // Return the scratch length shared by alternating product and commutator calls
@@ -993,6 +1067,272 @@ FastCDStatus fastcd_mul_batch_f64(double* out, size_t out_stride,
         size_t count, size_t dimension, const FastCDWorkspaceF64* workspace) {
     return fastcd_mul_batch_with_algorithm_f64(out, out_stride, x, x_stride,
             y, y_stride, count, dimension, FASTCD_ALGORITHM_AUTO, workspace);
+}
+
+/* ---------- Fused sums of products ---------- */
+
+// Return whether an optional array of `dimension` doubles overlaps a range
+static bool map_overlaps(const double* map, size_t element_bytes,
+        const void* range, size_t range_bytes) {
+    return map != NULL && ranges_overlap(map, element_bytes, range, range_bytes);
+}
+
+// Validate a fused sum of records and evaluate it
+static FastCDStatus mul_sum_records(double* out, const double* x,
+        size_t x_stride, const double* y, size_t y_stride, size_t count,
+        size_t dimension, const FastCDSumMapF64* map, FastCDAlgorithm algorithm,
+        const FastCDWorkspaceF64* workspace, size_t required) {
+    FastCDAlgorithm effective;
+    FastCDSumJob job;
+    size_t x_span;
+    size_t y_span;
+    size_t x_bytes;
+    size_t y_bytes;
+    size_t element_bytes;
+    FastCDStatus status;
+
+    status = validate_element_extent(dimension, &element_bytes);
+    if (status != FASTCD_SUCCESS) return status;
+    status = resolve_sum_algorithm(dimension, algorithm, &effective);
+    if (status != FASTCD_SUCCESS) return status;
+    if (out == NULL) return FASTCD_NULL_POINTER;
+    if (count == 0) {
+        for (size_t i = 0; i < dimension; i++) out[i] = 0.0;
+        return FASTCD_SUCCESS;
+    }
+    if (x == NULL || y == NULL) return FASTCD_NULL_POINTER;
+    if (count > 1 && ((x_stride != 0 && x_stride < dimension)
+                || (y_stride != 0 && y_stride < dimension))) {
+        return FASTCD_INVALID_STRIDE;
+    }
+    if (count == 1) {
+        x_stride = 0;
+        y_stride = 0;
+    }
+    status = batch_span(dimension, x_stride, count, &x_span);
+    if (status != FASTCD_SUCCESS) return status;
+    status = batch_span(dimension, y_stride, count, &y_span);
+    if (status != FASTCD_SUCCESS) return status;
+    status = double_array_bytes(x_span, &x_bytes);
+    if (status != FASTCD_SUCCESS) return status;
+    status = double_array_bytes(y_span, &y_bytes);
+    if (status != FASTCD_SUCCESS) return status;
+    if (ranges_overlap(out, element_bytes, x, x_bytes)
+            || ranges_overlap(out, element_bytes, y, y_bytes)) {
+        return FASTCD_OVERLAPPING_BUFFERS;
+    }
+    status = validate_workspace(workspace, required, out, element_bytes,
+            x, x_bytes, y, y_bytes, NULL, 0);
+    if (status != FASTCD_SUCCESS) return status;
+    job.x_shift = map == NULL ? NULL : map->x_shift;
+    job.x_scale = map == NULL ? NULL : map->x_scale;
+    job.y_shift = map == NULL ? NULL : map->y_shift;
+    job.y_scale = map == NULL ? NULL : map->y_scale;
+    {
+        const double* const maps[4] = {job.x_shift, job.x_scale, job.y_shift,
+            job.y_scale};
+        size_t required_bytes;
+
+        status = double_array_bytes(required, &required_bytes);
+        if (status != FASTCD_SUCCESS) return status;
+        for (size_t k = 0; k < 4; k++) {
+            if (map_overlaps(maps[k], element_bytes, out, element_bytes)
+                    || map_overlaps(maps[k], element_bytes, workspace->data,
+                        required_bytes)) {
+                return FASTCD_OVERLAPPING_BUFFERS;
+            }
+        }
+    }
+    job.x = x;
+    job.y = y;
+    job.x_stride = x_stride;
+    job.y_stride = y_stride;
+    job.pitch = 0;
+    job.count = count;
+    job.dimension = dimension;
+    job.planes = false;
+    // In dimension 1 both algorithms are the same single product
+    job.quasilinear = effective == FASTCD_ALGORITHM_QUASILINEAR && dimension > 1;
+    fastcd_fused_sum(out, &job, workspace->data);
+    return FASTCD_SUCCESS;
+}
+
+// Sum the products of records with an explicitly selected algorithm
+FastCDStatus fastcd_mul_sum_with_algorithm_f64(double* out, const double* x,
+        size_t x_stride, const double* y, size_t y_stride, size_t count,
+        size_t dimension, const FastCDSumMapF64* map, FastCDAlgorithm algorithm,
+        const FastCDWorkspaceF64* workspace) {
+    size_t required;
+    FastCDStatus status = sum_workspace_query(dimension, 0, &required);
+
+    if (status != FASTCD_SUCCESS) return status;
+    return mul_sum_records(out, x, x_stride, y, y_stride, count, dimension,
+            map, algorithm, workspace, required);
+}
+
+// Sum the products of count pairs of records
+FastCDStatus fastcd_mul_sum_f64(double* out, const double* x, size_t x_stride,
+        const double* y, size_t y_stride, size_t count, size_t dimension,
+        const FastCDSumMapF64* map, const FastCDWorkspaceF64* workspace) {
+    return fastcd_mul_sum_with_algorithm_f64(out, x, x_stride, y, y_stride,
+            count, dimension, map, FASTCD_ALGORITHM_AUTO, workspace);
+}
+
+// Sum the products of planes with an explicitly selected algorithm
+FastCDStatus fastcd_mul_sum_planes_with_algorithm_f64(double* out,
+        const double* x, const double* y, size_t pitch, size_t count,
+        size_t dimension, FastCDAlgorithm algorithm,
+        const FastCDWorkspaceF64* workspace) {
+    FastCDAlgorithm effective;
+    FastCDSumJob job;
+    size_t required;
+    size_t span;
+    size_t bytes;
+    size_t element_bytes;
+    FastCDStatus status = sum_workspace_query(dimension, 0, &required);
+
+    if (status != FASTCD_SUCCESS) return status;
+    status = resolve_sum_algorithm(dimension, algorithm, &effective);
+    if (status != FASTCD_SUCCESS) return status;
+    status = double_array_bytes(dimension, &element_bytes);
+    if (status != FASTCD_SUCCESS) return status;
+    if (out == NULL) return FASTCD_NULL_POINTER;
+    if (count == 0) {
+        for (size_t i = 0; i < dimension; i++) out[i] = 0.0;
+        return FASTCD_SUCCESS;
+    }
+    if (x == NULL || y == NULL) return FASTCD_NULL_POINTER;
+    if (pitch < count) return FASTCD_INVALID_STRIDE;
+    // The last row ends count doubles after its start
+    if (!checked_size_mul(dimension - 1, pitch, &span)
+            || !checked_size_add(span, count, &span)) {
+        return FASTCD_SIZE_OVERFLOW;
+    }
+    status = double_array_bytes(span, &bytes);
+    if (status != FASTCD_SUCCESS) return status;
+    if (ranges_overlap(out, element_bytes, x, bytes)
+            || ranges_overlap(out, element_bytes, y, bytes)) {
+        return FASTCD_OVERLAPPING_BUFFERS;
+    }
+    status = validate_workspace(workspace, required, out, element_bytes,
+            x, bytes, y, bytes, NULL, 0);
+    if (status != FASTCD_SUCCESS) return status;
+    job.x = x;
+    job.y = y;
+    job.x_stride = 0;
+    job.y_stride = 0;
+    job.pitch = pitch;
+    job.count = count;
+    job.dimension = dimension;
+    job.planes = true;
+    job.quasilinear = effective == FASTCD_ALGORITHM_QUASILINEAR && dimension > 1;
+    job.x_shift = NULL;
+    job.x_scale = NULL;
+    job.y_shift = NULL;
+    job.y_scale = NULL;
+    fastcd_fused_sum(out, &job, workspace->data);
+    return FASTCD_SUCCESS;
+}
+
+// Sum the products of count pairs of elements stored as coordinate planes
+FastCDStatus fastcd_mul_sum_planes_f64(double* out, const double* x,
+        const double* y, size_t pitch, size_t count, size_t dimension,
+        const FastCDWorkspaceF64* workspace) {
+    return fastcd_mul_sum_planes_with_algorithm_f64(out, x, y, pitch, count,
+            dimension, FASTCD_ALGORITHM_AUTO, workspace);
+}
+
+/*
+ * Write the mean of each coordinate of a strided sample. The mean is the
+ * first record plus the mean of the differences from it, and the differences
+ * are added in eight interleaved partial sums, as the kernels add elements.
+ */
+static void sample_mean(double* restrict mean, const double* x, size_t stride,
+        size_t count, size_t dimension, double* restrict partial) {
+    for (size_t i = 0; i < 8 * dimension; i++) partial[i] = 0.0;
+    for (size_t p = 1; p < count; p++) {
+        const double* record = x + p * stride;
+        double* lane = partial + (p % 8) * dimension;
+        for (size_t i = 0; i < dimension; i++) lane[i] += record[i] - x[i];
+    }
+    for (size_t i = 0; i < dimension; i++) {
+        const double* d = partial + i;
+        const double total = ((d[0] + d[dimension]) + (d[2 * dimension]
+                    + d[3 * dimension])) + ((d[4 * dimension] + d[5 * dimension])
+                    + (d[6 * dimension] + d[7 * dimension]));
+        mean[i] = x[i] + total / (double)count;
+    }
+}
+
+// Set out to the covariance of two strided samples of count records
+FastCDStatus fastcd_covariance_f64(double* out, const double* x,
+        size_t x_stride, const double* y, size_t y_stride, size_t count,
+        size_t dimension, size_t ddof, const FastCDWorkspaceF64* workspace) {
+    FastCDSumMapF64 map;
+    FastCDWorkspaceF64 sum_workspace;
+    size_t required;
+    size_t sum_required;
+    double* extra;
+    double* signs;
+    double divisor;
+    FastCDStatus status = fastcd_covariance_workspace_size(dimension, &required);
+
+    if (status != FASTCD_SUCCESS) return status;
+    if (count <= ddof) return FASTCD_INVALID_COUNT;
+    if (out == NULL || x == NULL || y == NULL) return FASTCD_NULL_POINTER;
+    if (workspace == NULL || workspace->data == NULL) return FASTCD_NULL_POINTER;
+    if (workspace->length < required) return FASTCD_INSUFFICIENT_WORKSPACE;
+    if (count > 1 && ((x_stride != 0 && x_stride < dimension)
+                || (y_stride != 0 && y_stride < dimension))) {
+        return FASTCD_INVALID_STRIDE;
+    }
+    if (count == 1) {
+        x_stride = 0;
+        y_stride = 0;
+    }
+    {
+        // The whole workspace, not only the prefix of the sum, must be free
+        size_t x_span;
+        size_t y_span;
+        size_t x_bytes;
+        size_t y_bytes;
+        size_t element_bytes;
+
+        status = batch_span(dimension, x_stride, count, &x_span);
+        if (status != FASTCD_SUCCESS) return status;
+        status = batch_span(dimension, y_stride, count, &y_span);
+        if (status != FASTCD_SUCCESS) return status;
+        status = double_array_bytes(x_span, &x_bytes);
+        if (status != FASTCD_SUCCESS) return status;
+        status = double_array_bytes(y_span, &y_bytes);
+        if (status != FASTCD_SUCCESS) return status;
+        status = double_array_bytes(dimension, &element_bytes);
+        if (status != FASTCD_SUCCESS) return status;
+        status = validate_workspace(workspace, required, out, element_bytes,
+                x, x_bytes, y, y_bytes, NULL, 0);
+        if (status != FASTCD_SUCCESS) return status;
+    }
+    sum_required = required - 11 * dimension;
+    extra = workspace->data + sum_required;
+    signs = extra + 2 * dimension;
+    sample_mean(extra, x, x_stride, count, dimension, signs + dimension);
+    sample_mean(extra + dimension, y, y_stride, count, dimension,
+            signs + dimension);
+    // conjugate(y - mean): the scalar coordinate keeps its sign
+    signs[0] = 1.0;
+    for (size_t i = 1; i < dimension; i++) signs[i] = -1.0;
+    map.x_shift = extra;
+    map.x_scale = NULL;
+    map.y_shift = extra + dimension;
+    map.y_scale = signs;
+    sum_workspace.data = workspace->data;
+    sum_workspace.length = sum_required;
+    status = mul_sum_records(out, x, x_stride, y, y_stride, count, dimension,
+            &map, FASTCD_ALGORITHM_AUTO, &sum_workspace, sum_required);
+    if (status != FASTCD_SUCCESS) return status;
+    divisor = (double)(count - ddof);
+    for (size_t i = 0; i < dimension; i++) out[i] /= divisor;
+    return FASTCD_SUCCESS;
 }
 
 /* ---------- Noncommutative and nonassociative products ---------- */

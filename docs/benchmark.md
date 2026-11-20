@@ -14,7 +14,8 @@ Theory), an independent exact-arithmetic C library. The driver
 | `real` (default) | The three algorithms over R, single and batch | `fastcd_benchmark` |
 | `domains` | Direct vs quasilinear over C and odd finite fields | `fastcd_domains_benchmark` |
 | `flint` | Scalar field multiplication and complete CD products, fastCD vs FLINT | `fastcd_flint_benchmark` |
-| `all` | All three protocols, run one after another with separate reports | All three runners |
+| `sums` | Fused sums of products against a batch of products and a matrix product | `fastcd_sums_benchmark` |
+| `all` | The real, domains and FLINT protocols, run one after another with separate reports | Those three runners |
 
 This page first describes how the protocols measure and report, which they
 largely share, then each protocol and how to run it, and finally the
@@ -362,9 +363,70 @@ the degree-12 cells at dimension 1024, where FLINT's extension arithmetic is
 slowest, are the most expensive: in the archived run each of them took more
 than an hour with 1,000 pairs, so they need a larger `--subprocess-timeout`.
 
+## Fused sums
+
+The sums protocol measures the [fused sums](c-api.md#fused-sums) of
+real-coefficient elements. Its corpus is a run of standard normal elements
+cut into *samples* of `count` elements, and every task computes the sum of
+the products of each sample:
+
+| Task | Computation |
+| --- | --- |
+| `products` | `fastcd_mul_batch_f64` on the sample, then a sum over the products |
+| `records` | `fastcd_mul_sum_f64` on the records |
+| `planes_direct` | `fastcd_mul_sum_planes_with_algorithm_f64` with the direct algorithm |
+| `planes_quasilinear` | the same with the quasilinear algorithm |
+| `dgemm` | one `dgemm` for the matrix of real cross moments, then its contraction with the basis signs |
+
+The first task is what a program without the fused sums would call. The two
+plane tasks read each sample from coordinate planes, written before timing
+with rows `count + 8` doubles apart, and they decide the algorithm that
+`AUTO` uses for fused sums. The direct sum has `N^2` multiplications per
+element and is timed through `--max-direct-dimension`, 64 by default.
+
+The `dgemm` task compares with the other way to obtain such a sum: the
+matrix `G[i][j] = sum_p x_p[i] y_p[j]` is one matrix product of the records,
+and the sum of products is `sum over i xor j = k of sigma(i, j) G[i][j]`.
+fastCD contains no matrix product, so the runner loads one at run time from
+the shared BLAS library named by `--blas`, calls its `cblas_dgemm` with one
+thread, and applies the contraction itself, inside the timer. Without
+`--blas` the task is left out. `--blas-symbol` and `--blas-ilp64` select
+another entry point or 64-bit integer arguments, and the report records the
+library's path and hash.
+
+Times are per element. By default a cell has 8,192 elements in samples of
+1,024, with 60 blocks, two warmup passes and a 20 ms target; `--counts`
+takes several sample sizes, each of which must divide `--trials`. A cell has
+three to five tasks, and the block count must be a multiple of the number of
+tasks at every dimension, which 60 is for every combination. The first
+sample of each cell is verified against a long double contraction of the
+cross moments, and on every sample each task must agree with the fused sum
+of records within the same norm-scaled bound; where the plane task runs the
+algorithm that `AUTO` selects, it must return the same bits as the records.
+The report gives the paired ratios products/records, products/planes,
+dgemm/records, dgemm/planes and direct/quasilinear, each the time of the
+first divided by that of the second.
+
+With 8,192 elements the operands of a cell do not fit the L2 cache from
+dimension 16 on, as in a pass over a large array. `--trials 1024` with one
+sample of 1,024 keeps them in cache through dimension 32, and the two
+settings can rank the tasks differently at low dimensions, where loading the
+operands takes as long as the arithmetic.
+
+```sh
+python3 benchmarks/benchmark.py --protocol sums \
+    --runner build/fastcd_sums_benchmark \
+    --blas /path/to/libmkl_rt.so --blas-name "Intel MKL" \
+    --output benchmark-results/sums-current.json
+```
+
+`benchmarks/sums.py` accepts the same options when run directly. The
+protocol is not part of `--protocol all`.
+
 ## Running all protocols
 
-`--protocol all` runs the three protocols one after another from one build:
+`--protocol all` runs the real, domains and FLINT protocols one after another
+from one build:
 
 ```sh
 python3 benchmarks/benchmark.py --protocol all \
@@ -405,6 +467,44 @@ pairs per cell instead of the default 10,000. Every check passed: 600,000
 real products, 100,000 complex and finite-field pairs and 132,000
 FLINT-comparison pairs. The archive's README records the host, the commands
 and the load on the host during the run.
+
+The fused sums were measured on the same host on 2026-11-19 and are
+archived in
+[`benchmark-results/sums-t440-20261119/`](../benchmark-results/sums-t440-20261119/README.md),
+with Intel MKL 2026.2.1 as the BLAS library. Mean nanoseconds per element
+for samples of 1,024 elements, from a corpus of 8,192 elements per cell:
+
+| N | Products | Records | Planes | `dgemm` | Products/records | `dgemm`/records | `dgemm`/planes |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | 4.08 | 3.00 | 0.62 | 1.51 | 1.36 | 0.50 | 2.42 |
+| 4 | 6.64 | 3.19 | 1.24 | 1.97 | 2.09 | 0.62 | 1.58 |
+| 8 | 16.19 | 6.88 | 3.46 | 3.56 | 2.36 | 0.52 | 1.03 |
+| 16 | 59.14 | 21.27 | 13.97 | 14.35 | 2.78 | 0.68 | 1.03 |
+| 32 | 207.84 | 47.00 | 41.20 | 49.48 | 4.43 | 1.05 | 1.20 |
+| 64 | 509.40 | 109.01 | 100.44 | 146.38 | 4.68 | 1.34 | 1.46 |
+| 128 | 1369.84 | 262.08 | 350.75 | 675.79 | 5.23 | 2.56 | 1.91 |
+| 256 | 3070.82 | 727.61 | 1098.78 | 2301.35 | 4.24 | 3.17 | 2.09 |
+| 512 | 7102.31 | 1854.57 | 2677.47 | 8151.25 | 3.84 | 4.40 | 3.04 |
+| 1024 | 16538.63 | 4921.62 | 6052.02 | 29149.01 | 3.36 | 5.92 | 4.81 |
+
+`Planes` is the plane task of the automatic algorithm. A fused sum of
+records took between 0.19 and 0.79 of the time of a batch of products
+followed by a sum, at every dimension and sample size measured. Against the
+matrix product it was slower below dimension 32, level at 32 and faster
+above, by 1.3 at dimension 64 and 5.9 at 1024. From dimension 128 the
+planes were slower than the records in this setting: with 8,192 elements
+the rows of a sample lie on separate pages, while records are read as one
+stream. With a single sample of 1,024 elements, which stays in cache
+through dimension 32, the two layouts were within 10% of each other from
+dimension 128 (`sums-one-sample.md`).
+
+On planes, the direct sum took 0.87 (0.85 to 0.89) of the time of the
+quasilinear sum at dimension 16 with samples of 1,024, and 0.82 and 0.99
+with samples of 4,096 and 64, so `AUTO` uses direct through dimension 16.
+At dimension 32 the direct sum, which there is a plain loop over the
+`N^2` products, took 11.7 times as long. The archive was measured from a
+working tree with uncommitted changes on commit `0a84b06`; its JSON files
+record the hash of every measured source file.
 
 The run reported in version 2 of the paper is archived in
 [`benchmark-results/paper-v2-octonion243-20261023/`](../benchmark-results/paper-v2-octonion243-20261023/results.md),

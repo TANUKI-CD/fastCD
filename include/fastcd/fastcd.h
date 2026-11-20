@@ -62,7 +62,8 @@ typedef enum {
     FASTCD_INVALID_STRIDE,
     FASTCD_SIZE_OVERFLOW,
     FASTCD_NULL_POINTER,
-    FASTCD_UNSUPPORTED_ALGORITHM
+    FASTCD_UNSUPPORTED_ALGORITHM,
+    FASTCD_INVALID_COUNT
 } FastCDStatus;
 
 /*
@@ -90,6 +91,19 @@ typedef struct FastCDWorkspaceF64 {
 } FastCDWorkspaceF64;
 
 /* A workspace descriptor object must not overlap any input or output array. */
+
+/*
+ * Optional affine maps of the operands of fastcd_mul_sum_f64. Coordinate i of
+ * every element of x is read as (value - x_shift[i]) * x_scale[i], and
+ * likewise for y. Each member is an array of `dimension` doubles or NULL; a
+ * NULL shift subtracts nothing and a NULL scale multiplies by nothing.
+ */
+typedef struct FastCDSumMapF64 {
+    const double* x_shift;
+    const double* x_scale;
+    const double* y_shift;
+    const double* y_scale;
+} FastCDSumMapF64;
 
 typedef struct FastCDBasisProduct {
     size_t index;
@@ -130,6 +144,12 @@ FASTCD_API FastCDStatus fastcd_default_algorithm(size_t dimension,
 FASTCD_API FastCDStatus fastcd_default_batch_algorithm(size_t dimension,
         FastCDAlgorithm* algorithm);
 
+/* A fused sum runs the direct algorithm through dimension 16 and the
+ * quasilinear algorithm above, the choice of the sums benchmark. */
+// Write the algorithm that FASTCD_ALGORITHM_AUTO selects for a fused sum
+FASTCD_API FastCDStatus fastcd_default_sum_algorithm(size_t dimension,
+        FastCDAlgorithm* algorithm);
+
 // Check whether an algorithm can multiply elements of this dimension
 FASTCD_API bool fastcd_algorithm_supports_dimension(FastCDAlgorithm algorithm,
         size_t dimension);
@@ -144,6 +164,16 @@ FASTCD_API FastCDStatus fastcd_mul_workspace_size(size_t dimension,
 // Return the workspace length required by the explicit-algorithm products
 FASTCD_API FastCDStatus fastcd_mul_algorithm_workspace_size(size_t dimension,
         FastCDAlgorithm algorithm, size_t* length);
+
+/* The fused sums use one workspace length for both layouts and both
+ * algorithms. It grows like N log N and does not depend on the count. */
+// Return the workspace length required by the fastcd_mul_sum functions
+FASTCD_API FastCDStatus fastcd_mul_sum_workspace_size(size_t dimension,
+        size_t* length);
+
+// Return the workspace length required by fastcd_covariance_f64
+FASTCD_API FastCDStatus fastcd_covariance_workspace_size(size_t dimension,
+        size_t* length);
 
 // Return the workspace length required by fastcd_imag_cross_f64 and
 // fastcd_commutator_f64
@@ -270,6 +300,64 @@ FASTCD_API FastCDStatus fastcd_mul_batch_with_algorithm_f64(double* out,
         size_t out_stride, const double* x, size_t x_stride, const double* y,
         size_t y_stride, size_t count, size_t dimension,
         FastCDAlgorithm algorithm, const FastCDWorkspaceF64* workspace);
+
+/* ---------- Fused sums of products ---------- */
+
+/*
+ * A fused sum is out = x_0 y_0 + ... + x_(count-1) y_(count-1), computed
+ * without forming the products: every multiplication of the algorithm is
+ * accumulated over the elements, and the algorithm's output additions are
+ * applied once to the accumulated values. It rounds differently from a batch
+ * of products followed by a sum. The quasilinear and direct algorithms are
+ * available; Cariow--Cariowa returns FASTCD_UNSUPPORTED_ALGORITHM.
+ *
+ * The output and the queried workspace prefix must be disjoint from all
+ * other arrays. The inputs are only read and may overlap each other in any
+ * way. A count of zero writes the zero element and reads no input. If any
+ * coordinate read is NaN or infinite, the finite or non-finite value of each
+ * output coordinate is unspecified.
+ */
+// Sum the products of count pairs of records, strided as in fastcd_mul_batch_f64
+FASTCD_API FastCDStatus fastcd_mul_sum_f64(double* out, const double* x,
+        size_t x_stride, const double* y, size_t y_stride, size_t count,
+        size_t dimension, const FastCDSumMapF64* map,
+        const FastCDWorkspaceF64* workspace);
+
+// Sum the products of records with an explicitly selected algorithm
+FASTCD_API FastCDStatus fastcd_mul_sum_with_algorithm_f64(double* out,
+        const double* x, size_t x_stride, const double* y, size_t y_stride,
+        size_t count, size_t dimension, const FastCDSumMapF64* map,
+        FastCDAlgorithm algorithm, const FastCDWorkspaceF64* workspace);
+
+/*
+ * Plane layout: coordinate i of element p is x[i * pitch + p], so each
+ * coordinate of the elements is one contiguous row. pitch is measured in
+ * doubles and must be at least count. This is the layout the kernels work
+ * in; records are first rewritten into it, 64 elements at a time.
+ */
+// Sum the products of count pairs of elements stored as coordinate planes
+FASTCD_API FastCDStatus fastcd_mul_sum_planes_f64(double* out, const double* x,
+        const double* y, size_t pitch, size_t count, size_t dimension,
+        const FastCDWorkspaceF64* workspace);
+
+// Sum the products of planes with an explicitly selected algorithm
+FASTCD_API FastCDStatus fastcd_mul_sum_planes_with_algorithm_f64(double* out,
+        const double* x, const double* y, size_t pitch, size_t count,
+        size_t dimension, FastCDAlgorithm algorithm,
+        const FastCDWorkspaceF64* workspace);
+
+/*
+ * The covariance of two samples of elements is
+ *   (1 / (count - ddof)) sum_p (x_p - mean(x)) conjugate(y_p - mean(y)),
+ * an element of the algebra. Its scalar coordinate is the sum over the
+ * coordinates of their real covariances. The means are subtracted and the
+ * conjugate is taken as the records are read, and the sum is a fused sum.
+ * count must exceed ddof; otherwise the call returns FASTCD_INVALID_COUNT.
+ */
+// Set out to the covariance of two strided samples of count records
+FASTCD_API FastCDStatus fastcd_covariance_f64(double* out, const double* x,
+        size_t x_stride, const double* y, size_t y_stride, size_t count,
+        size_t dimension, size_t ddof, const FastCDWorkspaceF64* workspace);
 
 /* ---------- Noncommutative and nonassociative products ---------- */
 

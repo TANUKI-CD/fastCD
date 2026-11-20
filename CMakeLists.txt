@@ -80,6 +80,7 @@ add_library(fastcd
     src/cariow_cariowa.c
     src/direct.c
     src/arithmetic.c
+    src/fused_sum.c
     src/complex.c
     src/finite/field.c
     src/finite/finite.c
@@ -150,6 +151,22 @@ if(FASTCD_ENABLE_FINITE_SIMD AND NOT FASTCD_TUNING_DEFINITIONS MATCHES "FASTCD_D
         PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512bw")
 endif()
 
+# The fused sums have a portable kernel and, on x86 with GCC or Clang, AVX2
+# and AVX-512 kernels chosen at run time.
+option(FASTCD_ENABLE_SUM_SIMD "Runtime-dispatched x86 kernels of the fused sums" ON)
+set(FASTCD_HAVE_SUM_SIMD OFF)
+if(FASTCD_ENABLE_SUM_SIMD AND NOT FASTCD_TUNING_DEFINITIONS MATCHES "FASTCD_DISABLE_SIMD=1"
+        AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i[3-6]86)$"
+        AND CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang|AppleClang)$")
+    target_compile_definitions(fastcd PRIVATE FASTCD_SUM_SIMD=1)
+    set(FASTCD_HAVE_SUM_SIMD ON)
+    target_sources(fastcd PRIVATE src/fused_sum_avx2.c src/fused_sum_avx512.c)
+    set_source_files_properties(src/fused_sum_avx2.c
+        PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma")
+    set_source_files_properties(src/fused_sum_avx512.c
+        PROPERTIES COMPILE_OPTIONS "-mavx512f")
+endif()
+
 if(BUILD_TESTING OR FASTCD_BUILD_BENCHMARK)
     add_library(fastcd_reference STATIC tests/reference_cd.c)
     target_include_directories(fastcd_reference PUBLIC
@@ -182,6 +199,23 @@ if(BUILD_TESTING)
     fastcd_configure_target(fastcd_stability_tests)
     add_test(NAME fastcd.stability COMMAND fastcd_stability_tests)
     set_tests_properties(fastcd.stability PROPERTIES TIMEOUT 600)
+
+    # The kernels are compiled into the test as well, so that it can call
+    # each of them and compare their results bit for bit.
+    add_executable(fastcd_sum_tests tests/test_fused_sum.c src/fused_sum.c)
+    target_include_directories(fastcd_sum_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+    if(FASTCD_HAVE_SUM_SIMD)
+        target_sources(fastcd_sum_tests PRIVATE src/fused_sum_avx2.c
+            src/fused_sum_avx512.c)
+        # The test's portable kernel uses fma(), the model the x86 kernels
+        # must match; the library's portable kernel is tested without them.
+        target_compile_definitions(fastcd_sum_tests PRIVATE FASTCD_SUM_SIMD=1
+            FASTCD_TEST_SUM_SIMD=1 FASTCD_SUM_FORCE_FMA=1)
+    endif()
+    target_link_libraries(fastcd_sum_tests PRIVATE fastcd::fastcd fastcd_reference)
+    fastcd_configure_target(fastcd_sum_tests)
+    add_test(NAME fastcd.fused_sum COMMAND fastcd_sum_tests)
+    set_tests_properties(fastcd.fused_sum PROPERTIES TIMEOUT 600)
 
     add_executable(fastcd_domain_tests tests/test_domains.c)
     if(FASTCD_HAVE_FINITE_SIMD)
@@ -219,6 +253,11 @@ if(FASTCD_BUILD_BENCHMARK)
     target_include_directories(fastcd_domains_benchmark PRIVATE ${PROJECT_SOURCE_DIR}/src/finite)
     target_link_libraries(fastcd_domains_benchmark PRIVATE fastcd::fastcd)
     fastcd_configure_target(fastcd_domains_benchmark)
+    # The sum runner can load a BLAS library at run time for its optional
+    # dgemm task; neither it nor the library links one.
+    add_executable(fastcd_sums_benchmark benchmarks/sums.c)
+    target_link_libraries(fastcd_sums_benchmark PRIVATE fastcd::fastcd ${CMAKE_DL_LIBS})
+    fastcd_configure_target(fastcd_sums_benchmark)
     # FLINT is confined to this executable. The library, installed CMake
     # target, Python package and default benchmark have no new dependency.
     if(FASTCD_BUILD_FLINT_BENCHMARK)
@@ -264,7 +303,8 @@ if(FASTCD_BUILD_BENCHMARK)
             set(fastcd_runner_options -Wa,-mbranches-within-32B-boundaries)
         endif()
     endif()
-    foreach(runner IN ITEMS fastcd_benchmark fastcd_domains_benchmark fastcd_flint_benchmark)
+    foreach(runner IN ITEMS fastcd_benchmark fastcd_domains_benchmark
+            fastcd_sums_benchmark fastcd_flint_benchmark)
         if(TARGET ${runner} AND fastcd_runner_options)
             target_compile_options(${runner} PRIVATE ${fastcd_runner_options})
         endif()
@@ -310,6 +350,8 @@ if(FASTCD_BUILD_BENCHMARK)
         FASTCD_BENCHMARK_BUILD_ID="${fastcd_build_id}-$<CONFIG>")
     target_compile_definitions(fastcd_domains_benchmark PRIVATE
         FASTCD_BENCHMARK_BUILD_ID="${fastcd_build_id}-$<CONFIG>")
+    target_compile_definitions(fastcd_sums_benchmark PRIVATE
+        FASTCD_BENCHMARK_BUILD_ID="${fastcd_build_id}-$<CONFIG>")
     file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/fastcd-build-$<CONFIG>.txt"
         CONTENT "build_id=${fastcd_build_id}-$<CONFIG>\n${fastcd_build_record}")
     if(FASTCD_BUILD_FLINT_BENCHMARK)
@@ -343,6 +385,7 @@ if(FASTCD_BUILD_BENCHMARK)
     if(BUILD_TESTING)
         add_test(NAME fastcd.benchmark_metadata COMMAND fastcd_benchmark --metadata)
         add_test(NAME fastcd.domains_benchmark_metadata COMMAND fastcd_domains_benchmark --metadata)
+        add_test(NAME fastcd.sums_benchmark_metadata COMMAND fastcd_sums_benchmark --metadata)
         if(FASTCD_BUILD_FLINT_BENCHMARK)
             add_test(NAME fastcd.flint_benchmark_metadata COMMAND fastcd_flint_benchmark --metadata)
             add_test(NAME fastcd.flint_agreement COMMAND fastcd_flint_benchmark --self-test)

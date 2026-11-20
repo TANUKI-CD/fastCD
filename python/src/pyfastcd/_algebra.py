@@ -731,6 +731,168 @@ class Algebra:
             _multiply(self, x, y, out=out, allow_array_like=True, algorithm=code),
         )
 
+    @property
+    def default_sum_algorithm(self) -> str:
+        """str: Algorithm that ``"auto"`` selects for :meth:`multiply_sum`.
+
+        ``"direct"`` through dimension 16 and ``"quasilinear"`` above, the
+        choice of the sums benchmark.
+        """
+
+        self._require_real_sums()
+        return _core._default_sum_algorithm(self.dimension)
+
+    def multiply_sum(
+        self,
+        x: Any,
+        y: Any,
+        *,
+        algorithm: str = "auto",
+        planes: bool = False,
+    ) -> Element:
+        """Return the sum of the products of corresponding records.
+
+        The result is ``x[0] * y[0] + x[1] * y[1] + ...`` over every record
+        of the operands, computed as a fused sum: the multiplications of the
+        algorithm are accumulated over the records and its output additions
+        are applied once.  No product is stored.
+
+        Parameters
+        ----------
+        x, y : Element, ElementArray, or array-like
+            Operands with the same batch shape; all batch axes are summed.
+            Either operand may instead be a single record, which is then
+            multiplied with every record of the other.  With ``planes=True``
+            both are arrays of shape ``(dimension, count)``, in which row
+            ``i`` holds coordinate ``i`` of every record.
+        algorithm : str, optional
+            ``"auto"`` (the default, :attr:`default_sum_algorithm`),
+            ``"direct"``, or ``"quasilinear"``.
+        planes : bool, optional
+            Read the operands as coordinate planes.  This is the layout the
+            native kernels work in; records are rewritten into it in blocks.
+
+        Returns
+        -------
+        Element
+            The sum.  Operands with no records give the zero element.
+
+        Raises
+        ------
+        TypeError
+            If the parent does not have real coefficients, or an operand is
+            unsupported.
+        ValueError
+            If the shapes do not match or the algorithm cannot form sums.
+
+        Notes
+        -----
+        The result differs in rounding from ``(x * y)`` summed over its
+        records.  The two layouts return the same bits for the same records.
+        """
+
+        self._require_real_sums()
+        code = _core._algorithm(algorithm, self._dimension)
+        if planes:
+            xa, ya = self._sum_planes(x), self._sum_planes(y)
+            if xa.shape != ya.shape:
+                raise ValueError("plane operands must have the same shape")
+            return self._fused(1, code, xa, ya, 0)
+        xa, ya = self._sum_records(x), self._sum_records(y)
+        return self._fused(0, code, xa, ya, 0)
+
+    def covariance(self, x: Any, y: Any, *, ddof: int = 1) -> Element:
+        """Return the covariance of two samples of elements.
+
+        The covariance is ``sum((x[p] - mean(x)) * conjugate(y[p] - mean(y)))
+        / (count - ddof)`` over the records ``p``, an element of the algebra.
+        Its scalar coordinate is the sum over the coordinates of their real
+        covariances.
+
+        Parameters
+        ----------
+        x, y : ElementArray or array-like
+            Samples with the same batch shape; all batch axes are records.
+        ddof : int, optional
+            Delta degrees of freedom of the divisor ``count - ddof``.  The
+            default 1 gives the unbiased estimate.
+
+        Returns
+        -------
+        Element
+            The covariance.
+
+        Raises
+        ------
+        TypeError
+            If the parent does not have real coefficients, or an operand or
+            ``ddof`` is unsupported.
+        ValueError
+            If the shapes do not match, ``ddof`` is negative, or the number
+            of records does not exceed ``ddof``.
+
+        Notes
+        -----
+        The means are subtracted and the conjugate is taken as the records
+        are read, and the sum is a fused sum as in :meth:`multiply_sum`.
+        """
+
+        self._require_real_sums()
+        if isinstance(ddof, bool) or not isinstance(ddof, int):
+            raise TypeError("ddof must be an integer")
+        if ddof < 0:
+            raise ValueError("ddof must be nonnegative")
+        xa, ya = self._sum_records(x), self._sum_records(y)
+        if xa.shape[0] != ya.shape[0]:
+            raise ValueError("samples must have the same number of records")
+        return self._fused(2, _AUTO, xa, ya, ddof)
+
+    def _require_real_sums(self) -> None:
+        """Reject parents whose coefficients are not real."""
+
+        if self._ctx is not None:
+            raise TypeError("fused sums require real coefficients")
+
+    def _sum_records(self, values: Any) -> np.ndarray[Any, np.dtype[np.float64]]:
+        """Return the records of an operand as a C-contiguous (count, N) array."""
+
+        coefficients = _array._coerce_coefficients(self, values, copy=None)
+        return np.ascontiguousarray(coefficients, dtype=np.float64).reshape(
+            -1, self._dimension
+        )
+
+    def _sum_planes(self, values: Any) -> np.ndarray[Any, np.dtype[np.float64]]:
+        """Return coordinate planes as a C-contiguous (N, count) array."""
+
+        source = np.asarray(values)
+        _array._validate_source_dtype(source)
+        if source.ndim != 2 or source.shape[0] != self._dimension:
+            raise ValueError(
+                f"plane operands must have shape ({self._dimension}, count)"
+            )
+        return np.ascontiguousarray(source, dtype=np.float64)
+
+    def _fused(
+        self,
+        mode: int,
+        code: int,
+        x: np.ndarray[Any, np.dtype[np.float64]],
+        y: np.ndarray[Any, np.dtype[np.float64]],
+        ddof: int,
+    ) -> Element:
+        """Run a fused sum of prepared operands and wrap the result."""
+
+        if mode != 1:
+            counts = (x.shape[0], y.shape[0])
+            if counts[0] != counts[1] and 1 not in counts:
+                raise ValueError(
+                    "operands must have the same batch shape, or one must be "
+                    "a single record"
+                )
+        out = np.empty(self._dimension, dtype=np.float64)
+        _core._mul_sum(mode, code, self._dimension, x, y, ddof, out)
+        return _core._element(self, self._dimension, out)
+
     def left_basis_multiply(
         self, index: Any, x: Any, *, out: Any | None = None
     ) -> Element | ElementArray:

@@ -71,4 +71,18 @@ void fastcd_direct_mul_batch(double* restrict out, size_t out_stride,
         const double* x, size_t x_stride, const double* y, size_t y_stride,
         size_t count, size_t dimension, double* restrict workspace);
 
+/* ---------- Fused sums of products ---------- */
+
+struct FastCDSumJob;
+
+// Return the scratch length of a fused sum of either schedule
+size_t fastcd_fused_sum_workspace(size_t dimension);
+
+// Evaluate one validated fused sum with the fastest kernel of this processor
+void fastcd_fused_sum(double* restrict out, const struct FastCDSumJob* job,
+        double* restrict workspace);
+
+// Number of kernels this processor can run: 1 portable, 2 with AVX2, 3 with AVX-512
+int fastcd_fused_sum_kernels(void);
+
 #endif

@@ -148,6 +148,14 @@ class Algebra(Generic[_D, _S, _R, _H]):
         Element[_D, _S, Algebra[_D, _S, _R, _H], _H]
         | ElementArray[_D, _S, _R, Algebra[_D, _S, _R, _H], _H]
     ): ...
+    @property
+    def default_sum_algorithm(self) -> str: ...
+    def multiply_sum(
+        self, x: Any, y: Any, *, algorithm: str = "auto", planes: bool = False
+    ) -> Element[_D, _S, Algebra[_D, _S, _R, _H], _H]: ...
+    def covariance(
+        self, x: Any, y: Any, *, ddof: int = 1
+    ) -> Element[_D, _S, Algebra[_D, _S, _R, _H], _H]: ...
     def left_basis_multiply(
         self, index: Any, x: Any, *, out: Any | None = None
     ) -> (

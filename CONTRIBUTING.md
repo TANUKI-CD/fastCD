@@ -39,7 +39,9 @@ For quasilinear arithmetic changes, run
 changes, run `python3 tools/check_cariow_counts.py`. These optional
 development checks require a C++ compiler (`c++` by default, or `CXX`) and
 instrument the scalar templates and generated kernels through dimension
-1024. The library itself remains C11. CTest also checks the complex
+1024. For changes to the fused sums, run
+`python3 tools/check_fused_sum_counts.py`, which needs a C compiler (`cc` by
+default, or `CC`). The library itself remains C11. CTest also checks the complex
 octonion leaf against the independent defining-recursion reference on all
 196 real basis pairs and 256 dense dyadic cases.
 

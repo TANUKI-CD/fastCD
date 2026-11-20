@@ -2838,5 +2838,128 @@ class RemainingBranchTests(FastCDTestCase):
                     np.negative(value, out=np.empty((2, 4)))
 
 
+
+class FusedSumTests(unittest.TestCase):
+    """Fused sums of products and the covariance of real parents."""
+
+    @staticmethod
+    def _dyadic(rng: np.random.Generator, shape: tuple[int, ...]) -> np.ndarray:
+        # Multiples of 1/8: products and their sums are exact
+        return rng.integers(-32, 32, size=shape).astype(np.float64) / 8.0
+
+    def test_multiply_sum_equals_summed_products_exactly(self) -> None:
+        rng = np.random.default_rng(11)
+        for dimension in (1, 2, 4, 8, 16, 32, 64):
+            algebra = fcd.Algebra(dimension=dimension)
+            x = self._dyadic(rng, (3, 7, dimension))
+            y = self._dyadic(rng, (3, 7, dimension))
+            products = np.asarray(algebra.multiply(x, y))
+            want = products.reshape(-1, dimension).sum(axis=0)
+            for algorithm in ("auto", "direct", "quasilinear"):
+                with self.subTest(dimension=dimension, algorithm=algorithm):
+                    got = algebra.multiply_sum(x, y, algorithm=algorithm)
+                    self.assertIsInstance(got, fcd.Element)
+                    self.assertIs(got.algebra, algebra)
+                    np.testing.assert_array_equal(np.asarray(got), want)
+                    planes = algebra.multiply_sum(
+                        x.reshape(-1, dimension).T,
+                        y.reshape(-1, dimension).T,
+                        algorithm=algorithm,
+                        planes=True,
+                    )
+                    np.testing.assert_array_equal(np.asarray(planes), want)
+
+    def test_multiply_sum_operand_forms(self) -> None:
+        rng = np.random.default_rng(12)
+        algebra = fcd.Algebra(dimension=16)
+        x = self._dyadic(rng, (10, 16))
+        y = self._dyadic(rng, (10, 16))
+        want = np.asarray(algebra.multiply(x, y)).sum(axis=0)
+        arrays = algebra.multiply_sum(algebra.array(x), algebra.asarray(y))
+        np.testing.assert_array_equal(np.asarray(arrays), want)
+        # A single record multiplies every record of the other operand
+        single = algebra(x[0])
+        repeated = np.broadcast_to(x[0], y.shape)
+        want = np.asarray(algebra.multiply(repeated, y)).sum(axis=0)
+        got = algebra.multiply_sum(single, y)
+        np.testing.assert_array_equal(np.asarray(got), want)
+        # Strided and Fortran-ordered sources are copied as needed
+        np.testing.assert_array_equal(
+            np.asarray(algebra.multiply_sum(np.asfortranarray(x), y[::-1][::-1])),
+            np.asarray(algebra.multiply(x, y)).sum(axis=0),
+        )
+        empty = algebra.multiply_sum(np.empty((0, 16)), np.empty((0, 16)))
+        self.assertEqual(empty, algebra.zero())
+        self.assertEqual(algebra.default_sum_algorithm, "direct")
+        self.assertEqual(
+            fcd.Algebra(dimension=32).default_sum_algorithm, "quasilinear"
+        )
+
+    def test_multiply_sum_rejects_invalid_requests(self) -> None:
+        algebra = fcd.Algebra(dimension=8)
+        x = np.ones((5, 8))
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(x, np.ones((4, 8)))
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(x, np.ones((5, 4)))
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(x, x, algorithm="cariow_cariowa")
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(x, x, algorithm="fastest")
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(x, x, planes=True)
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(np.ones((8, 5)), np.ones((8, 6)), planes=True)
+        with self.assertRaises(TypeError):
+            algebra.multiply_sum(x.astype(np.complex128), x)
+        parents = (
+            fcd.Algebra(dimension=8, char=0, deg=2),
+            fcd.Algebra(dimension=8, char=7),
+        )
+        for parent in parents:
+            with self.subTest(parent=repr(parent)):
+                with self.assertRaises(TypeError):
+                    parent.multiply_sum(parent.zero(), parent.zero())
+                with self.assertRaises(TypeError):
+                    parent.covariance(parent.zero(), parent.zero())
+                with self.assertRaises(TypeError):
+                    _ = parent.default_sum_algorithm
+
+    def test_covariance_matches_its_definition(self) -> None:
+        rng = np.random.default_rng(13)
+        for dimension in (1, 4, 16, 64):
+            algebra = fcd.Algebra(dimension=dimension)
+            x = rng.normal(3.0, 1.0, (9, 5, dimension))
+            y = rng.normal(-2.0, 1.0, (9, 5, dimension))
+            xc = (x - x.mean(axis=(0, 1))).reshape(-1, dimension)
+            yc = (y - y.mean(axis=(0, 1))).reshape(-1, dimension)
+            conjugates = np.asarray(algebra.array(yc).conjugate())
+            products = np.asarray(algebra.multiply(xc, conjugates))
+            for ddof in (0, 1):
+                with self.subTest(dimension=dimension, ddof=ddof):
+                    want = products.sum(axis=0) / (45 - ddof)
+                    got = algebra.covariance(x, y, ddof=ddof)
+                    self.assertIsInstance(got, fcd.Element)
+                    np.testing.assert_allclose(
+                        np.asarray(got), want, rtol=1e-11, atol=1e-11
+                    )
+            # The scalar coordinate is the sum of the real covariances
+            real = sum(np.cov(xc[:, i], yc[:, i])[0, 1] for i in range(dimension))
+            self.assertAlmostEqual(algebra.covariance(x, y).real, real, places=9)
+
+    def test_covariance_rejects_invalid_requests(self) -> None:
+        algebra = fcd.Algebra(dimension=4)
+        x = np.ones((3, 4))
+        with self.assertRaises(ValueError):
+            algebra.covariance(x, x, ddof=3)
+        with self.assertRaises(ValueError):
+            algebra.covariance(x, x, ddof=-1)
+        with self.assertRaises(TypeError):
+            algebra.covariance(x, x, ddof=1.0)
+        with self.assertRaises(ValueError):
+            algebra.covariance(x, np.ones((1, 4)))
+        np.testing.assert_array_equal(np.asarray(algebra.covariance(x, x)), np.zeros(4))
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

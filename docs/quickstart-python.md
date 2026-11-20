@@ -75,6 +75,25 @@ C-contiguous, and it must not overlap an input. Methods such as
 `conjugate`, `square`, and `commutator` also work on arrays and allocate
 storage for their results.
 
+## Sums of products and covariance
+
+`multiply_sum` adds up the products of corresponding records without storing
+them, and `covariance` uses the same sum for two samples of elements. Both
+return one `Element` and exist for real coefficients.
+
+```python
+total = O.multiply_sum(x, z)                # x[0] * z[0] + ... + x[999] * z[999]
+assert np.allclose(total, (x * z).coefficients.sum(axis=0))
+
+cov = O.covariance(x, z)                    # divisor 999; ddof=0 for 1000
+assert np.isclose(cov.real, sum(np.cov(x.coefficients[:, i], z.coefficients[:, i])[0, 1]
+                                for i in range(8)))
+```
+
+The covariance is `sum((x[p] - mean(x)) * conjugate(z[p] - mean(z)))`
+divided by `count - ddof`. Arrays of shape `(dimension, count)`, with one
+row per coordinate, can be summed directly with `planes=True`.
+
 ## Choosing the multiplication algorithm
 
 Ordinary multiplication uses the default algorithm for the dimension, chosen

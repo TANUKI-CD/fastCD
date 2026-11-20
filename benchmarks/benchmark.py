@@ -25,6 +25,9 @@ The default protocol remains this real experiment. Explicit ``--protocol``
 choices add complex/finite direct-versus-quasilinear measurements (domains),
 comparisons with FLINT, the Fast Library for Number Theory (flint), or all
 three independent protocols (all). The FLINT runner is an optional build.
+``--protocol sums`` measures the fused sums of products against a batch of
+products and, with ``--blas``, against a matrix product; it is not part of
+``all``.
 """
 
 from __future__ import annotations
@@ -71,8 +74,17 @@ def parse_arguments() -> argparse.Namespace:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--runner", type=Path, required=True,
                         help="runner for the selected protocol (all uses fastcd_benchmark)")
-    parser.add_argument("--protocol", choices=("real", "domains", "flint", "all"),
+    parser.add_argument("--protocol",
+                        choices=("real", "domains", "flint", "sums", "all"),
                         default="real", help="benchmark protocol (default: real)")
+    parser.add_argument("--counts", default="1024",
+                        help="sums: comma-separated elements per sample")
+    parser.add_argument("--blas", type=Path,
+                        help="sums: shared BLAS library providing cblas_dgemm")
+    parser.add_argument("--blas-symbol", default="cblas_dgemm")
+    parser.add_argument("--blas-ilp64", action="store_true",
+                        help="sums: the BLAS library takes 64-bit integers")
+    parser.add_argument("--blas-name", help="sums: BLAS name for the report")
     parser.add_argument("--fields", help="char:deg pairs for domains/FLINT; C is 0:2")
     parser.add_argument("--domain-runner", type=Path,
                         help="domain executable for all (default: beside --runner)")
@@ -88,11 +100,13 @@ def parse_arguments() -> argparse.Namespace:
                         help="JSON result path; a Markdown table is written next to it")
     parser.add_argument("--dimensions", default="2,4,8,16,32,64,128,256,512,1024",
                         help="comma-separated powers of two")
-    parser.add_argument("--trials", type=int, default=10000,
-                        help="multiplication pairs per dimension")
-    parser.add_argument("--blocks", type=int, default=24,
+    parser.add_argument("--trials", type=int, default=None,
+                        help="multiplication pairs per dimension (default: 10000; "
+                             "sums: 8192 elements)")
+    parser.add_argument("--blocks", type=int, default=None,
                         help="timing blocks; each yields one observation per task "
-                             "(multiples of 12 keep the task order fully balanced)")
+                             "(multiples of 12 keep the task order fully balanced; "
+                             "default: 24; sums: 60)")
     parser.add_argument("--modes", default=",".join(MODES),
                         help="comma-separated subset of batch,single")
     parser.add_argument("--warmup", type=int, default=2, help="untimed corpus passes")
@@ -103,8 +117,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--norm-max", type=float, default=2.0)
     parser.add_argument("--corpora", type=Path, default=Path("benchmark-corpora"),
                         help="directory holding corpus-nN.f64 files and manifest.json")
-    parser.add_argument("--max-direct-dimension", type=int, default=1024,
-                        help="largest dimension at which the quadratic direct product is timed")
+    parser.add_argument("--max-direct-dimension", type=int, default=None,
+                        help="largest dimension at which the quadratic direct product "
+                             "is timed (default: 1024; sums: 64)")
     parser.add_argument("--max-cc-dimension", type=int, default=CC_TIMING_CAP,
                         help="largest dimension at which Cariow--Cariowa is timed "
                              "(default: every dimension the library supports)")
@@ -115,6 +130,13 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument("--subprocess-timeout", type=float, default=3600.0,
                         help="seconds allowed for one runner invocation")
     arguments = parser.parse_args()
+    sums = arguments.protocol == "sums"
+    if arguments.trials is None:
+        arguments.trials = 8192 if sums else 10000
+    if arguments.blocks is None:
+        arguments.blocks = 60 if sums else 24
+    if arguments.max_direct_dimension is None:
+        arguments.max_direct_dimension = 64 if sums else 1024
     if arguments.trials < 1 or arguments.blocks < 1 or arguments.warmup < 0:
         parser.error("trials and blocks must be positive; warmup must be nonnegative")
     if not math.isfinite(arguments.min_time_ms) or arguments.min_time_ms < 0:

@@ -157,6 +157,7 @@ static int pyfastcd_set_status_error(FastCDStatus status) {
         case FASTCD_INVALID_STRIDE:
         case FASTCD_OVERLAPPING_BUFFERS:
         case FASTCD_UNSUPPORTED_ALGORITHM:
+        case FASTCD_INVALID_COUNT:
             exception = PyExc_ValueError;
             break;
         case FASTCD_INVALID_BASIS_INDEX:
@@ -3356,6 +3357,153 @@ static PyObject* pyfastcd_default_algorithm_entry(PyObject* Py_UNUSED(module),
     return PyUnicode_FromString(fastcd_algorithm_string(algorithm));
 }
 
+// Return the name of the algorithm that automatic selection uses for fused sums
+static PyObject* pyfastcd_default_sum_algorithm_entry(
+        PyObject* Py_UNUSED(module), PyObject* args) {
+    Py_ssize_t dimension_value;
+    size_t dimension;
+    FastCDAlgorithm algorithm;
+    FastCDStatus status;
+
+    if (!PyArg_ParseTuple(args, "n:_default_sum_algorithm", &dimension_value)) {
+        return NULL;
+    }
+    if (pyfastcd_dimension_from_ssize(dimension_value, &dimension) < 0) {
+        return NULL;
+    }
+    status = fastcd_default_sum_algorithm(dimension, &algorithm);
+    if (status != FASTCD_SUCCESS) {
+        pyfastcd_set_status_error(status);
+        return NULL;
+    }
+    return PyUnicode_FromString(fastcd_algorithm_string(algorithm));
+}
+
+// Acquire a C-contiguous buffer of doubles prepared by the Python layer
+static int pyfastcd_sum_buffer(PyObject* object, Py_buffer* view, int writable) {
+    if (PyObject_GetBuffer(object, view, PyBUF_C_CONTIGUOUS | PyBUF_FORMAT
+                | (writable ? PyBUF_WRITABLE : 0)) < 0) {
+        return -1;
+    }
+    if (view->itemsize != (Py_ssize_t)sizeof(double) || view->format == NULL
+            || strcmp(view->format, "d") != 0) {
+        PyBuffer_Release(view);
+        PyErr_SetString(PyExc_TypeError, "internal sum buffer is not float64");
+        return -1;
+    }
+    return 0;
+}
+
+/*
+ * Fused sum or covariance of prepared operands. mode 0 sums records, mode 1
+ * sums planes, mode 2 is the covariance of records. x and y hold whole
+ * records or rows; an operand with a single record broadcasts. out receives
+ * `dimension` doubles.
+ */
+static PyObject* pyfastcd_mul_sum_entry(PyObject* Py_UNUSED(module),
+        PyObject* args) {
+    int mode;
+    int code;
+    Py_ssize_t dimension_value;
+    Py_ssize_t ddof_value;
+    PyObject* x_object;
+    PyObject* y_object;
+    PyObject* out_object;
+    Py_buffer x;
+    Py_buffer y;
+    Py_buffer out;
+    size_t dimension;
+    size_t x_count;
+    size_t y_count;
+    size_t count;
+    size_t length = 0;
+    double* data = NULL;
+    FastCDWorkspaceF64 workspace;
+    FastCDAlgorithm algorithm;
+    FastCDStatus status;
+    PyObject* result = NULL;
+
+    if (!PyArg_ParseTuple(args, "iinOOnO:_mul_sum", &mode, &code,
+                &dimension_value, &x_object, &y_object, &ddof_value,
+                &out_object)) {
+        return NULL;
+    }
+    if (pyfastcd_dimension_from_ssize(dimension_value, &dimension) < 0) {
+        return NULL;
+    }
+    if (pyfastcd_algorithm_from_code(code, &algorithm) < 0) return NULL;
+    if (mode < 0 || mode > 2 || ddof_value < 0) {
+        PyErr_SetString(PyExc_ValueError, "invalid fused sum request");
+        return NULL;
+    }
+    if (pyfastcd_sum_buffer(x_object, &x, 0) < 0) return NULL;
+    if (pyfastcd_sum_buffer(y_object, &y, 0) < 0) {
+        PyBuffer_Release(&x);
+        return NULL;
+    }
+    if (pyfastcd_sum_buffer(out_object, &out, 1) < 0) {
+        PyBuffer_Release(&x);
+        PyBuffer_Release(&y);
+        return NULL;
+    }
+    x_count = (size_t)x.len / sizeof(double) / dimension;
+    y_count = (size_t)y.len / sizeof(double) / dimension;
+    count = x_count > y_count ? x_count : y_count;
+    if ((size_t)out.len != dimension * sizeof(double)
+            || (size_t)x.len != x_count * dimension * sizeof(double)
+            || (size_t)y.len != y_count * dimension * sizeof(double)
+            || (x_count != count && (x_count != 1 || mode == 1))
+            || (y_count != count && (y_count != 1 || mode == 1))) {
+        PyErr_SetString(PyExc_ValueError, "fused sum operands do not match");
+        goto done;
+    }
+    status = mode == 2 ? fastcd_covariance_workspace_size(dimension, &length)
+        : fastcd_mul_sum_workspace_size(dimension, &length);
+    if (status != FASTCD_SUCCESS) {
+        pyfastcd_set_status_error(status);
+        goto done;
+    }
+    data = PyMem_Malloc(length * sizeof(double));
+    if (data == NULL) {
+        PyErr_NoMemory();
+        goto done;
+    }
+    workspace.data = data;
+    workspace.length = length;
+    {
+        const double* xp = (const double*)x.buf;
+        const double* yp = (const double*)y.buf;
+        const size_t x_stride = x_count == count ? dimension : 0;
+        const size_t y_stride = y_count == count ? dimension : 0;
+        double* op = (double*)out.buf;
+
+        Py_BEGIN_ALLOW_THREADS
+        if (mode == 0) {
+            status = fastcd_mul_sum_with_algorithm_f64(op, xp, x_stride, yp,
+                    y_stride, count, dimension, NULL, algorithm, &workspace);
+        } else if (mode == 1) {
+            status = fastcd_mul_sum_planes_with_algorithm_f64(op, xp, yp, count,
+                    count, dimension, algorithm, &workspace);
+        } else {
+            status = fastcd_covariance_f64(op, xp, x_stride, yp, y_stride,
+                    count, dimension, (size_t)ddof_value, &workspace);
+        }
+        Py_END_ALLOW_THREADS
+    }
+    if (status != FASTCD_SUCCESS) {
+        pyfastcd_set_status_error(status);
+        goto done;
+    }
+    result = Py_NewRef(Py_None);
+
+done:
+    PyMem_Free(data);
+    PyBuffer_Release(&x);
+    PyBuffer_Release(&y);
+    PyBuffer_Release(&out);
+    return result;
+}
+
 // Return the name of the algorithm that automatic selection uses for batches
 static PyObject* pyfastcd_default_batch_algorithm_entry(
         PyObject* Py_UNUSED(module), PyObject* args) {
@@ -5007,6 +5155,10 @@ static PyMethodDef pyfastcd_module_methods[] = {
      "Return the name of the algorithm that automatic selection uses."},
     {"_default_batch_algorithm", pyfastcd_default_batch_algorithm_entry, METH_VARARGS,
      "Return the name of the algorithm automatic selection uses for batches."},
+    {"_default_sum_algorithm", pyfastcd_default_sum_algorithm_entry, METH_VARARGS,
+     "Return the name of the algorithm automatic selection uses for fused sums."},
+    {"_mul_sum", pyfastcd_mul_sum_entry, METH_VARARGS,
+     "Write a fused sum of products or a covariance of prepared operands."},
     {"_multiply_element", pyfastcd_multiply_element_entry, METH_VARARGS,
      "Multiply two Elements with an explicitly selected algorithm."},
     {"_basis_product", pyfastcd_basis_product_entry, METH_VARARGS,

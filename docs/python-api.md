@@ -141,6 +141,11 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   C library's `fastcd_default_batch_algorithm` for real coefficients, and
   the same choice as `default_algorithm` over C and finite fields.
 
+- `default_sum_algorithm: str`
+
+  The algorithm that `"auto"` uses in `multiply_sum`: `"direct"` through
+  `N = 16` and `"quasilinear"` above. Real coefficients only.
+
 ### Methods
 
 - `A(value=0) -> Element`
@@ -201,6 +206,29 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   are case-sensitive. An unknown name, or one unavailable for this
   dimension or field, raises `ValueError`; a name that is not a string
   raises `TypeError`.
+
+- `multiply_sum(x, y, *, algorithm="auto", planes=False) -> Element`
+
+  Return the sum of the products of corresponding records,
+  `x[0] * y[0] + x[1] * y[1] + ...`, as a
+  [fused sum](mathematics.md#fused-sums-of-products): no product is stored.
+  The operands have the same batch shape, and every batch axis is summed;
+  either may instead be a single record, which multiplies every record of
+  the other. With `planes=True` both are arrays of shape `(N, count)` whose
+  row `i` holds coordinate `i` of every record, the layout the kernels work
+  in. `algorithm` is `"auto"`, `"direct"` or `"quasilinear"`. Operands
+  without records give the zero element. The result differs in rounding
+  from `(x * y)` summed over its records. Real coefficients only; other
+  parents raise `TypeError`.
+
+- `covariance(x, y, *, ddof=1) -> Element`
+
+  Return the covariance of two samples with the same batch shape,
+  `sum((x[p] - mean(x)) * conjugate(y[p] - mean(y))) / (count - ddof)` over
+  all records `p`. Its scalar coordinate is the sum over the coordinates of
+  their real covariances. `ddof=1` gives the unbiased estimate; a count that
+  does not exceed `ddof`, or a negative `ddof`, raises `ValueError`. Real
+  coefficients only.
 
 - `left_basis_multiply(index, x, *, out=None)`
 

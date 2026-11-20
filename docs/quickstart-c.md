@@ -150,6 +150,59 @@ int main(void) {
 The batch reuses one workspace for all of its products, and the output must
 not overlap either input.
 
+## Sums of products
+
+To add up the products of `count` pairs without storing them, use
+`fastcd_mul_sum_f64`. It accumulates the multiplications of the algorithm
+over the pairs and applies the algorithm's additions once, which is several
+times faster than a batch followed by a sum. `fastcd_covariance_f64` uses
+the same sum for the covariance of two samples:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <fastcd/fastcd.h>
+
+int main(void) {
+    enum { N = 16, COUNT = 1000 };
+    double* xs = malloc(COUNT * N * sizeof(double));
+    double* ys = malloc(COUNT * N * sizeof(double));
+    double sum[N], cov[N];
+    size_t length;
+
+    if (xs == NULL || ys == NULL) return 1;
+    /* The covariance needs the longer workspace of the two */
+    if (fastcd_covariance_workspace_size(N, &length) != FASTCD_SUCCESS) return 1;
+    double* scratch = malloc(length * sizeof(*scratch));
+    if (scratch == NULL) return 1;
+    FastCDWorkspaceF64 workspace = {scratch, length};
+
+    for (size_t i = 0; i < COUNT * N; i++) {
+        xs[i] = (double)(i % 7);
+        ys[i] = (double)(i % 5);
+    }
+
+    /* sum = xs[0] ys[0] + ... + xs[COUNT - 1] ys[COUNT - 1] */
+    FastCDStatus status = fastcd_mul_sum_f64(sum, xs, N, ys, N, COUNT, N, NULL,
+            &workspace);
+    if (status != FASTCD_SUCCESS) return 1;
+
+    /* cov = sum_p (x_p - mean(x)) conjugate(y_p - mean(y)) / (COUNT - 1) */
+    status = fastcd_covariance_f64(cov, xs, N, ys, N, COUNT, N, 1, &workspace);
+    printf("%s %g %g\n", fastcd_status_string(status), sum[0], cov[0]);
+    free(scratch);
+    free(ys);
+    free(xs);
+    return status != FASTCD_SUCCESS;
+}
+```
+
+The eighth argument of `fastcd_mul_sum_f64` is an optional
+`FastCDSumMapF64`, which shifts and scales the coordinates of the records as
+they are read. When each coordinate of the elements is already stored as
+one contiguous row, `fastcd_mul_sum_planes_f64` reads that layout directly;
+see [Fused sums](c-api.md#fused-sums).
+
 ## Operators and structure
 
 The other operations follow the same pattern. Operations that multiply

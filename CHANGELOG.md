@@ -5,6 +5,44 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
+## [Unreleased]
+
+### Added
+
+- Fused sums of products for real coefficients. `fastcd_mul_sum_f64` and
+  `fastcd_mul_sum_with_algorithm_f64` return
+  `x_0 y_0 + ... + x_(count-1) y_(count-1)` for strided records, and
+  `fastcd_mul_sum_planes_f64` and `fastcd_mul_sum_planes_with_algorithm_f64`
+  for elements stored as coordinate planes. The multiplications of the
+  direct or quasilinear algorithm are accumulated over the elements and the
+  algorithm's output additions are applied once, so no product is stored. A
+  `FastCDSumMapF64` shifts and scales the coordinates of records as they are
+  read. `fastcd_default_sum_algorithm` and `fastcd_mul_sum_workspace_size`
+  report the automatic choice and the workspace length.
+- `fastcd_covariance_f64` and `fastcd_covariance_workspace_size`: the
+  covariance `sum_p (x_p - mean(x)) conjugate(y_p - mean(y)) / (count - ddof)`
+  of two samples of elements, computed as a fused sum. The status
+  `FASTCD_INVALID_COUNT` reports a count that does not exceed `ddof`.
+- AVX-512 and AVX2 kernels for the fused sums, chosen at run time in GCC and
+  Clang builds for x86 (CMake option `FASTCD_ENABLE_SUM_SIMD`), and a
+  portable kernel for other builds.
+- `Algebra.multiply_sum`, `Algebra.covariance` and
+  `Algebra.default_sum_algorithm` in `pyfastcd`.
+- The `sums` benchmark protocol (`benchmarks/sums.py`, runner
+  `fastcd_sums_benchmark`), which times the fused sums against a batch of
+  products and, with `--blas`, against one `dgemm` of a BLAS library loaded
+  at run time and the contraction with the basis signs; and
+  `benchmarks/stability_sums.py`, an accuracy study of the fused sums and
+  the covariance against an error-free reference. Their results on the
+  Dell PowerEdge T440 of 2026-11-19 are in
+  `benchmark-results/sums-t440-20261119/`. In that run the direct sum was
+  faster than the quasilinear sum at dimension 16, so `AUTO` uses direct
+  through dimension 16 for fused sums.
+- `tools/check_fused_sum_counts.py`, which checks the operation counts of
+  the fused sums against the kernel source, and
+  [Fused sums of products](docs/mathematics.md#fused-sums-of-products) in the
+  mathematics notes.
+
 ## [1.4.0] - 2026-11-12
 
 ### Changed
