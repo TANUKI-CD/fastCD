@@ -55,6 +55,39 @@ int main(void) {
 }
 ```
 
+A sum of many products does not need the products themselves. `fastcd_mul_sum_f64` returns `x_0 y_0 + ... + x_(count-1) y_(count-1)` as a *fused sum*, which accumulates the multiplications of the algorithm over all pairs and applies its additions once, and `fastcd_covariance_f64` uses the same sum for the covariance of two samples of elements. Both are available for real coefficients.
+
+```c
+#include <stdlib.h>
+#include <fastcd/fastcd.h>
+
+int main(void) {
+    enum { N = 16, COUNT = 1000 };
+    static double xs[COUNT * N], ys[COUNT * N];    /* COUNT elements each */
+    double sum[N], cov[N];
+    size_t length;
+
+    for (size_t i = 0; i < COUNT * N; i++) {
+        xs[i] = (double)(i % 7);
+        ys[i] = (double)(i % 5);
+    }
+    if (fastcd_covariance_workspace_size(N, &length) != FASTCD_SUCCESS) return 1;
+    double* scratch = malloc(length * sizeof(*scratch));
+    if (scratch == NULL) return 1;
+    FastCDWorkspaceF64 workspace = {scratch, length};
+
+    /* sum = xs[0] ys[0] + ... + xs[COUNT - 1] ys[COUNT - 1] */
+    FastCDStatus status = fastcd_mul_sum_f64(sum, xs, N, ys, N, COUNT, N, NULL,
+            &workspace);
+    /* cov = sum_p (x_p - mean(x)) conjugate(y_p - mean(y)) / (COUNT - 1) */
+    if (status == FASTCD_SUCCESS) {
+        status = fastcd_covariance_f64(cov, xs, N, ys, N, COUNT, N, 1, &workspace);
+    }
+    free(scratch);
+    return status == FASTCD_SUCCESS ? 0 : 1;
+}
+```
+
 For more information on how to get started using fastCD in C and to familiarize yourself with the API, take a look at [C quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-c.md) and [C API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/c-api.md).
 
 ## Using Python
@@ -93,6 +126,19 @@ y = x * b                                  # batch product, leading axes broadca
 z = O.multiply(x, b, algorithm="quasilinear")
 ```
 
+For real coefficients, `multiply_sum` and `covariance` return the fused sum of products and the covariance of two samples as one `Element`, without storing the products:
+
+```python
+rng = np.random.default_rng(0)
+s = O.asarray(rng.normal(size=(1000, 8)))
+t = O.asarray(rng.normal(size=(1000, 8)))
+
+total = O.multiply_sum(s, t)               # s[0] * t[0] + ... + s[999] * t[999]
+cov = O.covariance(s, t)                   # sum((s - mean) * conjugate(t - mean)) / 999
+```
+
+At dimension 2, with each sample stored as `[real, imag]`, `covariance` is the ordinary covariance of complex samples, `numpy.cov(z, w)[0, 1]`.
+
 An `Element` is one immutable Cayley–Dickson element. An `ElementArray` holds a batch of elements in a NumPy coefficient array of shape `(..., N)`
 (or `(..., N, d)` over an extension field) and evaluates batch operations in compiled code. See the [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
 the [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md) for more information on how each class works.
@@ -118,11 +164,11 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 ## Benchmark
 
-All timings below were measured on 2026-11-09 on a Dell PowerEdge T440 with an Intel Xeon Gold 6148, using one logical CPU per run, GCC 16.2.1 and Linux 7.2.11. The host is shared, and no governor, turbo, or SMT settings were changed.
+All timings below were measured on a Dell PowerEdge T440 with an Intel Xeon Gold 6148, using one logical CPU per run, GCC 16.2.1 and Linux 7.2.11. The host is shared, and no governor, turbo, or SMT settings were changed.
 
-Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every product of every operand pair was also checked against an independent implementation.
+Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every result that is timed was also checked against an independent implementation, as each subsection describes.
 
-The measured source is commit `33addc9`, built from a clean checkout; the archived build records list the SHA-256 of every measured source file. The raw observations, environment, commands, and build records are archived in [benchmark-results/t440-20261109/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261109/), and the [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) describes the protocol and how to rerun it.
+The products were measured on 2026-11-09 from commit `33addc9`, built from a clean checkout, and are archived in [benchmark-results/t440-20261109/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261109/). The fused sums were measured on 2026-11-20 from a working tree with uncommitted changes on commit `793c36f`, and are archived in [benchmark-results/sums-t440-20261120/](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/sums-t440-20261120/). Each archive holds the raw observations, environment, commands, and build records, which list the SHA-256 of every measured source file. The [benchmark documentation](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md) describes the protocols and how to rerun them.
 
 ### Real coefficients
 
@@ -157,6 +203,29 @@ Mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timi
 | 256 | 17751.24 [17557.41, 17945.07] | 29374.01 [28802.52, 29945.50] | 3284.33 [3228.72, 3339.93] | quasilinear | quasilinear |
 | 512 | 69656.86 [69120.36, 70193.36] | 113587.77 [112582.42, 114593.12] | 7423.90 [7345.57, 7502.23] | quasilinear | quasilinear |
 | 1024 | 276236.76 [274697.43, 277776.09] | 435957.96 [423208.54, 448707.38] | 16073.92 [15903.01, 16244.83] | quasilinear | quasilinear |
+
+### Fused sums of products
+
+The sums benchmark compares three ways of computing the sum of the products of a sample of real-coefficient elements. *Products* is what a program without the fused sums would call: one batch of products with automatic selection, followed by a sum. *Fused* is `fastcd_mul_sum_f64` on the same records. *Matrix product* computes the matrix of real cross moments `sum_p x_p[i] y_p[j]` with one `dgemm` and adds its entries with the basis signs. fastCD contains no matrix product, so the benchmark loads Intel MKL 2026.2.1 for it at run time, with one thread.
+
+The table gives mean nanoseconds per element for samples of 1,024 elements, from 8,192 elements per cell and 60 timing blocks, with the AVX-512 kernel of the fused sums. Ratios are paired geometric means with 95% Student-t intervals, and a ratio above 1 favors the fused sum. The first sample of every cell was verified against a long double evaluation of the cross moments, and on every sample the three computations had to agree within a norm-scaled bound; all checks passed.
+
+| N | products | fused | matrix product | products/fused [95% CI] | matrix product/fused [95% CI] |
+| ---: | ---: | ---: | ---: | --- | --- |
+| 2 | 3.96 | 2.22 | 1.43 | 1.78 [1.76, 1.81] | 0.65 [0.63, 0.66] |
+| 4 | 6.70 | 2.45 | 1.97 | 2.74 [2.68, 2.80] | 0.81 [0.78, 0.83] |
+| 8 | 16.00 | 5.37 | 3.36 | 2.98 [2.92, 3.05] | 0.63 [0.61, 0.64] |
+| 16 | 56.47 | 17.16 | 13.74 | 3.29 [3.24, 3.35] | 0.80 [0.79, 0.82] |
+| 32 | 203.72 | 44.41 | 48.41 | 4.60 [4.51, 4.70] | 1.09 [1.06, 1.12] |
+| 64 | 498.82 | 103.91 | 144.93 | 4.81 [4.71, 4.91] | 1.39 [1.36, 1.43] |
+| 128 | 1258.21 | 249.60 | 616.63 | 5.05 [4.96, 5.15] | 2.46 [2.39, 2.53] |
+| 256 | 3059.31 | 735.90 | 2208.61 | 4.17 [4.08, 4.27] | 3.00 [2.93, 3.08] |
+| 512 | 7036.62 | 1808.07 | 7954.76 | 3.91 [3.82, 3.99] | 4.40 [4.28, 4.53] |
+| 1024 | 16419.67 | 4870.83 | 28279.26 | 3.38 [3.32, 3.43] | 5.81 [5.69, 5.93] |
+
+With this kernel the fused sum is faster than a batch of products followed by a sum at every dimension, and faster than the matrix product from dimension 32 upward; below that the matrix product is faster for samples of this size. Samples of 64 and of 4,096 elements, and elements stored as coordinate planes, which `fastcd_mul_sum_planes_f64` reads without rearranging them, are in [sums.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/sums-t440-20261120/sums.md) in the archive.
+
+The speed depends on the kernel that the processor selects. With the AVX2 kernel the fused sum is 1.64 to 2.55 times as fast as the products at dimensions 8 to 64. Builds without either kernel use a portable one, which is not faster than the products and offers only the saved storage and the accuracy described under [Numerical stability](#numerical-stability). Automatic selection uses the direct sum through dimension 8 and the quasilinear sum above: at dimension 16 the direct sum takes 4% to 17% less time with AVX-512, between 5% less and 10% more with AVX2, and 1.8 times as much with the portable kernel, so the quasilinear sum is the choice that serves every kernel.
 
 ### Finite fields and complex coefficients
 
@@ -227,6 +296,17 @@ Every floating-point sum inside the quasilinear product whose length grows with 
 | direct over C | 1.11 | 1.28 | 1.44 | 1.52 | | |
 
 The largest error observed anywhere in the corpus is 3.7 over R and 4.1 over C (direct: 2.9 and 2.2; sequential accumulation on the same corpus: 78 and 18). These figures describe the measured corpus, not a worst case. From dimension 64 up, balanced accumulation costs at most 6% more time on default real products, and 5–13% on complex products and on builds without the explicit SIMD kernels. The method, the input families and the archived summaries and charts are described in [Numerical stability](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/stability.md). The raw operands and observations are kept on the author's machine and are not included in Git or the source distributions; reruns on another NumPy version can draw different random inputs.
+
+Fused sums were measured separately, on 689 sums and 84 covariances of real-coefficient samples, against a reference that uses no fastCD arithmetic. For a computed sum `S_hat` of the products of `P` pairs, the error is reported as `eta = ||S_hat - S||_2 / (u sum_p ||x_p||_2 ||y_p||_2)`. On Gaussian and uniform samples of 1,024 elements, the median `eta` of the fused sum is a third to a half of that of the same products added in sequence, and at most 1.5 times that of the products added pairwise:
+
+| N | 16 | 64 | 256 | 1024 |
+| --- | ---: | ---: | ---: | ---: |
+| fused sum | 0.09 | 0.11 | 0.13 | 0.15 |
+| products added in sequence | 0.28 | 0.29 | 0.31 | 0.30 |
+| products added pairwise | 0.08 | 0.08 | 0.09 | 0.10 |
+| cross moments by matrix product | 0.29 | 0.19 | 0.24 | 0.35 |
+
+Over all nine input families, with samples of 64, 1,024 and 4,096 elements, the largest `eta` of the fused sum is 3.4, against 1.9 for products added pairwise, 25 for products added in sequence and 20 for the cross moments. For the covariance, `eta` is scaled by the centered samples and is at most 0.21, including on samples whose mean is `10^9` times their spread, where centering with a rounded mean beforehand gives several thousand: `fastcd_covariance_f64` holds each mean as the first record plus the mean of the differences from it. These figures also describe the measured corpus, not a worst case, and they were measured with the AVX-512 kernel. The method and the full tables are in [Numerical stability](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/stability.md#fused-sums), and the results in [accuracy.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/sums-t440-20261120/accuracy.md) in the archive.
 
 ## Documentation
 

@@ -93,7 +93,9 @@ def summary(run: dict[str, Any]) -> dict[str, Any]:
         ]
         for t in names
     }
-    values["planes"] = values[f"planes_{run['default_sum_algorithm']}"]
+    selected = f"planes_{run['default_sum_algorithm']}"
+    if selected in values:
+        values["planes"] = values[selected]
     return {
         "ns_per_element": {t: real_benchmark.summarize(v) for t, v in values.items()},
         "ratios": {
@@ -162,10 +164,16 @@ def report(path: Path, document: dict[str, Any]) -> None:
         )
     lines += [
         "",
-        "The first sample of every cell was verified against a long double "
-        "contraction of the cross moments, and every sample for agreement "
-        "between the tasks, outside timing. The two fused layouts returned "
-        "identical bits wherever they ran the same algorithm.",
+        (
+            f"The first {configuration['verify_samples']} sample(s) of every "
+            "cell were verified against a long double contraction of the cross "
+            "moments, and every sample"
+            if configuration["verify_samples"]
+            else "No sample was verified against an independent evaluation "
+            "(`--verify-samples 0`); every sample was checked"
+        )
+        + " for agreement between the tasks, outside timing. The two fused "
+        "layouts returned identical bits wherever they ran the same algorithm.",
         "",
         "Raw observations, corpus hashes, the runner, build and source hashes "
         "and the BLAS library are recorded in the adjacent JSON.",
@@ -190,7 +198,7 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--blocks", type=int, default=60)
     parser.add_argument("--warmup", type=int, default=2)
     parser.add_argument("--min-time-ms", type=float, default=20)
-    parser.add_argument("--seed", type=int, default=20261119)
+    parser.add_argument("--seed", type=int, default=20260906)
     parser.add_argument("--cpu", type=int)
     parser.add_argument("--verify-samples", type=int, default=1)
     parser.add_argument(
@@ -237,6 +245,11 @@ def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("every count must be positive and divide trials")
     if args.blas is not None and not args.blas.is_file():
         parser.error(f"BLAS library is missing: {args.blas}")
+    if args.max_direct_dimension < 8:
+        parser.error(
+            "max-direct-dimension must be at least 8, through which the direct "
+            "sum is the automatic algorithm"
+        )
     for n in args.dimension_list:
         tasks = 3 + (n <= args.max_direct_dimension) + (args.blas is not None)
         if args.blocks % tasks:

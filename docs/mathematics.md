@@ -527,8 +527,9 @@ S = C(sum_p (A x_p) o (B y_p)).
 
 Each multiplication is accumulated over the elements, and `C` is applied
 once, to the accumulated sums. For one element that leaves the additions
-inside `A` and `B` and one multiply-add per multiplication; the additions of
-`C`, which are about half of the quasilinear total, no longer depend on `P`.
+inside `A` and `B` and one multiply-add per multiplication. The additions of
+`C`, which are about half of the quasilinear total, are spent once per sum
+and do not depend on `P`.
 
 For the direct algorithm `A` and `B` only select coordinates, the
 accumulated sums are the entries `sum_p x_p[i] y_p[j]` of the matrix of real
@@ -553,8 +554,11 @@ has 126 multiplications and 14 input additions.
 ### Operation counts
 
 For one element, `M` counts multiply-adds and `I` the additions of the input
-maps. Additions spent on accumulated sums are not counted: they do not
-depend on `P`.
+maps. Two further kinds of addition are counted separately. The kernels keep
+partial sums in registers and add them to the accumulated sums once per
+block of 64 elements; `B` counts these additions per block, so that an
+element costs `B/64` of them. The output additions of `C` are spent once per
+sum and are not counted here.
 
 - **Root:** the splitting (1) and the real map `B_n` use `6N - 8`
   multiplications and no additions.
@@ -567,22 +571,31 @@ depend on `P`.
   recursion ends in `C_2`, the complex nonrecursive map alone, with 18
   multiplications and 6 additions.
 
-| N | Direct `M` | Quasilinear `M` | Quasilinear `I` | Quasilinear `M + I` |
-| ---: | ---: | ---: | ---: | ---: |
-| 2 | 4 | 4 | 0 | 4 |
-| 4 | 16 | 16 | 0 | 16 |
-| 8 | 64 | 58 | 6 | 64 |
-| 16 | 256 | 214 | 14 | 228 |
-| 32 | 1024 | 562 | 126 | 688 |
-| 64 | 4096 | 1402 | 462 | 1864 |
-| 128 | 16384 | 3370 | 1358 | 4728 |
-| 256 | 65536 | 7882 | 3598 | 11480 |
-| 512 | 262144 | 18058 | 8974 | 27032 |
-| 1024 | 1048576 | 40714 | 21518 | 62232 |
+| N | Direct `M` | Quasilinear `M` | Quasilinear `I` | Quasilinear `M + I` | Quasilinear `B` |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | 4 | 4 | 0 | 4 | 32 |
+| 4 | 16 | 16 | 0 | 16 | 80 |
+| 8 | 64 | 58 | 6 | 64 | 248 |
+| 16 | 256 | 214 | 14 | 228 | 704 |
+| 32 | 1024 | 562 | 126 | 688 | 1352 |
+| 64 | 4096 | 1402 | 462 | 1864 | 3384 |
+| 128 | 16384 | 3370 | 1358 | 4728 | 8216 |
+| 256 | 65536 | 7882 | 3598 | 11480 | 19416 |
+| 512 | 262144 | 18058 | 8974 | 27032 | 44888 |
+| 1024 | 1048576 | 40714 | 21518 | 62232 | 101976 |
+
+Each partial sum is a vector of eight lanes, so one merge is eight of
+these additions. `B/64` is between 2% and 5% of `M + I` from dimension 16
+on. The direct sum has `B = 16N` at dimensions 4 through 16, where its loops
+are generated with two partial sums per output coordinate. Above that the direct sum is a plain
+loop over the `N^2` products that merges each of them separately, so its
+`B` is `8 N^2`; it serves explicit requests and is never selected
+automatically.
 
 The two algorithms cost the same through `N = 8`, and the quasilinear sum
-has fewer operations from `N = 16` on. `tools/check_fused_sum_counts.py` instruments the
-kernel source and checks these counts through dimension 1024.
+has fewer operations from `N = 16` on. `tools/check_fused_sum_counts.py`
+instruments the kernel source and checks `M`, `I` and `B` through dimension
+1024.
 
 ### Layout and kernels
 
@@ -614,11 +627,30 @@ cov(x, y) = (1 / (P - ddof)) sum_p (x_p - mean(x)) conjugate(y_p - mean(y)).
 ```
 
 Its scalar coordinate is `sum_i cov(x[i], y[i])`, the sum of the real
-covariances of the coordinates, and `cov(x, x)` has scalar coordinate equal
-to the total variance and vanishing imaginary part. The means are computed
-first, as the first element plus the mean of the differences from it. The
-centering and the conjugate are then an affine map of the records, and the
-sum is a fused sum.
+covariances of the coordinates. In exact arithmetic `cov(x, x)` has scalar
+coordinate equal to the total variance and vanishing imaginary part; in
+floating point the imaginary coordinates are rounding residues of the size
+of the errors in [stability.md](stability.md#fused-sums). At dimension 2,
+with elements `(real, imag)`, it is the covariance
+`E[(z - mean(z)) conjugate(w - mean(w))]` of complex samples.
+
+The centering and the conjugate are an affine map of the records, applied as
+they are read, and the sum is a fused sum. Two details make the result
+independent of where the samples lie and of their unit:
+
+- **The mean is kept in two parts.** With `r` the first record and `d` the
+  mean of the differences `x_p - r`, the mean is `r + d`, but that sum is
+  not formed, because it need not be representable: for coordinates near
+  `2^53` with a spread of a few units, it would round away the part that
+  matters. Each record is centered as `(x_p - r) - d`.
+- **Extreme magnitudes are scaled.** A first pass finds the largest
+  magnitude of each sample. If it lies outside `2^-256` to `2^256`, the
+  sample is multiplied by the power of two that brings it into `[1/2, 1)`
+  before any other arithmetic, and the result is multiplied by the inverse
+  powers at the end. The scaling is exact unless it makes a coordinate
+  subnormal, so ordinary samples are not affected and samples near the ends
+  of the exponent range reach a representable covariance without overflow
+  or underflow on the way.
 
 ## Real-coefficient implementation
 
@@ -675,11 +707,13 @@ because the two modes rank the algorithms differently below dimension 32:
 | 16 | direct | Cariow–Cariowa |
 | 32 and above | quasilinear | quasilinear |
 
-Fused sums use direct through `N = 16` and quasilinear above. At `N = 16`
-the quasilinear sum has fewer operations (see
-[Fused sums of products](#fused-sums-of-products)), but the direct sum,
-one loop without input additions, was faster in the
-[sums benchmark](benchmark.md#fused-sums).
+Fused sums use direct through `N = 8` and quasilinear above, the same rule
+for every kernel. At `N = 16` the quasilinear sum has fewer operations (see
+[Fused sums of products](#fused-sums-of-products)). In the
+[sums benchmark](benchmark.md#fused-sums) the direct sum, one loop without
+input additions, was nevertheless faster there with the AVX-512 kernel;
+with the AVX2 kernel the two were level, and with the portable kernel the
+direct sum took nearly twice as long.
 Builds without SIMD pairing use the single-product choices for batches.
 `fastcd_default_algorithm` and `fastcd_default_batch_algorithm` report the
 choices. To check them on your CPU, the [benchmark](benchmark.md) times all

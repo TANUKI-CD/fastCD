@@ -55,6 +55,42 @@ def test_paired_statistics_follow_the_automatic_plane_algorithm():
     assert set(driver.summary(run)["ratios"]) == {
         "products/records", "products/planes"
     }
+    # Without the plane task of the automatic algorithm there is no planes entry
+    run["default_sum_algorithm"] = "direct"
+    result = driver.summary(run)
+    assert "planes" not in result["ns_per_element"]
+    assert set(result["ratios"]) == {"products/records"}
+
+
+def test_options_that_cannot_be_reported_are_rejected(tmp_path):
+    base = ["--runner", str(tmp_path / "runner"), "--output", str(tmp_path / "o.json")]
+    with pytest.raises(SystemExit):
+        driver.parse_arguments([*base, "--max-direct-dimension", "4"])
+    with pytest.raises(SystemExit):
+        driver.parse_arguments([*base, "--counts", "1000"])
+    with pytest.raises(SystemExit):
+        driver.parse_arguments([*base, "--blocks", "50"])
+    assert driver.parse_arguments(base).seed == 20260906
+
+
+def test_report_states_what_was_verified(tmp_path):
+    stats = {"mean": 1.0}
+    ratio = {"geometric_mean": 2.0, "ci95": [1.5, 2.5]}
+    document = {
+        "cpu": "test", "blas": None,
+        "configuration": {"trials": 64, "blocks": 60, "verify_samples": 0},
+        "runs": [{
+            "dimension": 8, "count": 64,
+            "summary": {"ns_per_element": {"products": stats, "records": stats},
+                        "ratios": {"products/records": ratio}},
+        }],
+    }
+    driver.report(tmp_path / "r.md", document)
+    assert "No sample was verified" in (tmp_path / "r.md").read_text()
+    document["configuration"]["verify_samples"] = 1
+    driver.report(tmp_path / "r.md", document)
+    text = (tmp_path / "r.md").read_text()
+    assert "first 1 sample(s)" in text and "No sample" not in text
 
 
 @pytest.mark.parametrize("n,count", [(1, 8), (2, 5), (8, 16), (16, 24), (64, 8), (128, 8)])
@@ -94,7 +130,7 @@ def test_native_runner_verifies_and_balances_tasks(tmp_path, n, count):
     if n <= 64:
         tasks.add("planes_direct")
     assert run["verified_samples"] == 3 and run["exact_samples"] == 3
-    assert run["default_sum_algorithm"] == ("direct" if n <= 16 else "quasilinear")
+    assert run["default_sum_algorithm"] == ("direct" if n <= 8 else "quasilinear")
     assert len(run["observations"]) == 12 * len(tasks)
     for block in range(12):
         current = [o for o in run["observations"] if o["block"] == block]

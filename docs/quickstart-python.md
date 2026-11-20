@@ -94,6 +94,18 @@ The covariance is `sum((x[p] - mean(x)) * conjugate(z[p] - mean(z)))`
 divided by `count - ddof`. Arrays of shape `(dimension, count)`, with one
 row per coordinate, can be summed directly with `planes=True`.
 
+At dimension 2 it is the covariance of complex samples whose real and
+imaginary parts are the two coordinates:
+
+```python
+C = fcd.Algebra(dimension=2)
+zs = rng.normal(size=500) + 1j * rng.normal(size=500)
+ws = rng.normal(size=500) + 1j * rng.normal(size=500)
+cov = C.covariance(np.column_stack((zs.real, zs.imag)),
+                   np.column_stack((ws.real, ws.imag)))
+assert np.allclose(complex(cov.real, cov[1]), np.cov(zs, ws)[0, 1])
+```
+
 ## Choosing the multiplication algorithm
 
 Ordinary multiplication uses the default algorithm for the dimension, chosen

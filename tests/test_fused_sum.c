@@ -138,8 +138,50 @@ static int exact_cases(void) {
 
 typedef void (*Kernel)(double* restrict, const FastCDSumJob*, double* restrict);
 
-/* Inexact operands: the result is within a rounding bound of the reference,
- * and every kernel, both layouts and repeated calls return the same bits. */
+/*
+ * The kernel source instantiated with a vector whose multiply-add rounds the
+ * product and the sum separately. This is the arithmetic of the portable
+ * kernel on targets without a fused multiply-add instruction; the test's
+ * own portable kernel uses fma() wherever the x86 kernels are built.
+ */
+typedef struct { double lane[8]; } Plain;
+static Plain plain_zero(void) { Plain r; memset(&r, 0, sizeof r); return r; }
+static Plain plain_load(const double* p) { Plain r; memcpy(r.lane, p, sizeof r.lane); return r; }
+static void plain_store(double* p, Plain v) { memcpy(p, v.lane, sizeof v.lane); }
+static Plain plain_set1(double s) { Plain r; for (int k = 0; k < 8; k++) r.lane[k] = s; return r; }
+static Plain plain_add(Plain a, Plain b) { for (int k = 0; k < 8; k++) a.lane[k] += b.lane[k]; return a; }
+static Plain plain_sub(Plain a, Plain b) { for (int k = 0; k < 8; k++) a.lane[k] -= b.lane[k]; return a; }
+static Plain plain_mul(Plain a, Plain b) { for (int k = 0; k < 8; k++) a.lane[k] *= b.lane[k]; return a; }
+static Plain plain_fma(Plain a, Plain b, Plain c) {
+    for (int k = 0; k < 8; k++) c.lane[k] = a.lane[k] * b.lane[k] + c.lane[k];
+    return c;
+}
+static Plain plain_fnma(Plain a, Plain b, Plain c) {
+    for (int k = 0; k < 8; k++) c.lane[k] = c.lane[k] - a.lane[k] * b.lane[k];
+    return c;
+}
+static void plain_sum(double* restrict out, const FastCDSumJob* job,
+        double* restrict work);
+#define FS_V Plain
+#define FS_NAME(name) plain_##name
+#define FS_PUBLIC plain_sum
+#define FS_ZERO plain_zero()
+#define FS_LOAD(p) plain_load(p)
+#define FS_STORE(p, v) plain_store(p, v)
+#define FS_SET1(s) plain_set1(s)
+#define FS_ADD(a, b) plain_add(a, b)
+#define FS_SUB(a, b) plain_sub(a, b)
+#define FS_MUL(a, b) plain_mul(a, b)
+#define FS_FMA(a, b, c) plain_fma(a, b, c)
+#define FS_FNMA(a, b, c) plain_fnma(a, b, c)
+#define FS_LANES(v, d) plain_store(d, v)
+#include "fused_sum_impl.h"
+
+/* Inexact operands: the result is within a rounding bound of the reference.
+ * The kernels with a fused multiply-add return the same bits in both
+ * layouts, the public functions return the bits of the fused or of the
+ * separately rounded model, whichever the library runs here, and that
+ * second model is itself within the bound. */
 static int rounded_cases(void) {
     Kernel kernels[3] = {fastcd_fused_sum_portable, NULL, NULL};
     int available = 1;
@@ -161,6 +203,7 @@ static int rounded_cases(void) {
             double* py = make(n * pitch);
             double* want = make(n);
             double* first = make(n);
+            double* plain = make(n);
             double* got = make(n);
             double* raw = make(doubles + 16);
             double* work = raw + ((64 - (uintptr_t)raw % 64) % 64) / sizeof(double);
@@ -210,16 +253,29 @@ static int rounded_cases(void) {
                         CHECK(memcmp(got, first, n * sizeof(double)) == 0);
                     }
                 }
+                job.planes = false;
+                job.x = x;
+                job.y = y;
+                plain_sum(plain, &job, work);
+                for (size_t i = 0; i < n; i++) {
+                    CHECK(fabs(plain[i] - want[i]) <= 64.0 * DBL_EPSILON * scale);
+                }
+                job.planes = true;
+                job.x = px;
+                job.y = py;
+                plain_sum(got, &job, work);
+                CHECK(memcmp(got, plain, n * sizeof(double)) == 0);
                 CHECK(fastcd_mul_sum_with_algorithm_f64(got, x, n, y, n, count, n,
                             NULL, algorithm, &g.w) == FASTCD_SUCCESS);
-                CHECK(memcmp(got, first, n * sizeof(double)) == 0);
-                CHECK(fastcd_mul_sum_planes_with_algorithm_f64(got, px, py, pitch,
-                            count, n, algorithm, &g.w) == FASTCD_SUCCESS);
+                CHECK(memcmp(got, first, n * sizeof(double)) == 0
+                        || memcmp(got, plain, n * sizeof(double)) == 0);
+                CHECK(fastcd_mul_sum_planes_with_algorithm_f64(first, px, py,
+                            pitch, count, n, algorithm, &g.w) == FASTCD_SUCCESS);
                 CHECK(memcmp(got, first, n * sizeof(double)) == 0);
             }
             CHECK(guards_intact(&g));
             free(x); free(y); free(px); free(py); free(want); free(first);
-            free(got); free(raw); free(g.base);
+            free(plain); free(got); free(raw); free(g.base);
         }
     }
     return 1;
@@ -353,6 +409,68 @@ static int covariance_cases(void) {
     return 1;
 }
 
+/* Covariances whose means or magnitudes defeat a direct evaluation: a
+ * translation by an exactly representable amount, and samples near the
+ * limits of the exponent range. Each result is exact. */
+static int covariance_extremes(void) {
+    double data[4096];
+    double out[4];
+    FastCDWorkspaceF64 w = {data, 4096};
+    static const double base_x[4] = {0, 0, 2, 2}, base_y[4] = {0, 2, 0, 2};
+    static const double shifts[4] = {0.0, 9007199254740992.0, -9007199254740992.0,
+        4503599627370496.0};
+
+    // Every translation is exact, so the covariances are those of the base
+    for (size_t k = 0; k < 4; k++) {
+        double x[4], y[4];
+        for (size_t p = 0; p < 4; p++) {
+            x[p] = base_x[p] + shifts[k];
+            y[p] = base_y[p] + shifts[k];
+        }
+        CHECK(fastcd_covariance_f64(out, x, 1, y, 1, 4, 1, 1, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0.0);
+        CHECK(fastcd_covariance_f64(out, x, 1, x, 1, 4, 1, 1, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 4.0 / 3.0);
+    }
+    {
+        // Opposite values at the top of the range against the bottom
+        const double x[2] = {0x1p1023, -0x1p1023}, y[2] = {0x1p-1022, -0x1p-1022};
+        CHECK(fastcd_covariance_f64(out, x, 1, y, 1, 2, 1, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 2.0);
+        CHECK(fastcd_covariance_f64(out, y, 1, x, 1, 2, 1, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 2.0);
+    }
+    {
+        // A variance whose sum of squares overflows before the division
+        const double v[4] = {0x1p511, -0x1p511, 0x1p511, -0x1p511};
+        const double tiny[4] = {0x1p-600, -0x1p-600, 0x1p-600, -0x1p-600};
+        CHECK(fastcd_covariance_f64(out, v, 1, v, 1, 4, 1, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0x1p1022);
+        // One whose squares underflow to zero
+        CHECK(fastcd_covariance_f64(out, tiny, 1, tiny, 1, 4, 1, 0, &w)
+                == FASTCD_SUCCESS);
+        CHECK(out[0] == 0.0 || out[0] == 0x1p-1074);
+        CHECK(fastcd_covariance_f64(out, tiny, 1, v, 1, 4, 1, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0x1p-89);
+    }
+    {
+        // Quaternion samples at 2^600: imaginary coordinates and the conjugate
+        double x[8] = {1, 2, 3, 4, -1, -2, -3, -4}, y[8] = {4, 3, 2, 1, -4, -3, -2, -1};
+        double want[4];
+        CHECK(fastcd_covariance_f64(want, x, 4, y, 4, 2, 4, 0, &w) == FASTCD_SUCCESS);
+        for (size_t i = 0; i < 8; i++) { x[i] *= 0x1p600; y[i] *= 0x1p-300; }
+        CHECK(fastcd_covariance_f64(out, x, 4, y, 4, 2, 4, 0, &w) == FASTCD_SUCCESS);
+        for (size_t i = 0; i < 4; i++) CHECK(out[i] == want[i] * 0x1p300);
+    }
+    {
+        // A single record has zero population covariance
+        const double x[2] = {3.0, 5.0};
+        CHECK(fastcd_covariance_f64(out, x, 2, x, 2, 1, 2, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0.0 && out[1] == 0.0);
+    }
+    return 1;
+}
+
 // Check the argument validation of the sums
 static int contract_cases(void) {
     double x[64], y[64], out[8], small[4];
@@ -364,9 +482,9 @@ static int contract_cases(void) {
     size_t length;
 
     for (size_t i = 0; i < 64; i++) { x[i] = 1.0; y[i] = 2.0; }
-    CHECK(fastcd_default_sum_algorithm(16, &algorithm) == FASTCD_SUCCESS
+    CHECK(fastcd_default_sum_algorithm(8, &algorithm) == FASTCD_SUCCESS
             && algorithm == FASTCD_ALGORITHM_DIRECT);
-    CHECK(fastcd_default_sum_algorithm(32, &algorithm) == FASTCD_SUCCESS
+    CHECK(fastcd_default_sum_algorithm(16, &algorithm) == FASTCD_SUCCESS
             && algorithm == FASTCD_ALGORITHM_QUASILINEAR);
     CHECK(fastcd_default_sum_algorithm(3, &algorithm) == FASTCD_INVALID_DIMENSION);
     CHECK(fastcd_default_sum_algorithm(8, NULL) == FASTCD_NULL_POINTER);
@@ -423,7 +541,7 @@ static int contract_cases(void) {
 
 int main(void) {
     if (!exact_cases() || !rounded_cases() || !map_cases() || !covariance_cases()
-            || !contract_cases()) {
+            || !covariance_extremes() || !contract_cases()) {
         return 1;
     }
     printf("fused sum tests passed\n");

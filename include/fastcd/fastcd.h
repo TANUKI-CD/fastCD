@@ -144,8 +144,9 @@ FASTCD_API FastCDStatus fastcd_default_algorithm(size_t dimension,
 FASTCD_API FastCDStatus fastcd_default_batch_algorithm(size_t dimension,
         FastCDAlgorithm* algorithm);
 
-/* A fused sum runs the direct algorithm through dimension 16 and the
- * quasilinear algorithm above, the choice of the sums benchmark. */
+/* A fused sum runs the direct algorithm through dimension 8, where the
+ * quasilinear algorithm uses as many products, and the quasilinear algorithm
+ * above. */
 // Write the algorithm that FASTCD_ALGORITHM_AUTO selects for a fused sum
 FASTCD_API FastCDStatus fastcd_default_sum_algorithm(size_t dimension,
         FastCDAlgorithm* algorithm);
@@ -313,7 +314,7 @@ FASTCD_API FastCDStatus fastcd_mul_batch_with_algorithm_f64(double* out,
  *
  * The output and the queried workspace prefix must be disjoint from all
  * other arrays. The inputs are only read and may overlap each other in any
- * way. A count of zero writes the zero element and reads no input. If any
+ * way. A sum of zero elements is the zero element and reads no input. If any
  * coordinate read is NaN or infinite, the finite or non-finite value of each
  * output coordinate is unspecified.
  */
@@ -352,7 +353,11 @@ FASTCD_API FastCDStatus fastcd_mul_sum_planes_with_algorithm_f64(double* out,
  * an element of the algebra. Its scalar coordinate is the sum over the
  * coordinates of their real covariances. The means are subtracted and the
  * conjugate is taken as the records are read, and the sum is a fused sum.
- * count must exceed ddof; otherwise the call returns FASTCD_INVALID_COUNT.
+ * Each mean is held as the first record plus the mean of the differences
+ * from it, and a sample whose magnitudes lie outside 2^-256 to 2^256 is
+ * first scaled by a power of two, so the result does not depend on where
+ * the samples lie or on their unit. count must exceed ddof; otherwise the
+ * call returns FASTCD_INVALID_COUNT, also for a count of zero.
  */
 // Set out to the covariance of two strided samples of count records
 FASTCD_API FastCDStatus fastcd_covariance_f64(double* out, const double* x,

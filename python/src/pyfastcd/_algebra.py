@@ -735,8 +735,8 @@ class Algebra:
     def default_sum_algorithm(self) -> str:
         """str: Algorithm that ``"auto"`` selects for :meth:`multiply_sum`.
 
-        ``"direct"`` through dimension 16 and ``"quasilinear"`` above, the
-        choice of the sums benchmark.
+        ``"direct"`` through dimension 8, where the quasilinear algorithm
+        uses as many products, and ``"quasilinear"`` above.
         """
 
         self._require_real_sums()
@@ -761,7 +761,7 @@ class Algebra:
         ----------
         x, y : Element, ElementArray, or array-like
             Operands with the same batch shape; all batch axes are summed.
-            Either operand may instead be a single record, which is then
+            Either operand may instead hold a single record, which is then
             multiplied with every record of the other.  With ``planes=True``
             both are arrays of shape ``(dimension, count)``, in which row
             ``i`` holds coordinate ``i`` of every record.
@@ -789,6 +789,9 @@ class Algebra:
         -----
         The result differs in rounding from ``(x * y)`` summed over its
         records.  The two layouts return the same bits for the same records.
+        A two-dimensional float64 array whose rows are contiguous and a
+        whole number of doubles apart, such as ``a[::2]``, is read in place;
+        other layouts are copied first.
         """
 
         self._require_real_sums()
@@ -797,8 +800,17 @@ class Algebra:
             xa, ya = self._sum_planes(x), self._sum_planes(y)
             if xa.shape != ya.shape:
                 raise ValueError("plane operands must have the same shape")
+            if xa.strides[0] != ya.strides[0]:
+                # The kernel reads both operands with one distance between rows
+                ya = np.require(ya, requirements=["C", "ALIGNED"])
+                xa = np.require(xa, requirements=["C", "ALIGNED"])
             return self._fused(1, code, xa, ya, 0)
-        xa, ya = self._sum_records(x), self._sum_records(y)
+        (xa, x_batch), (ya, y_batch) = self._sum_records(x), self._sum_records(y)
+        if x_batch != y_batch and xa.shape[0] != 1 and ya.shape[0] != 1:
+            raise ValueError(
+                "operands must have the same batch shape, or one must be a "
+                "single record"
+            )
         return self._fused(0, code, xa, ya, 0)
 
     def covariance(self, x: Any, y: Any, *, ddof: int = 1) -> Element:
@@ -813,6 +825,7 @@ class Algebra:
         ----------
         x, y : ElementArray or array-like
             Samples with the same batch shape; all batch axes are records.
+            A single record is not repeated.
         ddof : int, optional
             Delta degrees of freedom of the divisor ``count - ddof``.  The
             default 1 gives the unbiased estimate.
@@ -835,16 +848,19 @@ class Algebra:
         -----
         The means are subtracted and the conjugate is taken as the records
         are read, and the sum is a fused sum as in :meth:`multiply_sum`.
+        In dimension 2, with each sample stored as ``[real, imag]``, the
+        result is the ordinary covariance of complex samples,
+        ``numpy.cov(z, w)[0, 1]``.  A parent with complex coefficients
+        (``char=0, deg=2``) is a different algebra and raises ``TypeError``.
         """
 
         self._require_real_sums()
-        if isinstance(ddof, bool) or not isinstance(ddof, int):
-            raise TypeError("ddof must be an integer")
+        ddof = _integer(ddof, "ddof")
         if ddof < 0:
             raise ValueError("ddof must be nonnegative")
-        xa, ya = self._sum_records(x), self._sum_records(y)
-        if xa.shape[0] != ya.shape[0]:
-            raise ValueError("samples must have the same number of records")
+        (xa, x_batch), (ya, y_batch) = self._sum_records(x), self._sum_records(y)
+        if x_batch != y_batch:
+            raise ValueError("samples must have the same batch shape")
         return self._fused(2, _AUTO, xa, ya, ddof)
 
     def _require_real_sums(self) -> None:
@@ -853,24 +869,60 @@ class Algebra:
         if self._ctx is not None:
             raise TypeError("fused sums require real coefficients")
 
-    def _sum_records(self, values: Any) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """Return the records of an operand as a C-contiguous (count, N) array."""
+    def _sum_rows(
+        self, source: np.ndarray[Any, Any]
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        """Return a 2-D array as aligned float64 rows, copying only if needed.
+
+        The kernels read rows that are contiguous and start a positive whole
+        number of doubles apart, so a view that selects every k-th row of a
+        larger array is passed through as it is.
+        """
+
+        usable = (
+            source.dtype == _FLOAT64
+            and source.dtype.isnative
+            and source.flags.aligned
+            and (source.shape[1] == 0 or source.strides[1] == 8)
+            and (
+                source.shape[0] <= 1
+                or (
+                    source.strides[0] % 8 == 0
+                    and source.strides[0] >= 8 * source.shape[1]
+                )
+            )
+        )
+        if usable:
+            return source
+        return np.require(source, dtype=np.float64, requirements=["C", "ALIGNED"])
+
+    def _sum_records(
+        self, values: Any
+    ) -> tuple[np.ndarray[Any, np.dtype[np.float64]], tuple[int, ...]]:
+        """Return the records of an operand as (count, N) rows and its batch shape."""
 
         coefficients = _array._coerce_coefficients(self, values, copy=None)
-        return np.ascontiguousarray(coefficients, dtype=np.float64).reshape(
-            -1, self._dimension
-        )
+        batch = coefficients.shape[:-1]
+        if coefficients.ndim != 2:
+            coefficients = np.require(
+                coefficients, dtype=np.float64, requirements=["C", "ALIGNED"]
+            ).reshape(-1, self._dimension)
+        return self._sum_rows(coefficients), batch
 
     def _sum_planes(self, values: Any) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """Return coordinate planes as a C-contiguous (N, count) array."""
+        """Return coordinate planes as (N, count) rows."""
 
+        if isinstance(values, (Element, _array.ElementArray)) and (
+            values.algebra is not self
+        ):
+            raise ValueError(DIFFERENT_ALGEBRA_MESSAGE)
         source = np.asarray(values)
         _array._validate_source_dtype(source)
         if source.ndim != 2 or source.shape[0] != self._dimension:
             raise ValueError(
                 f"plane operands must have shape ({self._dimension}, count)"
             )
-        return np.ascontiguousarray(source, dtype=np.float64)
+        return self._sum_rows(source)
 
     def _fused(
         self,
@@ -882,16 +934,9 @@ class Algebra:
     ) -> Element:
         """Run a fused sum of prepared operands and wrap the result."""
 
-        if mode != 1:
-            counts = (x.shape[0], y.shape[0])
-            if counts[0] != counts[1] and 1 not in counts:
-                raise ValueError(
-                    "operands must have the same batch shape, or one must be "
-                    "a single record"
-                )
-        out = np.empty(self._dimension, dtype=np.float64)
+        out = np.empty((1, self._dimension), dtype=np.float64)
         _core._mul_sum(mode, code, self._dimension, x, y, ddof, out)
-        return _core._element(self, self._dimension, out)
+        return _core._element(self, self._dimension, out[0])
 
     def left_basis_multiply(
         self, index: Any, x: Any, *, out: Any | None = None

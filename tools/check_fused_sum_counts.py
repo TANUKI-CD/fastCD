@@ -2,11 +2,13 @@
 """Count the arithmetic of the fused sums in the actual kernel source.
 
 The probe instantiates ``src/fused_sum_impl.h`` with a vector type whose
-operations count themselves, runs a sum of one and of two groups of eight
-elements, and reports the difference: the products and the additions that
-one more group costs, which is the cost per element in vector operations.
-Additions spent on the accumulators once per block and on the output
-additions cancel in the difference. The counts are compared with the
+operations count themselves and runs sums of 8, 16, 64 and 72 elements. The
+difference between 8 and 16 is what one more group of eight elements costs
+inside a block: the products and input additions per element, in vector
+operations. The difference between 64 and 72 starts a second block of 64,
+and exceeds the first difference by the additions that merge the partial
+sums of a block into the accumulated sums. The output additions, spent once
+per sum, cancel in both differences. The counts are compared with the
 recurrences stated in docs/mathematics.md.
 
 Requires a C compiler only for this development check.
@@ -89,28 +91,31 @@ void probe_sum(double* restrict out, const FastCDSumJob* job, double* restrict w
 int main(void) {
     for (size_t n = 1; n <= 1024; n *= 2) {
         for (int quasilinear = 0; quasilinear < 2; quasilinear++) {
-            unsigned long long seen[2][2];
-            double* rows = calloc(2 * n * 16, sizeof(double));
+            static const size_t counts[4] = {8, 16, 64, 72};
+            unsigned long long seen[4][2];
+            double* rows = calloc(2 * n * 80, sizeof(double));
             double* out = calloc(n, sizeof(double));
             double* work = calloc(fastcd_sum_kernel_doubles(n), sizeof(double));
             if (n == 1 && quasilinear) continue;
-            for (size_t groups = 1; groups <= 2; groups++) {
+            for (size_t c = 0; c < 4; c++) {
                 FastCDSumJob job;
                 memset(&job, 0, sizeof job);
                 job.x = rows;
-                job.y = rows + n * 16;
-                job.pitch = 16;
-                job.count = 8 * groups;
+                job.y = rows + n * 80;
+                job.pitch = 80;
+                job.count = counts[c];
                 job.dimension = n;
                 job.planes = true;
                 job.quasilinear = quasilinear != 0;
                 products = additions = 0;
                 probe_sum(out, &job, work);
-                seen[groups - 1][0] = products;
-                seen[groups - 1][1] = additions;
+                seen[c][0] = products;
+                seen[c][1] = additions;
             }
-            printf("%zu %d %llu %llu\n", n, quasilinear, seen[1][0] - seen[0][0],
-                    seen[1][1] - seen[0][1]);
+            printf("%zu %d %llu %llu %llu %llu\n", n, quasilinear,
+                    seen[1][0] - seen[0][0], seen[1][1] - seen[0][1],
+                    seen[3][0] - seen[2][0],
+                    (seen[3][1] - seen[2][1]) - (seen[1][1] - seen[0][1]));
             free(rows); free(out); free(work);
         }
     }
@@ -145,6 +150,35 @@ def expected(n: int, quasilinear: bool) -> tuple[int, int]:
     return 6 * n - 8 + p, a
 
 
+def block_subtree(K: int) -> int:
+    """Additions that merge one block's partial sums of a complex kernel."""
+
+    if K <= 2:
+        return 0
+    if K == 4:
+        return 9
+    if K == 8:
+        # Two partial sums per output of each of the three cross products
+        return 42
+    return 6 * (K // 2 - 1) + 3 + 2 * block_subtree(K // 2)
+
+
+def expected_block(n: int, quasilinear: bool) -> int:
+    """Additions per block of 64 elements beyond those of its groups."""
+
+    if not quasilinear:
+        # Generated kernels keep two partial sums per output from dimension 4;
+        # the loop for other dimensions merges every product separately
+        return {1: 1, 2: 2, 4: 8, 8: 16, 16: 32}.get(n, n * n)
+    h = n // 2
+    if h == 1:
+        return 4
+    if n >= 32:
+        # Root and top node in one pass, then the two subtrees
+        return 10 + 10 * (h // 2 - 1) + 5 + 2 * block_subtree(h // 2)
+    return 10 + 12 * ((h - 2) // 2) + block_subtree(h)
+
+
 def main() -> int:
     root = Path(__file__).resolve().parent.parent
     compiler = shlex.split(os.environ.get("CC", "cc"))
@@ -157,14 +191,16 @@ def main() -> int:
         result = subprocess.run([str(binary)], check=True, text=True,
                                 capture_output=True)
     failures = 0
-    print(f"{'N':>5} {'algorithm':>12} {'products':>9} {'additions':>10}")
+    print(f"{'N':>5} {'algorithm':>12} {'products':>9} {'additions':>10} "
+          f"{'per block':>10}")
     for line in result.stdout.splitlines():
-        n, ql, products, additions = (int(v) for v in line.split())
-        want = expected(n, bool(ql))
+        n, ql, products, additions, again, block = (int(v) for v in line.split())
+        want = (*expected(n, bool(ql)), expected_block(n, bool(ql)))
         name = "quasilinear" if ql else "direct"
-        status = "" if (products, additions) == want else f"  expected {want}"
+        got = (products, additions, block)
+        status = "" if got == want and again == products else f"  expected {want}"
         failures += bool(status)
-        print(f"{n:>5} {name:>12} {products:>9} {additions:>10}{status}")
+        print(f"{n:>5} {name:>12} {products:>9} {additions:>10} {block:>10}{status}")
     if failures:
         print(f"{failures} counts differ", file=sys.stderr)
         return 1

@@ -310,11 +310,17 @@ int main(int argc, char** argv) {
     }
     size_t mul_length, sum_length;
     FastCDAlgorithm selected;
+    // Every allocation below is one of these extents in doubles or in bytes
+    const size_t limit = SIZE_MAX / sizeof(double);
     if (fastcd_mul_workspace_size(t.n, &mul_length) ||
             fastcd_mul_sum_workspace_size(t.n, &sum_length) ||
-            fastcd_default_sum_algorithm(t.n, &selected) ||
-            trials > SIZE_MAX / sizeof(double) / t.n / 2)
+            fastcd_default_sum_algorithm(t.n, &selected) || t.n > limit / t.n ||
+            trials > limit / t.n || t.pitch > limit / t.n ||
+            t.samples > limit / (t.n * t.pitch) || t.count > limit / t.n ||
+            mul_length > limit - sum_length - 1) {
+        fprintf(stderr, "sum benchmark configuration is too large\n");
         return EXIT_FAILURE;
+    }
     // Corpus I/O and every allocation precede verification and timing, so no
     // task allocates inside its timer
     t.x = malloc(trials * t.n * sizeof(double));
@@ -348,7 +354,9 @@ int main(int argc, char** argv) {
                 t.px[(s * t.n + i) * t.pitch + p] = t.x[(s * t.count + p) * t.n + i];
                 t.py[(s * t.n + i) * t.pitch + p] = t.y[(s * t.count + p) * t.n + i];
             }
-    int enabled[TASKS] = {1, 1, t.n <= max_direct, 1, blas != NULL};
+    // The algorithm of automatic selection is timed at every dimension
+    int enabled[TASKS] = {1, 1,
+        t.n <= max_direct || selected == FASTCD_ALGORITHM_DIRECT, 1, blas != NULL};
     long double error = 0;
     if (!verify(&t, enabled, exact, selected, &error)) {
         fprintf(stderr, "independent verification failed\n");

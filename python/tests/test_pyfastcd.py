@@ -2890,9 +2890,41 @@ class FusedSumTests(unittest.TestCase):
         )
         empty = algebra.multiply_sum(np.empty((0, 16)), np.empty((0, 16)))
         self.assertEqual(empty, algebra.zero())
-        self.assertEqual(algebra.default_sum_algorithm, "direct")
-        self.assertEqual(
-            fcd.Algebra(dimension=32).default_sum_algorithm, "quasilinear"
+        self.assertEqual(algebra.default_sum_algorithm, "quasilinear")
+        self.assertEqual(fcd.Algebra(dimension=8).default_sum_algorithm, "direct")
+        # A single record against an empty batch is an empty sum, in either order
+        for a, b in ((single, np.empty((0, 16))), (np.empty((0, 16)), single)):
+            self.assertEqual(algebra.multiply_sum(a, b), algebra.zero())
+        one_row = algebra.multiply_sum(x[:1], y)
+        np.testing.assert_array_equal(np.asarray(one_row), want)
+
+    def test_multiply_sum_reads_strided_rows_without_copying(self) -> None:
+        import tracemalloc
+
+        rng = np.random.default_rng(14)
+        algebra = fcd.Algebra(dimension=32)
+        x = self._dyadic(rng, (4096, 32))
+        y = self._dyadic(rng, (4096, 32))
+        want = np.asarray(algebra.multiply_sum(x[::2].copy(), y[::2].copy()))
+        tracemalloc.start()
+        got = algebra.multiply_sum(x[::2], y[::2])
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        np.testing.assert_array_equal(np.asarray(got), want)
+        # Each view holds 512 KiB; a copy of either would exceed this bound
+        self.assertLess(peak, 300 * 1024)
+        # Rows that are reversed, or not contiguous inside, are copied instead
+        for a, b in ((x[::-2], y[::-2]), (x[:, ::-1], y[:, ::-1])):
+            products = np.asarray(algebra.multiply(a, b))
+            np.testing.assert_array_equal(
+                np.asarray(algebra.multiply_sum(a, b)), products.sum(axis=0)
+            )
+        planes = np.ascontiguousarray(x.T)
+        strided = algebra.multiply_sum(planes[:, ::1][:, :2048], planes[:, 2048:],
+                                       planes=True)
+        np.testing.assert_array_equal(
+            np.asarray(strided),
+            np.asarray(algebra.multiply_sum(x[:2048], x[2048:])),
         )
 
     def test_multiply_sum_rejects_invalid_requests(self) -> None:
@@ -2902,6 +2934,25 @@ class FusedSumTests(unittest.TestCase):
             algebra.multiply_sum(x, np.ones((4, 8)))
         with self.assertRaises(ValueError):
             algebra.multiply_sum(x, np.ones((5, 4)))
+        # Batch shapes are compared before the records are flattened
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(np.ones((2, 3, 8)), np.ones((3, 2, 8)))
+        with self.assertRaises(ValueError):
+            algebra.covariance(np.ones((2, 3, 8)), np.ones((3, 2, 8)))
+        with self.assertRaises(ValueError):
+            algebra.covariance(np.ones((6, 8)), np.ones((2, 3, 8)))
+        # Plane operands keep the parent check and need no particular alignment
+        other = fcd.Algebra(dimension=8, char=7)
+        residues = other.array(np.full((8, 8), 3, dtype=np.uint32))
+        with self.assertRaises(ValueError):
+            algebra.multiply_sum(residues, np.ones((8, 8)), planes=True)
+        raw = np.zeros(8 * 5 * 8 + 1, dtype=np.uint8)
+        unaligned = np.frombuffer(raw.data, dtype=np.float64, count=40, offset=1)
+        unaligned = unaligned.reshape(8, 5)
+        self.assertFalse(unaligned.flags.aligned)
+        self.assertEqual(
+            algebra.multiply_sum(unaligned, unaligned, planes=True), algebra.zero()
+        )
         with self.assertRaises(ValueError):
             algebra.multiply_sum(x, x, algorithm="cariow_cariowa")
         with self.assertRaises(ValueError):
@@ -2958,7 +3009,40 @@ class FusedSumTests(unittest.TestCase):
             algebra.covariance(x, x, ddof=1.0)
         with self.assertRaises(ValueError):
             algebra.covariance(x, np.ones((1, 4)))
+        with self.assertRaises(ValueError):
+            algebra.covariance(np.empty((0, 4)), np.empty((0, 4)))
         np.testing.assert_array_equal(np.asarray(algebra.covariance(x, x)), np.zeros(4))
+        self.assertEqual(algebra.covariance(x, x, ddof=np.int64(1)), algebra.zero())
+        with self.assertRaises(TypeError):
+            algebra.covariance(x, x, ddof=True)
+
+    def test_covariance_is_exact_under_translation_and_scaling(self) -> None:
+        reals = fcd.Algebra(dimension=1)
+        x = np.array([0.0, 0.0, 2.0, 2.0])[:, None]
+        y = np.array([0.0, 2.0, 0.0, 2.0])[:, None]
+        for shift in (0.0, 2.0**53, -(2.0**53)):
+            with self.subTest(shift=shift):
+                self.assertEqual(reals.covariance(x + shift, y + shift).real, 0.0)
+                self.assertEqual(reals.covariance(x + shift, x + shift).real, 4 / 3)
+        top = np.array([2.0**1023, -(2.0**1023)])[:, None]
+        bottom = np.array([2.0**-1022, -(2.0**-1022)])[:, None]
+        self.assertEqual(reals.covariance(top, bottom, ddof=0).real, 2.0)
+        v = np.array([1.0, -1.0, 1.0, -1.0])[:, None] * 2.0**511
+        self.assertEqual(reals.covariance(v, v, ddof=0).real, 2.0**1022)
+
+    def test_covariance_of_complex_samples_in_dimension_two(self) -> None:
+        rng = np.random.default_rng(15)
+        z = rng.normal(size=60) + 1j * rng.normal(size=60)
+        w = rng.normal(size=60) + 1j * rng.normal(size=60)
+        algebra = fcd.Algebra(dimension=2)
+        got = algebra.covariance(
+            np.column_stack((z.real, z.imag)), np.column_stack((w.real, w.imag))
+        )
+        want = np.cov(z, w)[0, 1]
+        np.testing.assert_allclose(np.asarray(got), [want.real, want.imag], rtol=1e-12)
+        # The complex128 coefficient parent is a different object
+        with self.assertRaises(TypeError):
+            fcd.Algebra(dimension=1, char=0, deg=2).covariance(z, w)
 
 
 if __name__ == "__main__":  # pragma: no cover

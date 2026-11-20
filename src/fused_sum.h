@@ -18,10 +18,23 @@
  * rows that are a power of two apart from sharing a cache set. */
 #define FASTCD_FUSED_PITCH (FASTCD_FUSED_CHUNK + 8)
 
+/* The affine map applied to the records of one operand as they are read.
+ * Coordinate i becomes (((value * pre) - shift[i]) - offset[i]) * scale[i],
+ * in that order. A step is skipped when use_pre is false or its array is
+ * NULL. The public FastCDSumMapF64 fills shift and scale; the covariance
+ * also uses pre, an exact power of two, and offset, which keeps the mean of
+ * a sample in two parts so that neither is rounded when they are combined. */
+typedef struct FastCDSumOperandMap {
+    bool use_pre;
+    double pre;
+    const double* shift;
+    const double* offset;
+    const double* scale;
+} FastCDSumOperandMap;
+
 /* One sum, already validated. The operands are either records, element p of x
  * at x + p * x_stride, or planes, coordinate i of element p at
- * x[i * pitch + p]. A coordinate i of a record operand is read as
- * (value - shift[i]) * scale[i]; each of the four arrays may be NULL. */
+ * x[i * pitch + p]. The maps apply to record operands only. */
 typedef struct FastCDSumJob {
     const double* x;
     const double* y;
@@ -32,10 +45,8 @@ typedef struct FastCDSumJob {
     size_t dimension;
     bool planes;
     bool quasilinear;
-    const double* x_shift;
-    const double* x_scale;
-    const double* y_shift;
-    const double* y_scale;
+    FastCDSumOperandMap x_map;
+    FastCDSumOperandMap y_map;
 } FastCDSumJob;
 
 // Eight-double accumulators of the complex kernel of dimension K

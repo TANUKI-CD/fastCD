@@ -144,7 +144,7 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
 - `default_sum_algorithm: str`
 
   The algorithm that `"auto"` uses in `multiply_sum`: `"direct"` through
-  `N = 16` and `"quasilinear"` above. Real coefficients only.
+  `N = 8` and `"quasilinear"` above. Real coefficients only.
 
 ### Methods
 
@@ -213,11 +213,15 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   `x[0] * y[0] + x[1] * y[1] + ...`, as a
   [fused sum](mathematics.md#fused-sums-of-products): no product is stored.
   The operands have the same batch shape, and every batch axis is summed;
-  either may instead be a single record, which multiplies every record of
-  the other. With `planes=True` both are arrays of shape `(N, count)` whose
+  either may instead hold a single record, which multiplies every record of
+  the other. Batch shapes are compared as given: `(2, 3, N)` and `(3, 2, N)`
+  raise `ValueError`. With `planes=True` both are arrays of shape `(N, count)` whose
   row `i` holds coordinate `i` of every record, the layout the kernels work
   in. `algorithm` is `"auto"`, `"direct"` or `"quasilinear"`. Operands
-  without records give the zero element. The result differs in rounding
+  without records give the zero element, also against a single record. A
+  two-dimensional `float64` array whose rows are contiguous and a whole
+  number of doubles apart, such as `a[::2]`, is read in place; other layouts
+  are copied first. The result differs in rounding
   from `(x * y)` summed over its records. Real coefficients only; other
   parents raise `TypeError`.
 
@@ -227,8 +231,19 @@ coefficients; it is a different algebra, isomorphic to C ⊕ C.
   `sum((x[p] - mean(x)) * conjugate(y[p] - mean(y))) / (count - ddof)` over
   all records `p`. Its scalar coordinate is the sum over the coordinates of
   their real covariances. `ddof=1` gives the unbiased estimate; a count that
-  does not exceed `ddof`, or a negative `ddof`, raises `ValueError`. Real
+  does not exceed `ddof`, or a negative `ddof`, raises `ValueError`. A
+  single record is not repeated. The result is unchanged when one exactly
+  representable element is added to every record of a sample, and samples
+  near the ends of the exponent range are scaled internally. Real
   coefficients only.
+
+  At dimension 2 this is the covariance of complex samples stored as
+  `[real, imag]`: for complex arrays `z` and `w`,
+  `Algebra(dimension=2).covariance(np.column_stack((z.real, z.imag)),
+  np.column_stack((w.real, w.imag)))` has the coordinates of
+  `numpy.cov(z, w)[0, 1]`. The parent with `complex128` coefficients,
+  `Algebra(dimension=1, char=0, deg=2)`, is a different algebra and raises
+  `TypeError`.
 
 - `left_basis_multiply(index, x, *, out=None)`
 

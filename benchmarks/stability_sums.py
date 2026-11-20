@@ -29,6 +29,7 @@ import json
 import math
 import os
 import platform
+import statistics
 import time
 from concurrent.futures import ProcessPoolExecutor
 from fractions import Fraction
@@ -403,11 +404,6 @@ def _run(case: tuple[str, str, int, int, list[int]]) -> dict[str, Any]:
     return function(_LIBRARY, family, n, count, seed)
 
 
-def quantile(values: list[float], q: float) -> float:
-    ordered = sorted(values)
-    return ordered[min(len(ordered) - 1, int(q * len(ordered)))]
-
-
 def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Median and maximum eta by dimension, and maxima by family."""
     result: dict[str, Any] = {"sum_by_dimension": [], "sum_by_family": [],
@@ -419,7 +415,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
                  and r["family"] in ("gaussian", "uniform")]
         result["sum_by_dimension"].append({
             "dimension": n, "cases": len(dense),
-            "median": {m: quantile([r["eta"][m] for r in dense], 0.5)
+            "median": {m: statistics.median(r["eta"][m] for r in dense)
                        for m in SUM_METHODS},
             "max": {m: max(r["eta"][m] for r in dense) for m in SUM_METHODS},
         })
@@ -428,7 +424,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if chosen:
             result["sum_by_family"].append({
                 "family": family, "cases": len(chosen),
-                "median": {m: quantile([r["eta"][m] for r in chosen], 0.5)
+                "median": {m: statistics.median(r["eta"][m] for r in chosen)
                            for m in SUM_METHODS},
                 "max": {m: max(r["eta"][m] for r in chosen) for m in SUM_METHODS},
             })
@@ -437,7 +433,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
                   and r["family"] in ("gaussian", "offset")]
         result["sum_by_count"].append({
             "count": count, "cases": len(chosen),
-            "median": {m: quantile([r["eta"][m] for r in chosen], 0.5)
+            "median": {m: statistics.median(r["eta"][m] for r in chosen)
                        for m in SUM_METHODS},
             "max": {m: max(r["eta"][m] for r in chosen) for m in SUM_METHODS},
         })
@@ -447,7 +443,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
         if chosen:
             result["covariance"].append({
                 "family": family, "cases": len(chosen),
-                "median": {m: quantile([r["eta"][m] for r in chosen], 0.5)
+                "median": {m: statistics.median(r["eta"][m] for r in chosen)
                            for m in COVARIANCE_METHODS},
                 "max": {m: max(r["eta"][m] for r in chosen)
                         for m in COVARIANCE_METHODS},

@@ -223,8 +223,11 @@ benchmark reported in the README:
 `fastcd_imag_cross_f64` and `fastcd_commutator_f64` always use the
 quasilinear recursion.
 
-[Fused sums](#fused-sums) use direct through `N = 16` and quasilinear at
-every larger dimension, set from the
+[Fused sums](#fused-sums) use direct through `N = 8`, where the quasilinear
+algorithm has as many multiplications, and quasilinear at every larger
+dimension. At `N = 16` the direct sum is slightly faster with the AVX-512
+kernel, but level with the AVX2 kernel and much slower with the portable
+one, so the rule is the same for every kernel; see the
 [sums benchmark](benchmark.md#fused-sums).
 
 **Functions**
@@ -267,7 +270,7 @@ doubles. With the default leaf cutoffs:
   their products.
 - A fused sum needs one length for both layouts and both algorithms. It
   grows like `N log N`: 1,487 doubles at `N = 8`, 2,991 at 16, 13,551 at 64
-  and 60,399 at 256. The covariance needs `11N` doubles more.
+  and 60,399 at 256. The covariance needs `13N` doubles more.
 
 These lengths can change between releases (see [Compatibility](#compatibility)),
 so obtain them from the queries. [Workspace](mathematics.md#workspace)
@@ -500,9 +503,24 @@ rounds differently from a batch of products followed by a sum.
 
   an element of the algebra whose scalar coordinate is the sum over the
   coordinates of their real covariances. `ddof = 1` gives the unbiased
-  estimate. `count <= ddof` returns `FASTCD_INVALID_COUNT`. The means are
-  subtracted and the conjugate is taken as the records are read, and the sum
-  is a fused sum with the automatic algorithm.
+  estimate. `count <= ddof` returns `FASTCD_INVALID_COUNT`, including a
+  count of zero. The means are subtracted and the conjugate is taken as the
+  records are read, and the sum is a fused sum with the automatic algorithm.
+
+  Each mean is held in two parts, the first record and the mean of the
+  differences from it, and both are subtracted from every record, so adding
+  one exactly representable element to all records of a sample leaves the
+  result unchanged. A sample whose largest magnitude lies outside `2^-256`
+  to `2^256` is first multiplied by a power of two that brings it into
+  `[1/2, 1)`, and the result is scaled back; samples near the ends of the
+  exponent range therefore do not overflow or underflow on the way to a
+  representable covariance.
+
+  At dimension 2, with records `[real, imag]`, the result is the ordinary
+  covariance of two complex samples, `E[(z - mean(z)) conjugate(w - mean(w))]`
+  with the chosen divisor. The complex-coefficient functions of
+  [Arithmetic across coefficient fields](#arithmetic-across-coefficient-fields)
+  have no covariance.
 
 **Maps**
 
@@ -517,17 +535,21 @@ disjoint from the output and the workspace.
 
 **Parameters and layouts**
 
-- `count == 0` writes the zero element. The inputs and the workspace are not
-  read and may be null.
+- For the four sum functions, `count == 0` writes the zero element, and the
+  inputs and the workspace are not read and may be null.
 - The output must be disjoint from the inputs and the workspace. The inputs
   are only read and may overlap each other in any way, including `x == y`.
 - If a coordinate that is read is NaN or infinite, which output coordinates
   are non-finite is unspecified.
 - The kernels work on planes. Records are rewritten into planes 64 elements
   at a time inside the workspace, which costs a few operations per
-  coordinate. Below dimension 32 a matrix product of the same samples
-  followed by a contraction with the basis signs is faster than the record
-  functions; see the [sums benchmark](benchmark.md#fused-sums). Both layouts cut the elements into the same blocks and
+  coordinate. For samples of about a thousand elements or more, a matrix
+  product of the same samples followed by a contraction with the basis signs
+  is faster than the record functions below dimension 32; see the
+  [sums benchmark](benchmark.md#fused-sums).
+- A call has a fixed cost: it clears the accumulated sums, completes the last
+  group of eight elements and applies the output additions. For a handful of
+  elements a batch of products followed by a sum is faster. Both layouts cut the elements into the same blocks and
   return the same bits for the same elements.
 
 **Kernels**
@@ -541,7 +563,8 @@ accumulation is a fused multiply-add. The two x86 kernels return identical
 bits, and so does the portable kernel on targets with a fused multiply-add
 instruction, such as AArch64. On other targets the portable kernel rounds
 the product and the addition separately, and its results differ in the last
-bits.
+bits. There it is also no faster than a batch of products followed by a
+sum; the fused sums then save only the storage of the products.
 
 ---
 

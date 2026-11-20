@@ -382,7 +382,8 @@ The first task is what a program without the fused sums would call. The two
 plane tasks read each sample from coordinate planes, written before timing
 with rows `count + 8` doubles apart, and they decide the algorithm that
 `AUTO` uses for fused sums. The direct sum has `N^2` multiplications per
-element and is timed through `--max-direct-dimension`, 64 by default.
+element and is timed through `--max-direct-dimension`, 64 by default and at
+least 8, through which it is the automatic algorithm.
 
 The `dgemm` task compares with the other way to obtain such a sum: the
 matrix `G[i][j] = sum_p x_p[i] y_p[j]` is one matrix product of the records,
@@ -422,6 +423,12 @@ python3 benchmarks/benchmark.py --protocol sums \
 
 `benchmarks/sums.py` accepts the same options when run directly. The
 protocol is not part of `--protocol all`.
+
+The library chooses the kernel of the fused sums at run time, so one build
+measures one kernel on a given processor. To measure another, configure a
+second build with `-DFASTCD_TUNING_DEFINITIONS=FASTCD_SUM_MAX_KERNEL=2`,
+which keeps the AVX-512 kernel from being selected, or with
+`-DFASTCD_ENABLE_SUM_SIMD=OFF`, which leaves only the portable kernel.
 
 ## Running all protocols
 
@@ -468,43 +475,73 @@ real products, 100,000 complex and finite-field pairs and 132,000
 FLINT-comparison pairs. The archive's README records the host, the commands
 and the load on the host during the run.
 
-The fused sums were measured on the same host on 2026-11-19 and are
+The fused sums were measured on the same host on 2026-11-20 and are
 archived in
-[`benchmark-results/sums-t440-20261119/`](../benchmark-results/sums-t440-20261119/README.md),
+[`benchmark-results/sums-t440-20261120/`](../benchmark-results/sums-t440-20261120/README.md),
 with Intel MKL 2026.2.1 as the BLAS library. Mean nanoseconds per element
-for samples of 1,024 elements, from a corpus of 8,192 elements per cell:
+with the AVX-512 kernel, for samples of 1,024 elements from a corpus of
+8,192 elements per cell:
 
 | N | Products | Records | Planes | `dgemm` | Products/records | `dgemm`/records | `dgemm`/planes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2 | 4.08 | 3.00 | 0.62 | 1.51 | 1.36 | 0.50 | 2.42 |
-| 4 | 6.64 | 3.19 | 1.24 | 1.97 | 2.09 | 0.62 | 1.58 |
-| 8 | 16.19 | 6.88 | 3.46 | 3.56 | 2.36 | 0.52 | 1.03 |
-| 16 | 59.14 | 21.27 | 13.97 | 14.35 | 2.78 | 0.68 | 1.03 |
-| 32 | 207.84 | 47.00 | 41.20 | 49.48 | 4.43 | 1.05 | 1.20 |
-| 64 | 509.40 | 109.01 | 100.44 | 146.38 | 4.68 | 1.34 | 1.46 |
-| 128 | 1369.84 | 262.08 | 350.75 | 675.79 | 5.23 | 2.56 | 1.91 |
-| 256 | 3070.82 | 727.61 | 1098.78 | 2301.35 | 4.24 | 3.17 | 2.09 |
-| 512 | 7102.31 | 1854.57 | 2677.47 | 8151.25 | 3.84 | 4.40 | 3.04 |
-| 1024 | 16538.63 | 4921.62 | 6052.02 | 29149.01 | 3.36 | 5.92 | 4.81 |
+| 2 | 3.96 | 2.22 | 0.59 | 1.43 | 1.78 | 0.65 | 2.43 |
+| 4 | 6.70 | 2.45 | 1.26 | 1.97 | 2.74 | 0.81 | 1.56 |
+| 8 | 16.00 | 5.37 | 3.16 | 3.36 | 2.98 | 0.63 | 1.06 |
+| 16 | 56.47 | 17.16 | 15.40 | 13.74 | 3.29 | 0.80 | 0.89 |
+| 32 | 203.72 | 44.41 | 40.94 | 48.41 | 4.60 | 1.09 | 1.18 |
+| 64 | 498.82 | 103.91 | 100.34 | 144.93 | 4.81 | 1.39 | 1.44 |
+| 128 | 1258.21 | 249.60 | 285.04 | 616.63 | 5.05 | 2.46 | 2.16 |
+| 256 | 3059.31 | 735.90 | 1083.93 | 2208.61 | 4.17 | 3.00 | 2.03 |
+| 512 | 7036.62 | 1808.07 | 2557.97 | 7954.76 | 3.91 | 4.40 | 3.10 |
+| 1024 | 16419.67 | 4870.83 | 6051.27 | 28279.26 | 3.38 | 5.81 | 4.67 |
 
-`Planes` is the plane task of the automatic algorithm. A fused sum of
-records took between 0.19 and 0.79 of the time of a batch of products
-followed by a sum, at every dimension and sample size measured. Against the
-matrix product it was slower below dimension 32, level at 32 and faster
-above, by 1.3 at dimension 64 and 5.9 at 1024. From dimension 128 the
-planes were slower than the records in this setting: with 8,192 elements
-the rows of a sample lie on separate pages, while records are read as one
-stream. With a single sample of 1,024 elements, which stays in cache
-through dimension 32, the two layouts were within 10% of each other from
-dimension 128 (`sums-one-sample.md`).
+`Planes` is the plane task of the automatic algorithm. With this kernel a
+fused sum of records was 1.5 to 5.1 times as fast as a batch of products
+followed by a sum, over every dimension and the three sample sizes 64,
+1,024 and 4,096. Against the matrix product, the records were slower at
+dimensions 8 and 16 with samples of 1,024 or more (0.61 to 0.81) and level
+with samples of 64; at dimensions 2 and 4 they were faster with samples of
+64 (1.25 and 1.35) and slower with larger ones. From dimension 32 the
+records were faster at every sample size: 1.1 to 1.3 at dimension 32, 1.4
+to 1.7 at 64 and 5.6 to 8.2 at 1024.
 
-On planes, the direct sum took 0.87 (0.85 to 0.89) of the time of the
-quasilinear sum at dimension 16 with samples of 1,024, and 0.82 and 0.99
-with samples of 4,096 and 64, so `AUTO` uses direct through dimension 16.
-At dimension 32 the direct sum, which there is a plain loop over the
-`N^2` products, took 11.7 times as long. The archive was measured from a
-working tree with uncommitted changes on commit `0a84b06`; its JSON files
-record the hash of every measured source file.
+From dimension 128 the planes were slower than the records in this
+setting: with 8,192 elements the rows of a sample lie on separate pages,
+while records are read as one stream. With a single sample of 1,024
+elements, which stays in cache through dimension 32, the two layouts were
+within 9% of each other from dimension 128 (`sums-one-sample.md`).
+
+The same protocol was run without a BLAS library on two further builds, one
+limited to the AVX2 kernel and one with the portable kernel, which on this
+processor rounds products and sums separately. Ranges are over the three
+sample sizes:
+
+| Kernel | Products/records, N = 8 to 64 | Direct/quasilinear, N = 8 | Direct/quasilinear, N = 16 |
+| --- | --- | --- | --- |
+| AVX-512 | 2.67 to 4.83 | 0.73 to 0.87 | 0.83 to 0.96 |
+| AVX2 | 1.64 to 2.55 | 0.84 to 0.92 | 0.95 to 1.10 |
+| Portable | 0.74 to 1.02 | 0.90 to 0.92 | 1.78 to 1.83 |
+
+The direct sum is faster than the quasilinear sum at dimension 8 with every
+kernel. At dimension 16 it is faster only with the AVX-512 kernel, by 4% to
+17%; the two are level with AVX2, and the direct sum takes 1.8 times as
+long with the portable kernel. `AUTO` therefore uses the direct sum through
+dimension 8 and the quasilinear sum from dimension 16 with every kernel,
+which costs the AVX-512 kernel that margin at dimension 16. Above dimension
+16 the direct sum is a plain loop over the `N^2` products and took 11 times
+as long as the quasilinear sum at dimension 32 with AVX-512.
+
+With the portable kernel the fused sum of records was faster than a batch
+of products followed by a sum only at dimension 2 (1.34 to 1.41). At
+dimensions 4 to 32 it took between 0.99 and 1.36 times as long, from 64 to
+256 it was within 4%, and at 512 and 1024 it took 1.11 to 1.19 times as
+long. On such builds the fused sums save the storage of the products and
+are more accurate (see [stability.md](stability.md#fused-sums)), but they
+save no time.
+
+The archive was measured from a working tree with uncommitted changes on
+commit `793c36f`; its JSON files record the hash of every measured source
+file.
 
 The run reported in version 2 of the paper is archived in
 [`benchmark-results/paper-v2-octonion243-20261023/`](../benchmark-results/paper-v2-octonion243-20261023/results.md),

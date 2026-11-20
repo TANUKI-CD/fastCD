@@ -493,13 +493,33 @@ static void FS_NAME(quasilinear_finish)(double* restrict out, const double* acc,
 
 /* ---------- Operand block ---------- */
 
+// Apply an operand map to one vector of coordinate c
+static inline FS_V FS_NAME(map_vector)(FS_V v, const FastCDSumOperandMap* map,
+        size_t c) {
+    if (map->use_pre) v = FS_MUL(v, FS_SET1(map->pre));
+    if (map->shift != NULL) v = FS_SUB(v, FS_SET1(map->shift[c]));
+    if (map->offset != NULL) v = FS_SUB(v, FS_SET1(map->offset[c]));
+    if (map->scale != NULL) v = FS_MUL(v, FS_SET1(map->scale[c]));
+    return v;
+}
+
+// Apply an operand map to one coordinate, with the operations of map_vector
+static inline double FS_NAME(map_scalar)(double v, const FastCDSumOperandMap* map,
+        size_t c) {
+    if (map->use_pre) v = v * map->pre;
+    if (map->shift != NULL) v = v - map->shift[c];
+    if (map->offset != NULL) v = v - map->offset[c];
+    if (map->scale != NULL) v = v * map->scale[c];
+    return v;
+}
+
 /*
  * Write `count` <= FASTCD_FUSED_CHUNK records of dimension N as rows of a
- * block, completing the last group of eight with zero elements. Coordinate c
- * is mapped to (value - shift[c]) * scale[c]; either array may be NULL.
+ * block, completing the last group of eight with zero elements, and apply
+ * the operand map to every coordinate.
  */
 static void FS_NAME(pack)(double* restrict rows, const double* a, size_t stride,
-        size_t count, size_t N, const double* shift, const double* scale) {
+        size_t count, size_t N, const FastCDSumOperandMap* map) {
     const size_t padded = (count + 7) & ~(size_t)7;
     size_t done = 0;
 
@@ -511,10 +531,8 @@ static void FS_NAME(pack)(double* restrict rows, const double* a, size_t stride,
                 FS_V o[4];
                 FS_NAME(transpose)(o, r, stride, c);
                 for (size_t k = 0; k < 4; k++) {
-                    FS_V v = o[k];
-                    if (shift != NULL) v = FS_SUB(v, FS_SET1(shift[c + k]));
-                    if (scale != NULL) v = FS_MUL(v, FS_SET1(scale[c + k]));
-                    FS_STORE(rows + (c + k) * FASTCD_FUSED_PITCH + done, v);
+                    FS_STORE(rows + (c + k) * FASTCD_FUSED_PITCH + done,
+                            FS_NAME(map_vector)(o[k], map, c + k));
                 }
             }
         }
@@ -523,10 +541,7 @@ static void FS_NAME(pack)(double* restrict rows, const double* a, size_t stride,
     for (size_t c = 0; c < N; c++) {
         double* const row = rows + c * FASTCD_FUSED_PITCH;
         for (size_t p = done; p < count; p++) {
-            double v = a[p * stride + c];
-            if (shift != NULL) v = v - shift[c];
-            if (scale != NULL) v = v * scale[c];
-            row[p] = v;
+            row[p] = FS_NAME(map_scalar)(a[p * stride + c], map, c);
         }
         for (size_t p = count; p < padded; p++) row[p] = 0.0;
     }
@@ -556,18 +571,23 @@ void FS_PUBLIC(double* restrict out, const FastCDSumJob* job,
     double* const by = block + N * FASTCD_FUSED_PITCH;
 
     memset(acc, 0, 8 * vectors * sizeof(double));
-    if (job->planes) {
-        /* Both layouts cut the elements into the same chunks, so that they
-         * add the same partial sums in the same order. */
-        for (size_t p = 0; p < job->count; p += FASTCD_FUSED_CHUNK) {
-            const size_t length = job->count - p < FASTCD_FUSED_CHUNK
-                ? job->count - p : FASTCD_FUSED_CHUNK;
-            const size_t padded = (length + 7) & ~(size_t)7;
-            if (padded == length) {
-                FS_NAME(chunk)(job, acc, job->x + p, job->y + p, job->pitch,
-                        length, block);
-                continue;
-            }
+    /* Both layouts cut the elements into the same chunks, so that they add
+     * the same partial sums in the same order. The position advances by the
+     * elements consumed, which cannot pass the count. */
+    for (size_t p = 0; p < job->count;) {
+        const size_t length = job->count - p < FASTCD_FUSED_CHUNK
+            ? job->count - p : FASTCD_FUSED_CHUNK;
+        const size_t padded = (length + 7) & ~(size_t)7;
+        if (!job->planes) {
+            FS_NAME(pack)(bx, job->x + p * job->x_stride, job->x_stride, length,
+                    N, &job->x_map);
+            FS_NAME(pack)(by, job->y + p * job->y_stride, job->y_stride, length,
+                    N, &job->y_map);
+            FS_NAME(chunk)(job, acc, bx, by, FASTCD_FUSED_PITCH, padded, block);
+        } else if (padded == length) {
+            FS_NAME(chunk)(job, acc, job->x + p, job->y + p, job->pitch, length,
+                    block);
+        } else {
             // Complete the last group of eight with zero elements
             for (size_t i = 0; i < N; i++) {
                 double* const rx = bx + i * FASTCD_FUSED_PITCH;
@@ -583,17 +603,7 @@ void FS_PUBLIC(double* restrict out, const FastCDSumJob* job,
             }
             FS_NAME(chunk)(job, acc, bx, by, FASTCD_FUSED_PITCH, padded, block);
         }
-    } else {
-        for (size_t p = 0; p < job->count; p += FASTCD_FUSED_CHUNK) {
-            const size_t length = job->count - p < FASTCD_FUSED_CHUNK
-                ? job->count - p : FASTCD_FUSED_CHUNK;
-            FS_NAME(pack)(bx, job->x + p * job->x_stride, job->x_stride, length,
-                    N, job->x_shift, job->x_scale);
-            FS_NAME(pack)(by, job->y + p * job->y_stride, job->y_stride, length,
-                    N, job->y_shift, job->y_scale);
-            FS_NAME(chunk)(job, acc, bx, by, FASTCD_FUSED_PITCH,
-                    (length + 7) & ~(size_t)7, block);
-        }
+        p += length;
     }
     if (job->quasilinear && N >= 2) {
         FS_NAME(quasilinear_finish)(out, acc, N, scratch);

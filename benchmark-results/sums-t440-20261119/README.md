@@ -47,7 +47,8 @@ OPENBLAS_NUM_THREADS=1 python3 benchmarks/stability_sums.py \
 ```
 
 Every other option kept its default: 60 blocks, two warmup passes, a 20 ms
-minimum observation and the seed 20261119. The two benchmark runs ran one
+minimum observation and the seed 20260906 of the benchmark driver (the
+accuracy study has its own seeds). The two benchmark runs ran one
 after the other, and the accuracy study after them. The one-minute load
 average of the host was 5.0 when the benchmark started and 2.6 when it
 ended.

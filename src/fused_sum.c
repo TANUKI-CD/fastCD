@@ -107,10 +107,20 @@ static inline FastCDSumVector portable_fnma(FastCDSumVector a, FastCDSumVector b
 
 /* ---------- Kernel selection ---------- */
 
+/* FASTCD_SUM_MAX_KERNEL is a tuning macro for measurements (see
+ * FASTCD_TUNING_DEFINITIONS in CMakeLists.txt): 2 keeps the AVX-512 kernel
+ * from being selected and 1 selects the portable kernel. */
+#ifndef FASTCD_SUM_MAX_KERNEL
+#define FASTCD_SUM_MAX_KERNEL 3
+#endif
+
 int fastcd_fused_sum_kernels(void) {
 #if defined(FASTCD_SUM_SIMD)
-    if (__builtin_cpu_supports("avx512f")) return 3;
-    if (__builtin_cpu_supports("avx2") && __builtin_cpu_supports("fma")) return 2;
+    if (FASTCD_SUM_MAX_KERNEL >= 3 && __builtin_cpu_supports("avx512f")) return 3;
+    if (FASTCD_SUM_MAX_KERNEL >= 2 && __builtin_cpu_supports("avx2")
+            && __builtin_cpu_supports("fma")) {
+        return 2;
+    }
 #endif
     return 1;
 }

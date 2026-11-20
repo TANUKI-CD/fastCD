@@ -357,17 +357,17 @@ maximum of `eta` over Gaussian and uniform samples of 1,024 elements.
 
 | N | Cases | Fused | Products, in sequence | Products, pairwise | Cross moments |
 | ---: | ---: | --- | --- | --- | --- |
-| 1 | 16 | 0.05 / 0.25 | 0.17 / 0.75 | 0.05 / 0.15 | 0.06 / 0.20 |
-| 2 | 16 | 0.06 / 0.18 | 0.16 / 0.52 | 0.06 / 0.14 | 0.36 / 0.78 |
-| 4 | 16 | 0.06 / 0.10 | 0.30 / 0.58 | 0.05 / 0.08 | 0.30 / 0.68 |
-| 8 | 16 | 0.07 / 0.09 | 0.24 / 0.35 | 0.06 / 0.08 | 0.34 / 0.46 |
-| 16 | 16 | 0.09 / 0.11 | 0.28 / 0.42 | 0.08 / 0.13 | 0.30 / 0.39 |
-| 32 | 16 | 0.10 / 0.13 | 0.30 / 0.43 | 0.08 / 0.09 | 0.19 / 0.22 |
-| 64 | 16 | 0.11 / 0.14 | 0.29 / 0.36 | 0.09 / 0.10 | 0.19 / 0.22 |
+| 1 | 16 | 0.05 / 0.25 | 0.16 / 0.75 | 0.05 / 0.15 | 0.06 / 0.20 |
+| 2 | 16 | 0.06 / 0.18 | 0.15 / 0.52 | 0.06 / 0.14 | 0.35 / 0.78 |
+| 4 | 16 | 0.06 / 0.10 | 0.27 / 0.58 | 0.05 / 0.08 | 0.29 / 0.68 |
+| 8 | 16 | 0.07 / 0.09 | 0.22 / 0.35 | 0.06 / 0.08 | 0.33 / 0.46 |
+| 16 | 16 | 0.09 / 0.13 | 0.28 / 0.42 | 0.08 / 0.13 | 0.29 / 0.39 |
+| 32 | 16 | 0.09 / 0.13 | 0.30 / 0.43 | 0.08 / 0.09 | 0.19 / 0.22 |
+| 64 | 16 | 0.11 / 0.14 | 0.29 / 0.36 | 0.08 / 0.10 | 0.19 / 0.22 |
 | 128 | 8 | 0.12 / 0.14 | 0.30 / 0.32 | 0.09 / 0.10 | 0.20 / 0.22 |
 | 256 | 8 | 0.13 / 0.15 | 0.31 / 0.35 | 0.09 / 0.10 | 0.24 / 0.25 |
-| 512 | 4 | 0.14 / 0.14 | 0.31 / 0.34 | 0.10 / 0.10 | 0.28 / 0.29 |
-| 1024 | 2 | 0.15 / 0.15 | 0.31 / 0.31 | 0.10 / 0.10 | 0.35 / 0.35 |
+| 512 | 4 | 0.14 / 0.14 | 0.30 / 0.34 | 0.10 / 0.10 | 0.28 / 0.29 |
+| 1024 | 2 | 0.15 / 0.15 | 0.30 / 0.31 | 0.10 / 0.10 | 0.35 / 0.35 |
 
 On these samples the fused sum has two to three times less error than
 products added in sequence and somewhat more than products added pairwise:
@@ -389,13 +389,13 @@ elements, give these maxima of `eta`:
 
 Sums of `±1` coordinates were exact in all 64 cases and every evaluation.
 With samples of 64 and of 4,096 elements at dimensions through 64, the
-largest fused `eta` was 3.44 and 1.68.
+largest fused `eta` was 3.44 and 2.04.
 
 The explicitly selected direct sum is less accurate at high dimension,
 because each output coordinate receives `N` products per element in two
-chains: its median `eta` on the dense samples is 0.09 at dimension 16,
-where `AUTO` uses it, and grows to 0.32 at 64 and 1.20 at 1024, against
-0.11 and 0.15 for the quasilinear sum.
+chains: its median `eta` on the dense samples is 0.07 at dimension 8, the
+largest at which `AUTO` uses it, and grows to 0.32 at 64 and 1.19 at 1024,
+against 0.11 and 0.15 for the quasilinear sum.
 
 For the covariance the scale is
 `sum_p ||x_p - mean(x)||_2 ||y_p - mean(y)||_2 / (P - 1)`, and
@@ -405,20 +405,24 @@ samples centered beforehand with NumPy, on 28 cases per family at dimensions
 
 | Sample | `fastcd_covariance_f64` | Centered products | Centered cross moments |
 | --- | --- | --- | --- |
-| Gaussian | 0.10 / 0.15 | 0.30 / 0.64 | 0.23 / 0.87 |
-| `10^6` plus Gaussian | 0.08 / 0.16 | 0.30 / 0.47 | 0.21 / 0.46 |
-| `10^9` plus Gaussian | 11.8 / 40.6 | 4,924 / 8,166 | 4,924 / 8,166 |
+| Gaussian | 0.09 / 0.14 | 0.30 / 0.64 | 0.22 / 0.87 |
+| `10^6` plus Gaussian | 0.08 / 0.11 | 0.29 / 0.47 | 0.21 / 0.46 |
+| `10^9` plus Gaussian | 0.11 / 0.21 | 4,903 / 8,166 | 4,903 / 8,166 |
 
-With a mean `10^9` times the spread, the error is that of the means: the
-library forms each mean as the first element plus the mean of the
-differences from it, which keeps it to a few tens of units where the mean
-of the raw coordinates loses three digits.
+The covariance keeps its accuracy when the mean is `10^9` times the spread,
+where centering with a rounded mean loses three digits: the library holds
+each mean as the first record and the mean of the differences from it and
+subtracts the two parts separately (see
+[Covariance](mathematics.md#covariance)). `tests/test_fused_sum.c` checks
+the limiting cases exactly: samples translated by `2^53`, and samples at
+`2^1023`, `2^511` and `2^-600`, where the differences from the mean, the
+sum of squares or the squares themselves leave the range of doubles.
 
 The record and the plane layout returned identical bits in all 689 sums and
 for all three algorithm selections. The study ran the AVX-512 kernel only;
 `tests/test_fused_sum.c` compares the kernels with each other. The results
 and the command are in
-[`benchmark-results/sums-t440-20261119/`](../benchmark-results/sums-t440-20261119/README.md).
+[`benchmark-results/sums-t440-20261120/`](../benchmark-results/sums-t440-20261120/README.md).
 
 ## Cost
 
@@ -515,8 +519,11 @@ faster. Blocks of 16 were up to 7% faster on some real products but up to
   the summed reference products exactly, at dimensions 1 through 256 and
   counts on both sides of every group and block boundary. On rounded inputs
   it requires the AVX-512 kernel, the AVX2 kernel and a portable kernel
-  built with `fma()` to return identical bits in both layouts, and it checks
-  the covariance against a long double evaluation.
+  built with `fma()` to return identical bits in both layouts, runs the
+  kernel source with separately rounded products as well, and requires the
+  public functions to return the bits of one of the two. It checks the
+  covariance against a long double evaluation and, exactly, on translated
+  samples and on samples near the ends of the exponent range.
 - The study compared the scalar, SIMD, single-product and batched forms of
   quasilinear multiplication bit for bit in all 13,584 cases (40,752
   comparisons), and the same four forms of Cariow–Cariowa in all 6,808 real

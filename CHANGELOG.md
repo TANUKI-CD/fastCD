@@ -18,26 +18,36 @@ All notable changes to fastCD are recorded in this file. The project follows
   algorithm's output additions are applied once, so no product is stored. A
   `FastCDSumMapF64` shifts and scales the coordinates of records as they are
   read. `fastcd_default_sum_algorithm` and `fastcd_mul_sum_workspace_size`
-  report the automatic choice and the workspace length.
+  report the automatic choice and the workspace length. `AUTO` uses the
+  direct sum through dimension 8 and the quasilinear sum above.
 - `fastcd_covariance_f64` and `fastcd_covariance_workspace_size`: the
   covariance `sum_p (x_p - mean(x)) conjugate(y_p - mean(y)) / (count - ddof)`
-  of two samples of elements, computed as a fused sum. The status
-  `FASTCD_INVALID_COUNT` reports a count that does not exceed `ddof`.
+  of two samples of elements, computed as a fused sum. Each mean is held as
+  the first record plus the mean of the differences from it, and samples of
+  extreme magnitude are scaled by a power of two, so the result does not
+  change when an exactly representable element is added to every record and
+  does not overflow on the way to a representable value. At dimension 2,
+  with records `[real, imag]`, it is the covariance of complex samples. The
+  status `FASTCD_INVALID_COUNT` reports a count that does not exceed `ddof`.
 - AVX-512 and AVX2 kernels for the fused sums, chosen at run time in GCC and
   Clang builds for x86 (CMake option `FASTCD_ENABLE_SUM_SIMD`), and a
   portable kernel for other builds.
 - `Algebra.multiply_sum`, `Algebra.covariance` and
-  `Algebra.default_sum_algorithm` in `pyfastcd`.
+  `Algebra.default_sum_algorithm` in `pyfastcd`, for parents with real
+  coefficients. `Algebra(dimension=2).covariance` on arrays of
+  `[real, imag]` rows equals `numpy.cov(z, w)[0, 1]`; the parent with
+  `complex128` coefficients (`char=0, deg=2`) raises `TypeError`.
 - The `sums` benchmark protocol (`benchmarks/sums.py`, runner
   `fastcd_sums_benchmark`), which times the fused sums against a batch of
   products and, with `--blas`, against one `dgemm` of a BLAS library loaded
   at run time and the contraction with the basis signs; and
   `benchmarks/stability_sums.py`, an accuracy study of the fused sums and
   the covariance against an error-free reference. Their results on the
-  Dell PowerEdge T440 of 2026-11-19 are in
-  `benchmark-results/sums-t440-20261119/`. In that run the direct sum was
-  faster than the quasilinear sum at dimension 16, so `AUTO` uses direct
-  through dimension 16 for fused sums.
+  Dell PowerEdge T440 of 2026-11-20 are in
+  `benchmark-results/sums-t440-20261120/`, with one run for each of the
+  AVX-512, AVX2 and portable kernels. The tuning macro
+  `FASTCD_SUM_MAX_KERNEL` keeps a build from selecting the wider kernels for
+  such measurements.
 - `tools/check_fused_sum_counts.py`, which checks the operation counts of
   the fused sums against the kernel source, and
   [Fused sums of products](docs/mathematics.md#fused-sums-of-products) in the
