@@ -496,7 +496,7 @@ static void FS_NAME(quasilinear_finish)(double* restrict out, const double* acc,
 // Apply an operand map to one vector of coordinate c
 static inline FS_V FS_NAME(map_vector)(FS_V v, const FastCDSumOperandMap* map,
         size_t c) {
-    if (map->use_pre) v = FS_MUL(v, FS_SET1(map->pre));
+    if (map->pre != NULL) v = FS_MUL(v, FS_SET1(map->pre[c]));
     if (map->shift != NULL) v = FS_SUB(v, FS_SET1(map->shift[c]));
     if (map->offset != NULL) v = FS_SUB(v, FS_SET1(map->offset[c]));
     if (map->scale != NULL) v = FS_MUL(v, FS_SET1(map->scale[c]));
@@ -506,7 +506,7 @@ static inline FS_V FS_NAME(map_vector)(FS_V v, const FastCDSumOperandMap* map,
 // Apply an operand map to one coordinate, with the operations of map_vector
 static inline double FS_NAME(map_scalar)(double v, const FastCDSumOperandMap* map,
         size_t c) {
-    if (map->use_pre) v = v * map->pre;
+    if (map->pre != NULL) v = v * map->pre[c];
     if (map->shift != NULL) v = v - map->shift[c];
     if (map->offset != NULL) v = v - map->offset[c];
     if (map->scale != NULL) v = v * map->scale[c];

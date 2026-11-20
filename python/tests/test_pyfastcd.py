@@ -2888,8 +2888,16 @@ class FusedSumTests(unittest.TestCase):
             np.asarray(algebra.multiply_sum(np.asfortranarray(x), y[::-1][::-1])),
             np.asarray(algebra.multiply(x, y)).sum(axis=0),
         )
-        empty = algebra.multiply_sum(np.empty((0, 16)), np.empty((0, 16)))
-        self.assertEqual(empty, algebra.zero())
+        for shape, planes in (((0, 16), False), ((16, 0), True)):
+            for offset in (0, 1):
+                with self.subTest(shape=shape, offset=offset):
+                    empty = np.ndarray(
+                        shape, np.float64, buffer=bytearray(1), offset=offset
+                    )
+                    self.assertEqual(
+                        algebra.multiply_sum(empty, empty, planes=planes),
+                        algebra.zero(),
+                    )
         self.assertEqual(algebra.default_sum_algorithm, "quasilinear")
         self.assertEqual(fcd.Algebra(dimension=8).default_sum_algorithm, "direct")
         # A single record against an empty batch is an empty sum, in either order
@@ -3000,8 +3008,11 @@ class FusedSumTests(unittest.TestCase):
     def test_covariance_rejects_invalid_requests(self) -> None:
         algebra = fcd.Algebra(dimension=4)
         x = np.ones((3, 4))
-        with self.assertRaises(ValueError):
-            algebra.covariance(x, x, ddof=3)
+        for ddof in (3, 2**100):
+            with self.subTest(ddof=ddof), self.assertRaisesRegex(
+                ValueError, "Invalid element count"
+            ):
+                algebra.covariance(x, x, ddof=ddof)
         with self.assertRaises(ValueError):
             algebra.covariance(x, x, ddof=-1)
         with self.assertRaises(TypeError):
@@ -3014,6 +3025,17 @@ class FusedSumTests(unittest.TestCase):
         self.assertEqual(algebra.covariance(x, x, ddof=np.int64(1)), algebra.zero())
         with self.assertRaises(TypeError):
             algebra.covariance(x, x, ddof=True)
+
+    def test_native_covariance_rejects_invalid_counts(self) -> None:
+        x = np.ones((3, 4))
+        out = np.full((1, 4), 7.0)
+        for a, b in ((x, x[:1]), (x[:1], x)):
+            with self.assertRaisesRegex(ValueError, "operands do not match"):
+                _core._mul_sum(2, 0, 4, a, b, 0, out)
+        for ddof in (3, 2**100):
+            with self.assertRaisesRegex(ValueError, "Invalid element count"):
+                _core._mul_sum(2, 0, 4, x, x, ddof, out)
+        np.testing.assert_array_equal(out, np.full((1, 4), 7.0))
 
     def test_covariance_is_exact_under_translation_and_scaling(self) -> None:
         reals = fcd.Algebra(dimension=1)

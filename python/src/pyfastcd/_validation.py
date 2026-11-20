@@ -13,6 +13,7 @@ import numpy as np
 # so both layers report identical conditions identically
 DIFFERENT_ALGEBRA_MESSAGE = "operands belong to different algebras"
 COMPLEX_SCALAR_MESSAGE = "complex scalars are not supported"
+INVALID_COUNT_MESSAGE = "Invalid element count"
 MODULAR_POWER_MESSAGE = (
     "modular exponentiation is not defined for Cayley--Dickson elements"
 )

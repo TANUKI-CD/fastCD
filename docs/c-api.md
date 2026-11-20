@@ -176,7 +176,7 @@ A release may change:
 
 - `const char* fastcd_version_string(void)`
 
-  Return the version string of the linked library, such as `"1.4.0"`.
+  Return the version string of the linked library, such as `"1.5.0"`.
 
 - `const char* fastcd_status_string(FastCDStatus status)`
 
@@ -508,8 +508,8 @@ rounds differently from a batch of products followed by a sum.
 
   Each mean is held in two parts, the first record and the mean of the
   differences from it. Subtracting both can reduce rounding error when
-  centering. A finite sample whose largest magnitude is nonzero and lies
-  outside `[2^-257, 2^256)` is scaled by a power of two, and the result is
+  centering. A finite sample whose largest magnitude among varying coordinates
+  lies outside `[2^-257, 2^256)` is scaled by a power of two, and the result is
   scaled back. Small coordinates can underflow during scaling.
 
   At dimension 2, with records `[real, imag]`, the result is the ordinary

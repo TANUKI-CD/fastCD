@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Generic, Literal, final, overload
+from typing import Any, Generic, Literal, SupportsIndex, final, overload
 
 import numpy as np
 from numpy.typing import NDArray
@@ -154,7 +154,7 @@ class Algebra(Generic[_D, _S, _R, _H]):
         self, x: Any, y: Any, *, algorithm: str = "auto", planes: bool = False
     ) -> Element[_D, _S, Algebra[_D, _S, _R, _H], _H]: ...
     def covariance(
-        self, x: Any, y: Any, *, ddof: int = 1
+        self, x: Any, y: Any, *, ddof: SupportsIndex = 1
     ) -> Element[_D, _S, Algebra[_D, _S, _R, _H], _H]: ...
     def left_basis_multiply(
         self, index: Any, x: Any, *, out: Any | None = None

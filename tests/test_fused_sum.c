@@ -463,6 +463,44 @@ static int covariance_extremes(void) {
         for (size_t i = 0; i < 4; i++) CHECK(out[i] == want[i] * 0x1p300);
     }
     {
+        // A large constant real part does not scale the imaginary differences
+        const double x[4] = {0x1p600, 1.0, 0x1p600, -1.0};
+        CHECK(fastcd_covariance_f64(out, x, 2, x, 2, 2, 2, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 1.0 && out[1] == 0.0);
+    }
+    {
+        // Even an ordinary constant can hide a subnormal difference
+        const double x[4] = {1, 0x1p-1074, 1, -0x1p-1074};
+        const double y[4] = {0x1p1023, 0, -0x1p1023, 0};
+        CHECK(fastcd_covariance_f64(out, x, 2, y, 2, 2, 2, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0.0 && out[1] == 0x1p-51);
+    }
+    {
+        // Scaling the tiny differences up must not overflow a constant coordinate
+        double x[66 * 5] = {0}, y[66 * 5] = {0};
+        for (size_t p = 0; p < 66; p++) {
+            const double sign = p % 2 == 0 ? 1.0 : -1.0;
+            x[p * 5] = DBL_MAX;
+            x[p * 5 + 1] = sign * 0x1p-600;
+            y[p * 5] = sign * 0x1p600;
+            y[p * 5 + 1] = -DBL_MAX;
+        }
+        CHECK(fastcd_covariance_f64(out, x, 5, y, 5, 66, 4, 1, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0.0 && out[1] == 66.0 / 65.0 && out[2] == 0.0 && out[3] == 0.0);
+        CHECK(fastcd_covariance_f64(out, y, 5, x, 5, 66, 4, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0.0 && out[1] == -1.0 && out[2] == 0.0 && out[3] == 0.0);
+        CHECK(fastcd_covariance_f64(out, x, 0, y, 5, 66, 4, 0, &w) == FASTCD_SUCCESS);
+        for (size_t i = 0; i < 4; i++) CHECK(out[i] == 0.0);
+    }
+    {
+        // A difference of one ulp in the last record still counts
+        const double a = 0x1.0000000000001p600, t = 0x1p-600;
+        const double x[8] = {a, t, a, -t, a, t, 0x1p600, -t};
+        const double y[8] = {0, 0, 0, 0, 0x1p-548, 0, -0x1p-548, 0};
+        CHECK(fastcd_covariance_f64(out, x, 2, y, 2, 4, 2, 0, &w) == FASTCD_SUCCESS);
+        CHECK(out[0] == 0.25 && out[1] == 0.0);
+    }
+    {
         // A single record has zero population covariance
         const double x[2] = {3.0, 5.0};
         CHECK(fastcd_covariance_f64(out, x, 2, x, 2, 1, 2, 0, &w) == FASTCD_SUCCESS);

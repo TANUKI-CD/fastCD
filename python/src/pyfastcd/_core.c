@@ -3382,8 +3382,8 @@ static PyObject* pyfastcd_default_sum_algorithm_entry(
 /*
  * Acquire a two-dimensional array of doubles prepared by the Python layer.
  * Its rows are contiguous and aligned, and they start a positive whole
- * number of doubles apart, which is written to *step; an array with at most
- * one row gets a step of its row length.
+ * number of doubles apart, which is written to *step. An empty array gets
+ * a step of zero, and a single row gets its row length.
  */
 static int pyfastcd_sum_buffer(PyObject* object, Py_buffer* view, int writable,
         size_t* step) {
@@ -3392,29 +3392,36 @@ static int pyfastcd_sum_buffer(PyObject* object, Py_buffer* view, int writable,
         return -1;
     }
     if (view->itemsize != (Py_ssize_t)sizeof(double) || view->format == NULL
-            || strcmp(view->format, "d") != 0 || view->ndim != 2
-            || (view->shape[1] > 0 && view->strides[1] != (Py_ssize_t)sizeof(double))
+            || strcmp(view->format, "d") != 0 || view->ndim != 2) goto invalid;
+    if (view->shape[0] == 0 || view->shape[1] == 0) {
+        *step = 0;
+        return 0;
+    }
+    if (view->strides[1] != (Py_ssize_t)sizeof(double)
             || (uintptr_t)view->buf % sizeof(double) != 0
             || (view->shape[0] > 1 && (view->strides[0] <= 0
                     || view->strides[0] % (Py_ssize_t)sizeof(double) != 0
                     || view->strides[0] / (Py_ssize_t)sizeof(double)
                         < view->shape[1]))) {
-        PyBuffer_Release(view);
-        PyErr_SetString(PyExc_TypeError,
-                "internal sum operand is not an aligned float64 array of rows");
-        return -1;
+        goto invalid;
     }
     *step = view->shape[0] > 1
         ? (size_t)(view->strides[0] / (Py_ssize_t)sizeof(double))
         : (size_t)view->shape[1];
     return 0;
+
+invalid:
+    PyBuffer_Release(view);
+    PyErr_SetString(PyExc_TypeError,
+            "internal sum operand is not an aligned float64 array of rows");
+    return -1;
 }
 
 /*
  * Fused sum or covariance of prepared operands. mode 0 sums records, mode 1
  * sums planes, mode 2 is the covariance of records. Record operands have
- * shape (count, dimension) and plane operands (dimension, count); a record
- * operand with one row broadcasts. out has shape (1, dimension).
+ * shape (count, dimension) and plane operands (dimension, count). In mode
+ * 0 a record operand with one row broadcasts. out has shape (1, dimension).
  */
 static PyObject* pyfastcd_mul_sum_entry(PyObject* Py_UNUSED(module),
         PyObject* args) {
@@ -3422,6 +3429,7 @@ static PyObject* pyfastcd_mul_sum_entry(PyObject* Py_UNUSED(module),
     int code;
     Py_ssize_t dimension_value;
     Py_ssize_t ddof_value;
+    PyObject* ddof_object;
     PyObject* x_object;
     PyObject* y_object;
     PyObject* out_object;
@@ -3442,8 +3450,8 @@ static PyObject* pyfastcd_mul_sum_entry(PyObject* Py_UNUSED(module),
     FastCDStatus status;
     PyObject* result = NULL;
 
-    if (!PyArg_ParseTuple(args, "iinOOnO:_mul_sum", &mode, &code,
-                &dimension_value, &x_object, &y_object, &ddof_value,
+    if (!PyArg_ParseTuple(args, "iinOOOO:_mul_sum", &mode, &code,
+                &dimension_value, &x_object, &y_object, &ddof_object,
                 &out_object)) {
         return NULL;
     }
@@ -3451,6 +3459,10 @@ static PyObject* pyfastcd_mul_sum_entry(PyObject* Py_UNUSED(module),
         return NULL;
     }
     if (pyfastcd_algorithm_from_code(code, &algorithm) < 0) return NULL;
+    // A ddof above PY_SSIZE_T_MAX exceeds every possible record count
+    ddof_value = PyNumber_AsSsize_t(ddof_object,
+            mode == 2 ? NULL : PyExc_OverflowError);
+    if (ddof_value == -1 && PyErr_Occurred()) return NULL;
     if (mode < 0 || mode > 2 || ddof_value < 0) {
         PyErr_SetString(PyExc_ValueError, "invalid fused sum request");
         return NULL;
@@ -3483,7 +3495,8 @@ static PyObject* pyfastcd_mul_sum_entry(PyObject* Py_UNUSED(module),
         x_count = (size_t)x.shape[0];
         y_count = (size_t)y.shape[0];
         if ((size_t)x.shape[1] != dimension || (size_t)y.shape[1] != dimension
-                || (x_count != y_count && x_count != 1 && y_count != 1)) {
+                || (x_count != y_count
+                    && (mode == 2 || (x_count != 1 && y_count != 1)))) {
             PyErr_SetString(PyExc_ValueError, "fused sum operands do not match");
             goto done;
         }
@@ -3491,6 +3504,10 @@ static PyObject* pyfastcd_mul_sum_entry(PyObject* Py_UNUSED(module),
         count = x_count == y_count ? x_count : x_count == 1 ? y_count : x_count;
         if (x_count != count) x_step = 0;
         if (y_count != count) y_step = 0;
+    }
+    if (mode == 2 && (size_t)ddof_value >= count) {
+        pyfastcd_set_status_error(FASTCD_INVALID_COUNT);
+        goto done;
     }
     workspace.data = NULL;
     workspace.length = 0;

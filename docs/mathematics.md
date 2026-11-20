@@ -642,8 +642,8 @@ they are read, and the sum is a fused sum. Two details reduce rounding error.
   not formed, because it need not be representable: for coordinates near
   `2^53` with a spread of a few units, it would round away the part that
   matters. Each record is centered as `(x_p - r) - d`.
-- **Extreme magnitudes are scaled.** A first pass finds the largest
-  magnitude of each sample. If this nonzero magnitude lies outside
+- **Extreme magnitudes are scaled.** Scaling uses the largest magnitude
+  among each sample's varying coordinates. If this magnitude lies outside
   `[2^-257, 2^256)`, the sample is scaled toward unit magnitude by a power
   of two and the result is scaled back at the end. Small coordinates can
   underflow when the range of magnitudes is wide.

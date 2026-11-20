@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 from types import GenericAlias
-from typing import TYPE_CHECKING, Any, cast, final
+from typing import TYPE_CHECKING, Any, SupportsIndex, cast, final
 
 import numpy as np
 
@@ -19,6 +19,7 @@ from ._field import FiniteField, _integer
 from ._validation import (
     COMPLEX_SCALAR_MESSAGE,
     DIFFERENT_ALGEBRA_MESSAGE,
+    INVALID_COUNT_MESSAGE,
     _basis_index,
     _dimension_and_level,
 )
@@ -812,7 +813,7 @@ class Algebra:
             )
         return self._fused(0, code, xa, ya, 0)
 
-    def covariance(self, x: Any, y: Any, *, ddof: int = 1) -> Element:
+    def covariance(self, x: Any, y: Any, *, ddof: SupportsIndex = 1) -> Element:
         """Return the covariance of two samples of elements.
 
         The covariance is ``sum((x[p] - mean(x)) * conjugate(y[p] - mean(y)))
@@ -860,6 +861,8 @@ class Algebra:
         (xa, x_batch), (ya, y_batch) = self._sum_records(x), self._sum_records(y)
         if x_batch != y_batch:
             raise ValueError("samples must have the same batch shape")
+        if xa.shape[0] <= ddof:
+            raise ValueError(INVALID_COUNT_MESSAGE)
         return self._fused(2, _AUTO, xa, ya, ddof)
 
     def _require_real_sums(self) -> None:

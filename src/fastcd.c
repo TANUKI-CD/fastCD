@@ -7,7 +7,7 @@
 #include "fused_sum.h"
 #include "pair.h"
 
-#define FASTCD_VERSION "1.4.0"
+#define FASTCD_VERSION "1.5.0"
 
 /* ---------- Definitions of private structs ---------- */
 
@@ -581,8 +581,9 @@ FastCDStatus fastcd_mul_sum_workspace_size(size_t dimension, size_t* length) {
     return sum_workspace_query(dimension, 0, length);
 }
 
-/* The covariance keeps, after the scratch of the sum, the two parts of each
- * mean, the signs of the conjugate and eight partial sums per coordinate. */
+/* The covariance keeps eight partial sums, two parts and a scale for each
+ * mean, and the signs of the conjugate. The partial sums reuse 2N doubles
+ * of the sum workspace before the fused sum begins. */
 // Return the workspace length required by fastcd_covariance_f64
 FastCDStatus fastcd_covariance_workspace_size(size_t dimension,
         size_t* length) {
@@ -1147,8 +1148,8 @@ FastCDStatus fastcd_mul_sum_with_algorithm_f64(double* out, const double* x,
         size_t x_stride, const double* y, size_t y_stride, size_t count,
         size_t dimension, const FastCDSumMapF64* map, FastCDAlgorithm algorithm,
         const FastCDWorkspaceF64* workspace) {
-    FastCDSumOperandMap x_map = {false, 1.0, NULL, NULL, NULL};
-    FastCDSumOperandMap y_map = {false, 1.0, NULL, NULL, NULL};
+    FastCDSumOperandMap x_map = {NULL, NULL, NULL, NULL};
+    FastCDSumOperandMap y_map = {NULL, NULL, NULL, NULL};
     size_t required;
     FastCDStatus status = sum_workspace_query(dimension, 0, &required);
 
@@ -1237,7 +1238,7 @@ FastCDStatus fastcd_mul_sum_planes_with_algorithm_f64(double* out,
     job.dimension = dimension;
     job.planes = true;
     job.quasilinear = effective == FASTCD_ALGORITHM_QUASILINEAR && dimension > 1;
-    job.x_map = (FastCDSumOperandMap){false, 1.0, NULL, NULL, NULL};
+    job.x_map = (FastCDSumOperandMap){NULL, NULL, NULL, NULL};
     job.y_map = job.x_map;
     fastcd_fused_sum(out, &job, workspace->data);
     return FASTCD_SUCCESS;
@@ -1257,35 +1258,58 @@ FastCDStatus fastcd_mul_sum_planes_f64(double* out, const double* x,
 #define FASTCD_COVARIANCE_EXPONENT 256
 
 /*
- * Choose the power of two by which the covariance multiplies a sample
- * before any other arithmetic, and write the exponent it must restore.
- * Samples of ordinary magnitude are not scaled. Extreme samples are scaled
- * toward unit magnitude by a power of two.
+ * Choose the power of two by which the covariance scales the varying
+ * coordinates of a sample, and write the exponent it must restore.
+ * Samples of ordinary magnitude are not scaled.
  */
-static double sample_prescale(const double* x, size_t stride, size_t count,
-        size_t dimension, int* exponent) {
+static const double* sample_prescale(const double* x, size_t stride, size_t count,
+        size_t dimension, double* factors, int* exponent) {
+    double first = 0.0;
     double largest = 0.0;
+    double pre;
+    size_t p = 1;
     int e;
 
-    for (size_t p = 0; p < count; p++) {
+    *exponent = 0;
+    if (stride == 0) return NULL;
+    for (size_t i = 0; i < dimension; i++) {
+        const double magnitude = fabs(x[i]);
+        if (magnitude > first) first = magnitude;
+    }
+    if (isinf(first)) return NULL;
+    // A constant cannot exceed the largest magnitude of the first record
+    for (; p < count && largest < first; p++) {
+        const double* record = x + p * stride;
+        for (size_t i = 0; i < dimension; i++) {
+            if (record[i] != x[i]) {
+                const double a = fabs(x[i]), b = fabs(record[i]);
+                if (a > largest) largest = a;
+                if (b > largest) largest = b;
+            }
+        }
+    }
+    for (; p < count; p++) {
         const double* record = x + p * stride;
         for (size_t i = 0; i < dimension; i++) {
             const double magnitude = fabs(record[i]);
             if (magnitude > largest) largest = magnitude;
         }
     }
-    *exponent = 0;
-    // A zero sample needs no scale, and no scale repairs an infinite one
-    if (!(largest > 0.0) || isinf(largest)) return 1.0;
+    if (!(largest > 0.0) || isinf(largest)) return NULL;
     (void)frexp(largest, &e);
     if (e <= FASTCD_COVARIANCE_EXPONENT && e >= -FASTCD_COVARIANCE_EXPONENT) {
-        return 1.0;
+        return NULL;
     }
     // 2^1022 is the largest factor that is a double; smaller samples keep it
     if (e < -1022) e = -1022;
     *exponent = e;
     // 2^-1024 is subnormal but exact, and ldexp reaches it in two steps
-    return ldexp(ldexp(1.0, -e / 2), -(e - e / 2));
+    pre = ldexp(ldexp(1.0, -e / 2), -(e - e / 2));
+    for (size_t i = 0; i < dimension; i++) {
+        // Larger coordinates are constant and could overflow when scaled up
+        factors[i] = fabs(x[i]) > largest ? 0.0 : pre;
+    }
+    return factors;
 }
 
 /*
@@ -1294,18 +1318,21 @@ static double sample_prescale(const double* x, size_t stride, size_t count,
  * the offset. The mean is reference + offset, and the two are kept apart
  * because their sum need not be representable. The differences are added in
  * eight interleaved partial sums, as the kernels add elements. Every
- * coordinate is first multiplied by pre, as the kernel's operand map does.
+ * coordinate is scaled as in the kernel's operand map.
  */
 static void sample_center(double* restrict reference, double* restrict offset,
         const double* x, size_t stride, size_t count, size_t dimension,
-        double pre, double* restrict partial) {
-    for (size_t i = 0; i < dimension; i++) reference[i] = x[i] * pre;
+        const double* pre, double* restrict partial) {
+    for (size_t i = 0; i < dimension; i++) {
+        reference[i] = pre == NULL ? x[i] : x[i] * pre[i];
+    }
     for (size_t i = 0; i < 8 * dimension; i++) partial[i] = 0.0;
     for (size_t p = 1; p < count; p++) {
         const double* record = x + p * stride;
         double* lane = partial + (p % 8) * dimension;
         for (size_t i = 0; i < dimension; i++) {
-            lane[i] += record[i] * pre - reference[i];
+            const double value = pre == NULL ? record[i] : record[i] * pre[i];
+            lane[i] += value - reference[i];
         }
     }
     for (size_t i = 0; i < dimension; i++) {
@@ -1373,15 +1400,15 @@ FastCDStatus fastcd_covariance_f64(double* out, const double* x,
                 x, x_bytes, y, y_bytes, NULL, 0);
         if (status != FASTCD_SUCCESS) return status;
     }
-    // After the scratch of the sum: references, offsets, signs, partial sums
+    // The partial sums end where the references, offsets, signs and scales begin
     sum_required = required - 13 * dimension;
-    extra = workspace->data + sum_required;
+    extra = workspace->data + required - 7 * dimension;
+    partial = extra - 8 * dimension;
     signs = extra + 4 * dimension;
-    partial = signs + dimension;
-    x_map.pre = sample_prescale(x, x_stride, count, dimension, &x_exponent);
-    y_map.pre = sample_prescale(y, y_stride, count, dimension, &y_exponent);
-    x_map.use_pre = x_exponent != 0;
-    y_map.use_pre = y_exponent != 0;
+    x_map.pre = sample_prescale(x, x_stride, count, dimension, signs + dimension,
+            &x_exponent);
+    y_map.pre = sample_prescale(y, y_stride, count, dimension, signs + 2 * dimension,
+            &y_exponent);
     sample_center(extra, extra + dimension, x, x_stride, count, dimension,
             x_map.pre, partial);
     sample_center(extra + 2 * dimension, extra + 3 * dimension, y, y_stride,
