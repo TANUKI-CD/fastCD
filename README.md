@@ -88,7 +88,7 @@ int main(void) {
 }
 ```
 
-Note that covariance and fused sums of products are currently **experimental** features as of v1.5.0!!
+Note that covariance and fused sums of products are currently experimental features as of v1.5.0.
 
 For more information on how to get started using fastCD in C and to familiarize yourself with the API, take a look at [C quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-c.md) and [C API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/c-api.md).
 
@@ -166,7 +166,7 @@ a CMake package: use `find_package(fastcd CONFIG REQUIRED)` and link
 
 ## Benchmark
 
-All timings below were measured on a Dell PowerEdge T440 with an Intel Xeon Gold 6148, using one logical CPU per run, GCC 16.2.1 and Linux 7.2.11. The host is shared, and no governor, turbo, or SMT settings were changed.
+All timings below were measured on a Dell PowerEdge T440 with an Intel Xeon Gold 6148, using one logical CPU per run, GCC 16.2.1 and Linux 7.2.11. The host is shared and no governor, turbo, or SMT settings were changed.
 
 Only the C kernel is timed, with storage already allocated: Python overhead, allocation, and verification are outside the timed region. Every result that is timed was also checked against an independent implementation, as each subsection describes.
 
@@ -206,32 +206,9 @@ Mean nanoseconds per product with two-sided 95% Student-t intervals over 24 timi
 | 512 | 69310.72 [68887.00, 69734.44] | 108032.81 [107477.81, 108587.82] | 7427.95 [7327.56, 7528.34] | quasilinear | quasilinear |
 | 1024 | 277013.17 [274746.54, 279279.79] | 419988.45 [417575.06, 422401.83] | 16258.80 [16093.16, 16424.44] | quasilinear | quasilinear |
 
-### Fused sums of products
-
-The sums benchmark compares three ways of computing the sum of the products of a sample of real-coefficient elements. *Products* is what a program without the fused sums would call: one batch of products with automatic selection, followed by a sum. *Fused* is `fastcd_mul_sum_f64` on the same records. *Matrix product* computes the matrix of real cross moments `sum_p x_p[i] y_p[j]` with one `dgemm` and adds its entries with the basis signs. fastCD contains no matrix product, so the benchmark loads Intel MKL 2026.2.1 for it at run time, with one thread.
-
-The table gives mean nanoseconds per element for samples of 1,024 elements, from 8,192 elements per cell and 60 timing blocks, with the AVX-512 kernel of the fused sums. Ratios are paired geometric means with 95% Student-t intervals, and a ratio above 1 favors the fused sum. The first sample of every cell was verified against a long double evaluation of the cross moments, and on every sample the three computations had to agree within a norm-scaled bound; all checks passed.
-
-| N | products | fused | matrix product | products/fused [95% CI] | matrix product/fused [95% CI] |
-| ---: | ---: | ---: | ---: | --- | --- |
-| 2 | 4.14 | 2.33 | 1.52 | 1.77 [1.75, 1.80] | 0.65 [0.64, 0.66] |
-| 4 | 7.02 | 2.53 | 2.13 | 2.79 [2.72, 2.86] | 0.84 [0.82, 0.86] |
-| 8 | 16.33 | 5.42 | 3.44 | 3.01 [2.96, 3.07] | 0.63 [0.62, 0.65] |
-| 16 | 59.29 | 17.59 | 14.20 | 3.37 [3.32, 3.43] | 0.81 [0.79, 0.82] |
-| 32 | 201.84 | 43.63 | 48.29 | 4.64 [4.56, 4.72] | 1.11 [1.08, 1.13] |
-| 64 | 515.56 | 108.01 | 155.17 | 4.78 [4.69, 4.88] | 1.44 [1.39, 1.48] |
-| 128 | 1300.28 | 265.89 | 734.73 | 4.90 [4.81, 4.99] | 2.75 [2.65, 2.85] |
-| 256 | 3032.47 | 704.42 | 2147.15 | 4.33 [4.23, 4.42] | 3.05 [2.98, 3.13] |
-| 512 | 7109.87 | 1774.34 | 7900.96 | 4.02 [3.95, 4.09] | 4.45 [4.34, 4.56] |
-| 1024 | 16834.66 | 4991.62 | 28766.20 | 3.38 [3.31, 3.45] | 5.78 [5.63, 5.92] |
-
-With this kernel the fused sum is faster than a batch of products followed by a sum at every dimension, and faster than the matrix product from dimension 32 upward; below that the matrix product is faster for samples of this size. Samples of 64 and of 4,096 elements, and elements stored as coordinate planes, which `fastcd_mul_sum_planes_f64` reads without rearranging them, are in [sums.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261120/sums.md) in the archive.
-
-The speed depends on the kernel that the processor selects. With the AVX2 kernel the fused sum is 1.67 to 2.52 times as fast as the products at dimensions 8 to 64. Builds without either kernel use a portable one, whose speed depends on dimension and layout. It saves product storage (see [Numerical stability](#numerical-stability) for accuracy). Automatic selection uses the direct sum through dimension 8 and the quasilinear sum above: at dimension 16 the direct sum takes 4% to 16% less time with AVX-512, between 3% less and 10% more with AVX2, and 1.8 times as much with the portable kernel, so the quasilinear sum is the choice that serves every kernel.
-
 ### Finite fields and complex coefficients
 
-The same protocol compares direct and quasilinear multiplication over C and over the nine finite fields in the table below, which are the field benchmark's default set: the prime fields F_3, F_5, F_13, F_65521 and F_2147483647 and the extension fields F_(3^5), F_(5^2), F_(13^5) and F_(65521^2). Each cell uses 1,000 operand pairs and 24 timing blocks. Every pair is verified before timing, against independent schoolbook polynomial arithmetic over the finite fields and against a long-double reference over C; all 100,000 pairs passed. Each cell below gives the quasilinear mean in nanoseconds per single product and, in parentheses, the paired direct/quasilinear ratio, so a ratio above 1 favors quasilinear. Direct is faster at dimension 2 in every cell except single products over F_(65521^2), a tie, and at dimension 4 over C, five of the nine fields and single products over F_(13^5). From dimension 8 upward quasilinear is faster in every cell except two ties: F_(3^5) at dimension 64 and batch products over F_(65521^2) at dimension 16. Automatic selection uses direct for `N <= 4` and quasilinear otherwise, over C and every finite field. From dimension 16 upward, batch and single means differ by at most 8%, the most over C at dimension 16, where batching saves 8%. Each cell runs in one process, so its interval covers variation between timing blocks but not between processes: in repeated runs on this host, individual cells from dimension 64 upward differed by up to 17%, and direct/quasilinear ratios by up to 8%. Both modes, every dimension and the confidence intervals are in [domains.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261120/domains.md) in the archive.
+The same protocol compares direct and quasilinear multiplication over C and over the nine finite fields in the table below, which are the field benchmark's default set: the prime fields F_3, F_5, F_13, F_65521 and F_2147483647 and the extension fields F_(3^5), F_(5^2), F_(13^5) and F_(65521^2). Each cell uses 1,000 operand pairs and 24 timing blocks. Every pair is verified before timing, against independent schoolbook polynomial arithmetic over the finite fields and against a long-double reference over C, and all 100,000 pairs passed. Each cell below gives the quasilinear mean in nanoseconds per single product and, in parentheses, the paired direct/quasilinear ratio, so a ratio above 1 favors quasilinear. Direct is faster at dimension 2 in every cell except single products over F_(65521^2), a tie, and at dimension 4 over C, five of the nine fields and single products over F_(13^5). From dimension 8 upward quasilinear is faster in every cell except two ties: F_(3^5) at dimension 64 and batch products over F_(65521^2) at dimension 16. Automatic selection uses direct for `N <= 4` and quasilinear otherwise, over C and every finite field. From dimension 16 upward, batch and single means differ by at most 8%, the most over C at dimension 16, where batching saves 8%. Each cell runs in one process, so its interval covers variation between timing blocks but not between processes: in repeated runs on this host, individual cells from dimension 64 upward differed by up to 17%, and direct/quasilinear ratios by up to 8%. Both modes, every dimension and the confidence intervals are in [domains.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261120/domains.md) in the archive.
 
 #### Single products over finite fields and C: quasilinear ns per product (direct/quasilinear)
 
@@ -250,7 +227,7 @@ The same protocol compares direct and quasilinear multiplication over C and over
 
 ### Comparison with FLINT
 
-FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C library. The comparison times fastCD's finite-field arithmetic against FLINT 3.6.0 on two workloads with identical operands and defining polynomials, 1,000 operand pairs per cell and 24 paired blocks, every pair verified against the same independent implementation; all 132,000 pairs passed. The scalar workload is one field multiplication (`fastcd_ff_field_mul` against `nmod_mul` for prime fields or `fq_nmod_mul` for extensions). The CD workload is one complete product at each dimension, where both sides evaluate the same quasilinear schedule and only the coefficient arithmetic differs: fastCD's packed kernels against FLINT's field operations. Ratios are paired geometric means of FLINT time over fastCD time, so a ratio above 1 favors fastCD. As in the finite-field comparison, each cell runs in one process, so its interval does not include variation between processes or runs. Every dimension and the intervals for the CD cells are in [flint.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261120/flint.md) in the archive.
+FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C library. A comparison times fastCD's finite-field arithmetic against FLINT 3.6.0 on two workloads with identical operands and defining polynomials, 1,000 operand pairs per cell and 24 paired blocks, every pair verified against the same independent implementation; all 132,000 pairs passed. The scalar workload is one field multiplication (`fastcd_ff_field_mul` against `nmod_mul` for prime fields or `fq_nmod_mul` for extensions). The CD workload is one complete product at each dimension, where both sides evaluate the same quasilinear schedule and only the coefficient arithmetic differs: fastCD's packed kernels against FLINT's field operations. Ratios are paired geometric means of FLINT time over fastCD time, so a ratio above 1 favors fastCD. As in the finite-field comparison, each cell runs in one process, so its interval does not include variation between processes or runs. Every dimension and the intervals for the CD cells are in [flint.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261120/flint.md) in the archive.
 
 #### Scalar field multiplication: ns per product
 
@@ -285,6 +262,29 @@ FLINT (Fast Library for Number Theory) is an independent exact-arithmetic C libr
 | F_(3^12) | 4733 / 122398 (25.9x) | 4794 / 876796 (183x) | 17578 / 5104046 (291x) | 72578 / 26821623 (370x) |
 | F_(13^12) | 60584 / 127766 (2.1x) | 43241 / 921304 (21.3x) | 96070 / 5211185 (54.3x) | 354900 / 27519067 (77.6x) |
 | F_(2147483647^12) | 14639 / 237063 (16.3x) | 29288 / 1694677 (58.0x) | 100696 / 9885669 (98.5x) | 460726 / 52064812 (113x) |
+
+### Fused sums of products
+
+The sums benchmark compares three ways of computing the sum of the products of a sample of real-coefficient elements. *Products* is what a program without the fused sums would call: one batch of products with automatic selection, followed by a sum. *Fused* is `fastcd_mul_sum_f64` on the same records. *Matrix product* computes the matrix of real cross moments `sum_p x_p[i] y_p[j]` with one `dgemm` and adds its entries with the basis signs. fastCD contains no matrix product, so the benchmark loads Intel MKL 2026.2.1 for it at run time, with one thread.
+
+The table gives mean nanoseconds per element for samples of 1,024 elements, from 8,192 elements per cell and 60 timing blocks, with the AVX-512 kernel of the fused sums. Ratios are paired geometric means with 95% Student-t intervals, and a ratio above 1 favors the fused sum. The first sample of every cell was verified against a long double evaluation of the cross moments, and on every sample the three computations had to agree within a norm-scaled bound; all checks passed.
+
+| N | products | fused | matrix product | products/fused [95% CI] | matrix product/fused [95% CI] |
+| ---: | ---: | ---: | ---: | --- | --- |
+| 2 | 4.14 | 2.33 | 1.52 | 1.77 [1.75, 1.80] | 0.65 [0.64, 0.66] |
+| 4 | 7.02 | 2.53 | 2.13 | 2.79 [2.72, 2.86] | 0.84 [0.82, 0.86] |
+| 8 | 16.33 | 5.42 | 3.44 | 3.01 [2.96, 3.07] | 0.63 [0.62, 0.65] |
+| 16 | 59.29 | 17.59 | 14.20 | 3.37 [3.32, 3.43] | 0.81 [0.79, 0.82] |
+| 32 | 201.84 | 43.63 | 48.29 | 4.64 [4.56, 4.72] | 1.11 [1.08, 1.13] |
+| 64 | 515.56 | 108.01 | 155.17 | 4.78 [4.69, 4.88] | 1.44 [1.39, 1.48] |
+| 128 | 1300.28 | 265.89 | 734.73 | 4.90 [4.81, 4.99] | 2.75 [2.65, 2.85] |
+| 256 | 3032.47 | 704.42 | 2147.15 | 4.33 [4.23, 4.42] | 3.05 [2.98, 3.13] |
+| 512 | 7109.87 | 1774.34 | 7900.96 | 4.02 [3.95, 4.09] | 4.45 [4.34, 4.56] |
+| 1024 | 16834.66 | 4991.62 | 28766.20 | 3.38 [3.31, 3.45] | 5.78 [5.63, 5.92] |
+
+With this kernel the fused sum is faster than a batch of products followed by a sum at every dimension, and faster than the matrix product from dimension 32 upward; below that the matrix product is faster for samples of this size. Samples of 64 and of 4,096 elements, and elements stored as coordinate planes, which `fastcd_mul_sum_planes_f64` reads without rearranging them, are in [sums.md](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/benchmark-results/t440-20261120/sums.md) in the archive.
+
+The speed depends on the kernel that the processor selects: with the AVX2 kernel the fused sum is 1.67 to 2.52 times as fast as the products at dimensions 8 to 64. Builds without either kernel use a portable one, whose speed depends on dimension and layout. As with the product algorithm, automatic selection is made based on speed uses the direct sum through dimension 8 and the quasilinear sum above: at dimension 16 the direct sum takes 4% to 16% less time with AVX-512, between 3% less and 10% more with AVX2, and 1.8 times as much with the portable kernel, so the quasilinear sum is the choice that serves every kernel for consistency and to avoid CPU-based algorithm selection.
 
 ## Numerical stability
 
