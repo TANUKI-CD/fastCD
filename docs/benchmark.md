@@ -122,9 +122,9 @@ Through dimension 64 it runs generated straight-line kernels; above 64 it
 runs a table-driven kernel whose sign corrections need index lookups and
 gathered loads that are not vectorized within one product. At dimensions
 128 through 1024 it needs only 0.51 to 0.58 times the operations of direct
-multiplication, yet in the archived run its single products are 1.6 to 1.8
+multiplication, yet in the archived run its single products are 1.5 to 1.8
 times slower than direct. Its batches are 11% slower than direct at 128,
-within 1% at 256 and 512, and 1.5 times slower at 1024. These cells measure
+within 2% at 256 and 512, and 1.6 times slower at 1024. These cells measure
 how the irregular corrections map onto the hardware, and the algorithm is
 not recommended above 64. It is timed at every dimension the library
 supports, through 1024; `--max-cc-dimension 64` stops timing it there, and
@@ -173,8 +173,7 @@ interfaces share. Single products use direct at dimensions 4, 8 and 16 and
 quasilinear otherwise. Batches use direct at 8, Cariow–Cariowa at 16 and
 quasilinear otherwise on builds with the two-lane SIMD kernels, and follow
 the single-product table on other builds. These choices agree with every
-cell of the archived run; dimension-2 single products are a tie between
-direct and quasilinear, and quasilinear is chosen. Review the tables against
+cell of the archived run. Review the tables against
 the results of any new run.
 
 ### Running it
@@ -463,53 +462,52 @@ required. Each protocol's corpora go into its own subdirectory of
 ## Archived results
 
 The README tables come from the run archived in
-[`benchmark-results/t440-20261109/`](../benchmark-results/t440-20261109/README.md),
-measured on 2026-11-09 from commit `33addc9`, with each protocol pinned to
-one logical CPU of an Intel Xeon Gold 6148 in a Dell PowerEdge T440.
-`real.json` and `real.md` hold the real protocol with its default settings,
-`domains.*` the domains protocol, and `flint.*` the comparison with FLINT
-3.6.0, which adds F_(3^12), F_(13^12) and F_(2147483647^12) to the nine
-default fields. The domains and FLINT protocols were measured with 1,000
-pairs per cell instead of the default 10,000. Every check passed: 600,000
-real products, 100,000 complex and finite-field pairs and 132,000
-FLINT-comparison pairs. The archive's README records the host, the commands
-and the load on the host during the run.
+[`benchmark-results/t440-20261120/`](../benchmark-results/t440-20261120/README.md),
+measured on 2026-11-20 and 2026-11-21 from commit `93c9bd8`, with each
+protocol pinned to one logical CPU of an Intel Xeon Gold 6148 in a Dell
+PowerEdge T440. `real.json` and `real.md` hold the real protocol with its
+default settings, `domains.*` the domains protocol, `flint.*` the comparison
+with FLINT 3.6.0, which adds F_(3^12), F_(13^12) and F_(2147483647^12) to
+the nine default fields, and `sums*.*` and `accuracy.*` the fused sums. The
+domains and FLINT protocols were measured with 1,000 pairs per cell instead
+of the default 10,000. Every check passed: 600,000 real products, 100,000
+complex and finite-field pairs and 132,000 FLINT-comparison pairs. The
+archive's README records the host, the commands and the load on the host
+during the run.
 
-The fused sums were measured on the same host on 2026-11-20 and are
-archived in
-[`benchmark-results/sums-t440-20261120/`](../benchmark-results/sums-t440-20261120/README.md),
-with Intel MKL 2026.2.1 as the BLAS library. Mean nanoseconds per element
-with the AVX-512 kernel, for samples of 1,024 elements from a corpus of
-8,192 elements per cell:
+The fused sums were measured with Intel MKL 2026.2.1 as the BLAS library.
+Mean nanoseconds per element with the AVX-512 kernel, for samples of 1,024
+elements from a corpus of 8,192 elements per cell:
 
 | N | Products | Records | Planes | `dgemm` | Products/records | `dgemm`/records | `dgemm`/planes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2 | 3.96 | 2.22 | 0.59 | 1.43 | 1.78 | 0.65 | 2.43 |
-| 4 | 6.70 | 2.45 | 1.26 | 1.97 | 2.74 | 0.81 | 1.56 |
-| 8 | 16.00 | 5.37 | 3.16 | 3.36 | 2.98 | 0.63 | 1.06 |
-| 16 | 56.47 | 17.16 | 15.40 | 13.74 | 3.29 | 0.80 | 0.89 |
-| 32 | 203.72 | 44.41 | 40.94 | 48.41 | 4.60 | 1.09 | 1.18 |
-| 64 | 498.82 | 103.91 | 100.34 | 144.93 | 4.81 | 1.39 | 1.44 |
-| 128 | 1258.21 | 249.60 | 285.04 | 616.63 | 5.05 | 2.46 | 2.16 |
-| 256 | 3059.31 | 735.90 | 1083.93 | 2208.61 | 4.17 | 3.00 | 2.03 |
-| 512 | 7036.62 | 1808.07 | 2557.97 | 7954.76 | 3.91 | 4.40 | 3.10 |
-| 1024 | 16419.67 | 4870.83 | 6051.27 | 28279.26 | 3.38 | 5.81 | 4.67 |
+| 2 | 4.14 | 2.33 | 0.64 | 1.52 | 1.77 | 0.65 | 2.36 |
+| 4 | 7.02 | 2.53 | 1.35 | 2.13 | 2.79 | 0.84 | 1.58 |
+| 8 | 16.33 | 5.42 | 3.19 | 3.44 | 3.01 | 0.63 | 1.08 |
+| 16 | 59.29 | 17.59 | 16.02 | 14.20 | 3.37 | 0.81 | 0.89 |
+| 32 | 201.84 | 43.63 | 40.03 | 48.29 | 4.64 | 1.11 | 1.21 |
+| 64 | 515.56 | 108.01 | 104.81 | 155.17 | 4.78 | 1.44 | 1.48 |
+| 128 | 1300.28 | 265.89 | 286.14 | 734.73 | 4.90 | 2.75 | 2.55 |
+| 256 | 3032.47 | 704.42 | 1049.73 | 2147.15 | 4.33 | 3.05 | 2.04 |
+| 512 | 7109.87 | 1774.34 | 2638.46 | 7900.96 | 4.02 | 4.45 | 2.99 |
+| 1024 | 16834.66 | 4991.62 | 6348.93 | 28766.20 | 3.38 | 5.78 | 4.53 |
 
 `Planes` is the plane task of the automatic algorithm. With this kernel a
-fused sum of records was 1.5 to 5.1 times as fast as a batch of products
+fused sum of records was 1.6 to 5.1 times as fast as a batch of products
 followed by a sum, over every dimension and the three sample sizes 64,
 1,024 and 4,096. Against the matrix product, the records were slower at
 dimensions 8 and 16 with samples of 1,024 or more (0.61 to 0.81) and level
 with samples of 64; at dimensions 2 and 4 they were faster with samples of
-64 (1.25 and 1.35) and slower with larger ones. From dimension 32 the
+64 (1.28 and 1.39) and slower with larger ones. From dimension 32 the
 records were faster at every sample size: 1.1 to 1.3 at dimension 32, 1.4
-to 1.7 at 64 and 5.6 to 8.2 at 1024.
+to 1.7 at 64 and 5.7 to 8.4 at 1024.
 
 From dimension 128 the planes were slower than the records in this
 setting: with 8,192 elements the rows of a sample lie on separate pages,
 while records are read as one stream. With a single sample of 1,024
 elements, which stays in cache through dimension 32, the two layouts were
-within 9% of each other from dimension 128 (`sums-one-sample.md`).
+within 5% of each other from dimension 128 through 512, and the planes took
+17% longer at 1024 (`sums-one-sample.md`).
 
 The same protocol was run without a BLAS library on two further builds, one
 limited to the AVX2 kernel and one with the portable kernel, which on this
@@ -518,13 +516,13 @@ sample sizes:
 
 | Kernel | Products/records, N = 8 to 64 | Direct/quasilinear, N = 8 | Direct/quasilinear, N = 16 |
 | --- | --- | --- | --- |
-| AVX-512 | 2.67 to 4.83 | 0.73 to 0.87 | 0.83 to 0.96 |
-| AVX2 | 1.64 to 2.55 | 0.84 to 0.92 | 0.95 to 1.10 |
-| Portable | 0.74 to 1.02 | 0.90 to 0.92 | 1.78 to 1.83 |
+| AVX-512 | 2.73 to 4.86 | 0.72 to 0.86 | 0.84 to 0.96 |
+| AVX2 | 1.67 to 2.52 | 0.83 to 0.91 | 0.97 to 1.10 |
+| Portable | 0.64 to 0.99 | 0.89 to 0.91 | 1.76 to 1.78 |
 
 The direct sum is faster than the quasilinear sum at dimension 8 with every
 kernel. At dimension 16 it is faster only with the AVX-512 kernel, by 4% to
-17%; the two are level with AVX2, and the direct sum takes 1.8 times as
+16%; the two are level with AVX2, and the direct sum takes 1.8 times as
 long with the portable kernel. `AUTO` therefore uses the direct sum through
 dimension 8 and the quasilinear sum from dimension 16 with every kernel,
 which costs the AVX-512 kernel that margin at dimension 16. Above dimension
@@ -532,15 +530,14 @@ which costs the AVX-512 kernel that margin at dimension 16. Above dimension
 as long as the quasilinear sum at dimension 32 with AVX-512.
 
 With the portable kernel the fused sum of records was faster than a batch
-of products followed by a sum at dimension 2 (1.34 to 1.41). At
-dimensions 4 to 32 it took between 0.99 and 1.36 times as long, from 64 to
-256 it was within 4%, and at 512 and 1024 it took 1.11 to 1.19 times as
-long. At dimension 4 the direct sum of planes reached 2.03 times the batch
+of products followed by a sum at dimension 2 (1.02 to 1.06). At
+dimensions 4 to 32 it took between 1.05 and 1.56 times as long, from 64 to
+256 it was within 5%, and at 512 and 1024 it took 1.10 to 1.16 times as
+long. At dimension 4 the direct sum of planes reached 2.01 times the batch
 speed. See [stability.md](stability.md#fused-sums) for accuracy.
 
-The archive was measured from a working tree with uncommitted changes on
-commit `793c36f`; its JSON files record the hash of every measured source
-file.
+The archive was measured from a clean checkout of commit `93c9bd8`; its JSON
+files record the hash of every measured source file.
 
 The run reported in version 2 of the paper is archived in
 [`benchmark-results/paper-v2-octonion243-20261023/`](../benchmark-results/paper-v2-octonion243-20261023/results.md),

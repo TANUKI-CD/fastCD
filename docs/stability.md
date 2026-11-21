@@ -157,11 +157,10 @@ their variety.
 ### Builds
 
 The study compared two builds: the sequential build at commit `982b9da` and
-the balanced build at commit `558e609`. Both were compiled with GCC 16.2.1
-on Linux, with `-O3 -DNDEBUG`, `-fno-fast-math -ffp-contract=off`, warnings
-as errors and the default leaf cutoffs, and run on an Intel Xeon Gold 6148.
-The quasilinear, Cariow–Cariowa and direct kernels of fastCD 1.5.0 are those
-of the balanced build.
+the balanced build at commit `93c9bd8`, the source of fastCD 1.5.0. Both
+were compiled with GCC 16.2.1 on Linux, with `-O3 -DNDEBUG`,
+`-fno-fast-math -ffp-contract=off`, warnings as errors and the default leaf
+cutoffs, and run on an Intel Xeon Gold 6148.
 
 ## Accuracy
 
@@ -422,7 +421,7 @@ The record and the plane layout returned identical bits in all 689 sums and
 for all three algorithm selections. The study ran the AVX-512 kernel only;
 `tests/test_fused_sum.c` compares the kernels with each other. The results
 and the command are in
-[`benchmark-results/sums-t440-20261120/`](../benchmark-results/sums-t440-20261120/README.md).
+[`benchmark-results/t440-20261120/`](../benchmark-results/t440-20261120/README.md).
 
 ## Cost
 
@@ -447,60 +446,62 @@ Paired timings on one host: 12 blocks pinned to CPU 18. Times are medians in ns 
 
 | domain | kernels | mode | N | sequential ns | balanced ns | balanced / sequential [95% CI] | direct ns | direct / balanced | direct control |
 |:---|:---|:---|---:|---:|---:|:---|---:|---:|---:|
-| real | simd | single | 16 | 117.9 | 113.7 | 0.9646 [0.9207, 1.01] | 88.96 | 0.7733 | 0.9753 |
-| real | simd | batch | 16 | 54.75 | 51.96 | 0.9477 [0.9137, 0.982] | 55.87 | 1.071 | 0.982 |
-| real | scalar | single | 16 | 112.2 | 105.4 | 0.938 [0.8782, 1.015] | 87.94 | 0.8258 | 1.016 |
-| real | scalar | batch | 16 | 91.17 | 91.75 | 1.017 [1.002, 1.058] | 55.71 | 0.601 | 0.9719 |
-| real | simd | single | 64 | 502 | 522.3 | 1.059 [1.001, 1.107] | 1154 | 2.217 | 1.005 |
-| real | simd | batch | 64 | 424.6 | 446.4 | 1.035 [0.9973, 1.088] | 1124 | 2.442 | 1.06 |
-| real | scalar | single | 64 | 651.2 | 709.4 | 1.098 [1.073, 1.118] | 1148 | 1.611 | 1.023 |
-| real | scalar | batch | 64 | 617.8 | 677.4 | 1.09 [1.061, 1.129] | 1061 | 1.586 | 0.961 |
-| real | simd | single | 256 | 2698 | 2682 | 1.01 [0.9818, 1.034] | 1.763e+04 | 6.433 | 0.982 |
-| real | simd | batch | 256 | 2589 | 2673 | 1.031 [1.019, 1.054] | 1.697e+04 | 6.461 | 1.016 |
-| real | scalar | single | 256 | 3401 | 3722 | 1.098 [1.062, 1.125] | 1.83e+04 | 4.929 | 0.9908 |
-| real | scalar | batch | 256 | 3343 | 3722 | 1.107 [1.07, 1.152] | 1.837e+04 | 4.878 | 1.005 |
-| real | simd | single | 1024 | 1.41e+04 | 1.434e+04 | 1.015 [0.9923, 1.062] | 2.771e+05 | 19.28 | 0.9774 |
-| real | simd | batch | 1024 | 1.425e+04 | 1.468e+04 | 1.049 [0.9838, 1.081] | 2.795e+05 | 18.89 | 0.9905 |
-| real | scalar | single | 1024 | 1.75e+04 | 1.945e+04 | 1.124 [1.09, 1.169] | 2.773e+05 | 14.31 | 0.9967 |
-| real | scalar | batch | 1024 | 1.713e+04 | 1.933e+04 | 1.128 [1.091, 1.147] | 2.898e+05 | 15 | 1.011 |
-| complex | simd | single | 16 | 300 | 306.3 | 1.021 [0.9805, 1.035] | 531.1 | 1.719 | 1.058 |
-| complex | simd | batch | 16 | 271 | 274.6 | 1.008 [0.9867, 1.059] | 510 | 1.854 | 1.061 |
-| complex | scalar | single | 16 | 302.3 | 314.5 | 1.036 [1.016, 1.056] | 544.1 | 1.736 | 1.084 |
-| complex | scalar | batch | 16 | 265.8 | 283.8 | 1.04 [1.022, 1.069] | 510.9 | 1.814 | 1.063 |
-| complex | simd | single | 64 | 1588 | 1676 | 1.059 [1.038, 1.1] | 8396 | 4.971 | 1.081 |
-| complex | simd | batch | 64 | 1533 | 1592 | 1.053 [1.034, 1.063] | 8381 | 5.208 | 1.078 |
-| complex | scalar | single | 64 | 1516 | 1639 | 1.068 [1.049, 1.082] | 8375 | 5.16 | 1.089 |
-| complex | scalar | batch | 64 | 1477 | 1600 | 1.085 [1.035, 1.106] | 8287 | 5.114 | 1.086 |
-| complex | simd | single | 256 | 7793 | 8690 | 1.115 [1.098, 1.122] | 1.329e+05 | 15.39 | 1.08 |
-| complex | simd | batch | 256 | 7835 | 8519 | 1.111 [1.071, 1.122] | 1.334e+05 | 15.79 | 1.107 |
-| complex | scalar | single | 256 | 8013 | 8623 | 1.058 [1.051, 1.094] | 1.332e+05 | 15.51 | 1.08 |
-| complex | scalar | batch | 256 | 7810 | 8492 | 1.099 [1.085, 1.12] | 1.306e+05 | 15.47 | 1.059 |
+| real | simd | single | 16 | 117.1 | 106.1 | 0.9105 [0.9003, 0.9322] | 80.33 | 0.7596 | 0.8855 |
+| real | simd | batch | 16 | 53.55 | 51.52 | 0.9605 [0.9455, 0.9663] | 55.83 | 1.087 | 0.9866 |
+| real | scalar | single | 16 | 119 | 111.9 | 0.9415 [0.936, 0.9561] | 81.52 | 0.7348 | 0.9187 |
+| real | scalar | batch | 16 | 87.35 | 87.63 | 0.9997 [0.9621, 1.014] | 56.05 | 0.6492 | 1.004 |
+| real | simd | single | 64 | 507.3 | 530.6 | 1.043 [1.022, 1.047] | 1150 | 2.165 | 0.9937 |
+| real | simd | batch | 64 | 438.6 | 456.5 | 1.042 [1.038, 1.051] | 1084 | 2.366 | 0.996 |
+| real | scalar | single | 64 | 654.8 | 724.9 | 1.098 [1.09, 1.111] | 1134 | 1.581 | 1.005 |
+| real | scalar | batch | 64 | 625.4 | 685.5 | 1.094 [1.082, 1.104] | 1095 | 1.589 | 1.004 |
+| real | simd | single | 256 | 2658 | 2737 | 1.021 [1.007, 1.039] | 1.772e+04 | 6.5 | 0.9939 |
+| real | simd | batch | 256 | 2601 | 2649 | 1.013 [0.9987, 1.039] | 1.699e+04 | 6.431 | 0.9945 |
+| real | scalar | single | 256 | 3392 | 3731 | 1.107 [1.077, 1.143] | 1.781e+04 | 4.765 | 0.9832 |
+| real | scalar | batch | 256 | 3382 | 3680 | 1.098 [1.079, 1.125] | 1.788e+04 | 4.833 | 0.9911 |
+| real | simd | single | 1024 | 1.434e+04 | 1.479e+04 | 1.023 [1.004, 1.051] | 2.831e+05 | 19.15 | 0.9851 |
+| real | simd | batch | 1024 | 1.433e+04 | 1.49e+04 | 1.028 [1.015, 1.069] | 2.853e+05 | 19.17 | 0.9944 |
+| real | scalar | single | 1024 | 1.762e+04 | 1.951e+04 | 1.101 [1.062, 1.127] | 2.89e+05 | 14.83 | 0.9799 |
+| real | scalar | batch | 1024 | 1.768e+04 | 1.949e+04 | 1.1 [1.078, 1.129] | 2.882e+05 | 14.72 | 0.9568 |
+| complex | simd | single | 16 | 303.3 | 322.5 | 1.056 [1.04, 1.084] | 544.4 | 1.711 | 1.076 |
+| complex | simd | batch | 16 | 268.7 | 291 | 1.086 [1.058, 1.106] | 523.8 | 1.819 | 1.082 |
+| complex | scalar | single | 16 | 301.3 | 318 | 1.063 [1.055, 1.08] | 541.1 | 1.687 | 1.062 |
+| complex | scalar | batch | 16 | 265.8 | 286.8 | 1.082 [1.068, 1.101] | 518.3 | 1.792 | 1.075 |
+| complex | simd | single | 64 | 1558 | 1654 | 1.072 [1.051, 1.114] | 8429 | 5.051 | 1.086 |
+| complex | simd | batch | 64 | 1497 | 1610 | 1.078 [1.065, 1.106] | 8367 | 5.188 | 1.079 |
+| complex | scalar | single | 64 | 1552 | 1674 | 1.076 [1.062, 1.081] | 8483 | 5.079 | 1.075 |
+| complex | scalar | batch | 64 | 1503 | 1623 | 1.077 [1.063, 1.085] | 8412 | 5.184 | 1.073 |
+| complex | simd | single | 256 | 8023 | 8836 | 1.098 [1.082, 1.127] | 1.351e+05 | 15.28 | 1.081 |
+| complex | simd | batch | 256 | 7932 | 8762 | 1.115 [1.083, 1.134] | 1.35e+05 | 15.55 | 1.087 |
+| complex | scalar | single | 256 | 7999 | 8687 | 1.081 [1.069, 1.102] | 1.349e+05 | 15.5 | 1.071 |
+| complex | scalar | batch | 256 | 7896 | 8634 | 1.094 [1.072, 1.118] | 1.354e+05 | 15.71 | 1.071 |
 
 <!-- END STABILITY SPEED PERFORMANCE -->
 
-For real products the direct control lies between 0.96 and 1.06, so
-differences of a few percent are noise between builds. From dimension 64
-up, balanced accumulation costs at most 6% on the default build, within
-that range, and a consistent 9–13% on builds without the SIMD kernels,
-outside it. For complex products the cost, 5–11% from dimension 64 up, is
-about the size of the complex control, 1.06 to 1.11, so this study cannot
-separate it from the difference between builds. Even with balanced
+For real products the direct control lies between 0.89 and 1.01, and
+between 0.96 and 1.01 from dimension 64 up, so differences of a few percent
+are noise between builds. From dimension 64 up, balanced accumulation costs
+1–4% on the default build, close to that range, and a consistent 9–11% on
+builds without the SIMD kernels, outside it. For complex products the cost,
+7–11% from dimension 64 up, is about the size of the complex control, 1.06
+to 1.09, so this study cannot separate it from the difference between
+builds. Even with balanced
 accumulation, quasilinear multiplication is about 19 times faster than
 direct multiplication at dimension 1024.
 
 Cariow–Cariowa was timed the same way, with balanced correction sums against
 the single-block correction sums of the sequential build; the archived
-`cc-speed-tables.md` holds the table. Its direct control lies between 0.95
-and 1.05. Only two ratios exceed that range: batches at dimension 512 on the
-default build, which are 11% slower with balanced correction sums, and
-single products at 512 without the SIMD kernels, which are 8% slower. The
-other ratios at 512 and 1024 lie between 1.00 and 1.05.
+`cc-speed-tables.md` holds the table. Its direct control lies between 0.88
+and 1.03. Six ratios exceed that range, by at most 4%: without the SIMD
+kernels, single products at dimensions 16, 512 and 1024 (1.06, 1.05 and
+1.05), and on the default build, batches at 256 and 512 (1.03 and 1.04) and
+single products at 1024 (1.06). The other ratios at 512 and 1024 lie
+between 1.00 and 1.03.
 
 Blocks of 4, 8 and 16 were timed with the same runners
 (`benchmarks/stability_block_size.py`; archived in `block-size-tables.md`).
-Blocks of 4 were up to 9% slower than blocks of 8 and never measurably
-faster. Blocks of 16 were up to 7% faster on some real products but up to
-3% slower on others and 1–7% slower on complex products. The default is 8.
+Blocks of 4 were 2–9% slower than blocks of 8 and never measurably
+faster. Blocks of 16 were up to 6% faster on real products and within 2% of
+blocks of 8 on complex products. The default is 8.
 
 ## Tests and checks
 
@@ -551,7 +552,7 @@ faster. Blocks of 16 were up to 7% faster on some real products but up to
 ## Archives and reproduction
 
 The study is in
-[`benchmark-results/stability-20261107/`](../benchmark-results/stability-20261107/README.md),
+[`benchmark-results/stability-20261120/`](../benchmark-results/stability-20261120/README.md),
 whose README lists every file. Its published files are in the repository and
 the source distributions: summaries, tables, charts, build records, and
 `key-figures.json`, which holds the key figures quoted on this page. Raw
@@ -576,11 +577,11 @@ To repeat the study, run `benchmarks/stability_study.py` with a Python that
 has NumPy, gmpy2 and Matplotlib:
 
 ```sh
-python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit 558e609 \
+python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit 93c9bd8 \
     --output benchmark-results/stability-YYYYMMDD --cpu CPU --accuracy-cpu CPU
 ```
 
-Commit `982b9da` has sequential accumulation and `558e609` is the measured
+Commit `982b9da` has sequential accumulation and `93c9bd8` is the measured
 commit. The script builds both from clean worktrees, pins the timings and the
 accuracy study to the given logical CPUs, runs every step, and writes the
 README, the tables and `SHA256SUMS`; `--document docs/stability.md` also

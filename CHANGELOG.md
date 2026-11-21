@@ -5,7 +5,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
-## [1.5.0] - 2026-11-20
+## [1.5.0] - 2026-11-21
 
 ### Added
 
@@ -41,12 +41,15 @@ All notable changes to fastCD are recorded in this file. The project follows
   products and, with `--blas`, against one `dgemm` of a BLAS library loaded
   at run time and the contraction with the basis signs; and
   `benchmarks/stability_sums.py`, an accuracy study of the fused sums and
-  the covariance against an error-free reference. Their results on the
-  Dell PowerEdge T440 of 2026-11-20 are in
-  `benchmark-results/sums-t440-20261120/`, with one run for each of the
-  AVX-512, AVX2 and portable kernels. The tuning macro
+  the covariance against an error-free reference. The tuning macro
   `FASTCD_SUM_MAX_KERNEL` keeps a build from selecting the wider kernels for
   such measurements.
+- The benchmark run of 2026-11-20 in `benchmark-results/t440-20261120/`,
+  measured from commit `93c9bd8` and reported by the README tables and
+  `docs/benchmark.md`: every protocol, including the fused sums with one run
+  for each of the AVX-512, AVX2 and portable kernels, and their accuracy
+  study. The stability study in `benchmark-results/stability-20261120/`
+  measures the same commit, and `docs/stability.md` summarizes it.
 - `tools/check_fused_sum_counts.py`, which checks the operation counts of
   the fused sums against the kernel source, and
   [Fused sums of products](docs/mathematics.md#fused-sums-of-products) in the

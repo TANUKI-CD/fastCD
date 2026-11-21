@@ -1,0 +1,713 @@
+{
+  "schema": "fastcd-stability-study-1",
+  "date": "2026-11-21",
+  "profile": "full",
+  "baseline_commit": "982b9daed40e61e59fd939dae61a0e358a35191a",
+  "commit": "93c9bd8ab1c3bcfdb16c76e5ad55fa487d741a18",
+  "steps": {
+    "build-baseline-simd": {
+      "started": "2026-11-21T03:05:35-05:00",
+      "finished": "2026-11-21T03:05:51-05:00",
+      "seconds": 15.8,
+      "command": [
+        [
+          "cmake",
+          "-S",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/baseline-source",
+          "-B",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DFASTCD_BUILD_BENCHMARK=ON",
+          "-DFASTCD_WARNINGS_AS_ERRORS=ON"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd",
+          "--parallel",
+          "16"
+        ]
+      ],
+      "inputs": null,
+      "outputs": null
+    },
+    "build-baseline-scalar": {
+      "started": "2026-11-21T03:05:51-05:00",
+      "finished": "2026-11-21T03:06:03-05:00",
+      "seconds": 12.2,
+      "command": [
+        [
+          "cmake",
+          "-S",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/baseline-source",
+          "-B",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-scalar",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DFASTCD_BUILD_BENCHMARK=ON",
+          "-DFASTCD_WARNINGS_AS_ERRORS=ON",
+          "-DFASTCD_TUNING_DEFINITIONS=FASTCD_DISABLE_SIMD=1"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-scalar",
+          "--parallel",
+          "16"
+        ]
+      ],
+      "inputs": null,
+      "outputs": null
+    },
+    "build-balanced-simd": {
+      "started": "2026-11-21T03:06:03-05:00",
+      "finished": "2026-11-21T03:06:20-05:00",
+      "seconds": 17.1,
+      "command": [
+        [
+          "cmake",
+          "-S",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source",
+          "-B",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DFASTCD_BUILD_BENCHMARK=ON",
+          "-DFASTCD_WARNINGS_AS_ERRORS=ON"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd",
+          "--parallel",
+          "16"
+        ]
+      ],
+      "inputs": null,
+      "outputs": null
+    },
+    "build-balanced-scalar": {
+      "started": "2026-11-21T03:06:21-05:00",
+      "finished": "2026-11-21T03:06:34-05:00",
+      "seconds": 13.4,
+      "command": [
+        [
+          "cmake",
+          "-S",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source",
+          "-B",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DFASTCD_BUILD_BENCHMARK=ON",
+          "-DFASTCD_WARNINGS_AS_ERRORS=ON",
+          "-DFASTCD_TUNING_DEFINITIONS=FASTCD_DISABLE_SIMD=1"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar",
+          "--parallel",
+          "16"
+        ]
+      ],
+      "inputs": null,
+      "outputs": null
+    },
+    "build-block-4": {
+      "started": "2026-11-21T03:06:34-05:00",
+      "finished": "2026-11-21T03:06:51-05:00",
+      "seconds": 16.7,
+      "command": [
+        [
+          "cmake",
+          "-S",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source",
+          "-B",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-4",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DFASTCD_BUILD_BENCHMARK=ON",
+          "-DFASTCD_WARNINGS_AS_ERRORS=ON",
+          "-DFASTCD_TUNING_DEFINITIONS=FASTCD_SUM_BLOCK=4"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-4",
+          "--parallel",
+          "16"
+        ]
+      ],
+      "inputs": null,
+      "outputs": null
+    },
+    "build-block-16": {
+      "started": "2026-11-21T03:06:51-05:00",
+      "finished": "2026-11-21T03:07:08-05:00",
+      "seconds": 17.5,
+      "command": [
+        [
+          "cmake",
+          "-S",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source",
+          "-B",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-16",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DBUILD_SHARED_LIBS=ON",
+          "-DBUILD_TESTING=OFF",
+          "-DFASTCD_BUILD_BENCHMARK=ON",
+          "-DFASTCD_WARNINGS_AS_ERRORS=ON",
+          "-DFASTCD_TUNING_DEFINITIONS=FASTCD_SUM_BLOCK=16"
+        ],
+        [
+          "cmake",
+          "--build",
+          "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-16",
+          "--parallel",
+          "16"
+        ]
+      ],
+      "inputs": null,
+      "outputs": null
+    },
+    "accuracy": {
+      "started": "2026-11-21T03:07:08-05:00",
+      "finished": "2026-11-21T03:12:04-05:00",
+      "seconds": 295.6,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability.py",
+        "--baseline",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0",
+        "--modified",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0",
+        "--scalar-modified",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar/libfastcd.so.1.5.0",
+        "--baseline-source",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/baseline-source",
+        "--modified-source",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source",
+        "--profile",
+        "full",
+        "--real-max",
+        "2048",
+        "--complex-max",
+        "512",
+        "--precision",
+        "256",
+        "--seed",
+        "20261105",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/accuracy.json",
+        "--cpu",
+        "20"
+      ],
+      "inputs": {
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0": "41a41a6a2524b7a6aa6122f87f9bb67da5be84a81afc883e79b0506408a3e934",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar/libfastcd.so.1.5.0": "5a99de0a74c444d3f46670a03e082b844bcdb166a58e7d3498c69866d3d90a88"
+      },
+      "outputs": {
+        "raw/accuracy.json": "866a4db806159cf16b4e958cbdfda2918c5f33edd310e37c58e9b7597e15636c",
+        "raw/accuracy-corpus.npz": "52f798d089e3a1a311858e58edfd319da92eb96442f64b9d9c67de4adb7e14ac"
+      }
+    },
+    "accuracy-tables": {
+      "started": "2026-11-21T03:12:04-05:00",
+      "finished": "2026-11-21T03:12:04-05:00",
+      "seconds": 0.6,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_report.py",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/accuracy.json",
+        "--tables",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/accuracy-tables.md",
+        "--csv",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/accuracy-summary.csv"
+      ],
+      "inputs": {
+        "raw/accuracy.json": "866a4db806159cf16b4e958cbdfda2918c5f33edd310e37c58e9b7597e15636c"
+      },
+      "outputs": {
+        "accuracy-tables.md": "1e99ed8a47d223e7f0388c52ca7a86b2cf4b35d3b7c8faab14ee31ad97d81229",
+        "accuracy-summary.csv": "d04036d8bce93af4f287e1734e3adc257a8a6431a08d6067228844c65d8c8ad2"
+      }
+    },
+    "ties": {
+      "started": "2026-11-21T03:12:04-05:00",
+      "finished": "2026-11-21T03:12:37-05:00",
+      "seconds": 32.4,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_ties.py",
+        "--accuracy",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/accuracy.json",
+        "--sequential",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0",
+        "--balanced",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/ties.json"
+      ],
+      "inputs": {
+        "raw/accuracy.json": "866a4db806159cf16b4e958cbdfda2918c5f33edd310e37c58e9b7597e15636c",
+        "raw/accuracy-corpus.npz": "52f798d089e3a1a311858e58edfd319da92eb96442f64b9d9c67de4adb7e14ac",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0": "41a41a6a2524b7a6aa6122f87f9bb67da5be84a81afc883e79b0506408a3e934",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3"
+      },
+      "outputs": {
+        "ties.json": "20e6bc473af366fb147d118fd5ee20e6790561ce17e784be0c0cb2daae66f0e2"
+      }
+    },
+    "agreement": {
+      "started": "2026-11-21T03:12:37-05:00",
+      "finished": "2026-11-21T03:12:42-05:00",
+      "seconds": 4.9,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_agreement.py",
+        "--accuracy",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/accuracy.json",
+        "--simd",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0",
+        "--scalar",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar/libfastcd.so.1.5.0",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/agreement.json"
+      ],
+      "inputs": {
+        "raw/accuracy.json": "866a4db806159cf16b4e958cbdfda2918c5f33edd310e37c58e9b7597e15636c",
+        "raw/accuracy-corpus.npz": "52f798d089e3a1a311858e58edfd319da92eb96442f64b9d9c67de4adb7e14ac",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0": "41a41a6a2524b7a6aa6122f87f9bb67da5be84a81afc883e79b0506408a3e934",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar/libfastcd.so.1.5.0": "5a99de0a74c444d3f46670a03e082b844bcdb166a58e7d3498c69866d3d90a88"
+      },
+      "outputs": {
+        "agreement.json": "eb7f1607410392f9184f5fb047b9a9cf9ca436d8e207ac9a2fe26a4f0356f306"
+      }
+    },
+    "cc-accuracy": {
+      "started": "2026-11-21T03:12:42-05:00",
+      "finished": "2026-11-21T03:13:55-05:00",
+      "seconds": 73.1,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_cc_accuracy.py",
+        "--accuracy",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/accuracy.json",
+        "--baseline",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0",
+        "--measured",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/cc-accuracy.json",
+        "--summary",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/cc-accuracy-summary.json"
+      ],
+      "inputs": {
+        "raw/accuracy.json": "866a4db806159cf16b4e958cbdfda2918c5f33edd310e37c58e9b7597e15636c",
+        "raw/accuracy-corpus.npz": "52f798d089e3a1a311858e58edfd319da92eb96442f64b9d9c67de4adb7e14ac",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0": "41a41a6a2524b7a6aa6122f87f9bb67da5be84a81afc883e79b0506408a3e934",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3"
+      },
+      "outputs": {
+        "raw/cc-accuracy.json": "cd8b1ac67898c8d9fe21e08343f544196258172b2b2966923373eb0b5d4f2069",
+        "cc-accuracy-summary.json": "3a6a42f9b2c1ff0c3142b0a93da68b1f0c4b8b10a732ea898328235becfc8216"
+      }
+    },
+    "speed": {
+      "started": "2026-11-21T03:13:55-05:00",
+      "finished": "2026-11-21T03:15:52-05:00",
+      "seconds": 116.2,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_speed.py",
+        "--sequential",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd",
+        "--sequential-scalar",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-scalar",
+        "--balanced",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd",
+        "--balanced-scalar",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/speed.json",
+        "--corpora",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/speed-corpora",
+        "--blocks",
+        "12",
+        "--minimum-ms",
+        "20",
+        "--real-dimensions",
+        "16",
+        "64",
+        "256",
+        "1024",
+        "--complex-dimensions",
+        "16",
+        "64",
+        "256",
+        "--cpu",
+        "18"
+      ],
+      "inputs": {
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0": "41a41a6a2524b7a6aa6122f87f9bb67da5be84a81afc883e79b0506408a3e934",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-scalar/libfastcd.so.1.2.0": "1a78bc3023bc7202780e1493f14c6115c81d5982609de1e50d1c47a17e3af2bc",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar/libfastcd.so.1.5.0": "5a99de0a74c444d3f46670a03e082b844bcdb166a58e7d3498c69866d3d90a88"
+      },
+      "outputs": {
+        "raw/speed.json": "b24c73597f85d12158af7edae76d19ff39351deeebb78b4277b48cd4290d2e3e"
+      }
+    },
+    "speed-tables": {
+      "started": "2026-11-21T03:15:52-05:00",
+      "finished": "2026-11-21T03:15:52-05:00",
+      "seconds": 0.1,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_speed_report.py",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/speed.json",
+        "--tables",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/speed-tables.md",
+        "--csv",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/speed-summary.csv"
+      ],
+      "inputs": {
+        "raw/speed.json": "b24c73597f85d12158af7edae76d19ff39351deeebb78b4277b48cd4290d2e3e"
+      },
+      "outputs": {
+        "speed-tables.md": "bc6af1ff8c8a99859aee77e79a1bb60787b9994e7f2ecf573c67a91a6a9a71b6",
+        "speed-summary.csv": "02f8462fe62b11dfa4f49f87be5e492466619d5cff33600f688c1df76cf1058e"
+      }
+    },
+    "cc-speed": {
+      "started": "2026-11-21T03:15:52-05:00",
+      "finished": "2026-11-21T03:18:22-05:00",
+      "seconds": 150.1,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_cc_performance.py",
+        "--baseline",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd",
+        "--baseline-scalar",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-scalar",
+        "--measured",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd",
+        "--measured-scalar",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/cc-speed.json",
+        "--corpora",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/cc-speed-corpora",
+        "--tables",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/cc-speed-tables.md",
+        "--csv",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/cc-speed-summary.csv",
+        "--blocks",
+        "12",
+        "--minimum-ms",
+        "20",
+        "--trials",
+        "32",
+        "--dimensions",
+        "16",
+        "64",
+        "128",
+        "256",
+        "512",
+        "1024",
+        "--cpu",
+        "18"
+      ],
+      "inputs": {
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-simd/libfastcd.so.1.2.0": "41a41a6a2524b7a6aa6122f87f9bb67da5be84a81afc883e79b0506408a3e934",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/baseline-scalar/libfastcd.so.1.2.0": "1a78bc3023bc7202780e1493f14c6115c81d5982609de1e50d1c47a17e3af2bc",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar/libfastcd.so.1.5.0": "5a99de0a74c444d3f46670a03e082b844bcdb166a58e7d3498c69866d3d90a88"
+      },
+      "outputs": {
+        "raw/cc-speed.json": "e268d61f82f589ed14f62ba81570519500fc299ed77dde29d89a934dacb8fa23",
+        "cc-speed-tables.md": "36d5778596e60aed0d8c65a20abbedd0fa47e95994584d235b35ed82c09cabe4",
+        "cc-speed-summary.csv": "c9f58bc72fb4841927f887c281d4f64bbacfa357cc3fe99dc6a732a592978653"
+      }
+    },
+    "block-size": {
+      "started": "2026-11-21T03:18:22-05:00",
+      "finished": "2026-11-21T03:18:32-05:00",
+      "seconds": 10.4,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_block_size.py",
+        "--build",
+        "4=/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-4",
+        "--build",
+        "8=/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd",
+        "--build",
+        "16=/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-16",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/block-size.json",
+        "--corpora",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/block-size-corpora",
+        "--tables",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/block-size-tables.md",
+        "--csv",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/block-size-summary.csv",
+        "--blocks",
+        "4",
+        "--minimum-ms",
+        "10",
+        "--trials",
+        "16",
+        "--real-dimensions",
+        "64",
+        "256",
+        "1024",
+        "--complex-dimensions",
+        "64",
+        "256",
+        "--cpu",
+        "18"
+      ],
+      "inputs": {
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-4/libfastcd.so.1.5.0": "f388866351d319fff115c2d41b6b09183a196f0007359b6eb9a1c005bb42ec69",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/block-16/libfastcd.so.1.5.0": "3c5444818f4d906fc202f6a6621690c8eaa9470b483574aafbd4102c2a8e194d"
+      },
+      "outputs": {
+        "raw/block-size.json": "02bb7c8b7c0320211a13e7e00d6d2a1e7eec7f799657be91bc2c6defd8a7a54a",
+        "block-size-tables.md": "b66cb4ecc7b5f79fa2e012d356610104e1f1d9040eecebb17742103912f2b699",
+        "block-size-summary.csv": "ce6747091234232511e528152f1e650358b5d1517b192dd17f3afcd61b28e51a"
+      }
+    },
+    "plots": {
+      "started": "2026-11-21T03:18:32-05:00",
+      "finished": "2026-11-21T03:20:55-05:00",
+      "seconds": 142.4,
+      "command": [
+        "/usr/bin/python3",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_plots.py",
+        "--accuracy",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/accuracy.json",
+        "--build-dir",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd",
+        "--output",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120",
+        "--raw",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw",
+        "--source",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source",
+        "--measure",
+        "--real-algorithms",
+        "quasilinear",
+        "direct",
+        "cariow_cariowa",
+        "--blocks",
+        "12",
+        "--minimum-ms",
+        "20",
+        "--trials",
+        "32",
+        "--real-max",
+        "1024",
+        "--complex-max",
+        "512",
+        "--cpu",
+        "18"
+      ],
+      "inputs": {
+        "raw/accuracy.json": "866a4db806159cf16b4e958cbdfda2918c5f33edd310e37c58e9b7597e15636c",
+        "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3"
+      },
+      "outputs": {
+        "raw/plot-timings.json": "b3e6756a82ac58fef5ab3e45f119dcf16b85cb1b3f638f9dfdf4fe96cfacbccc",
+        "PLOTS.md": "1112a01962716f638fc34dd30743db94fecb4a829dbeec96a74852722fc4cfa5",
+        "plot-data.json": "e156164d48a1555c619dc56cd29cab4a4b17d9f5ee26de1918e95da29a0930ed",
+        "plot-data.csv": "f1609839d279c652cdea3cfa59dc0b27a6d7724d03234a2b1a4cbac3b87c50a0",
+        "relative-error-real.svg": "996122901048a4f62ba51618bcf45c4796b7060ed3c3d6d95f6ab82094e5bf14",
+        "relative-error-real.pdf": "9f0334f19e4e74866f527a4bec02698893436bff6bee99f78f9c961309ae3c68",
+        "relative-error-real.png": "c005205998a3b94919f28e8d8eca44517da4418e866fde81c9146f776708e1c1",
+        "relative-error-complex.svg": "38e1aa46fd51eedded2b43d4cd16c3ef767ebd5f26ddd4bcc15f67cca7fb8a71",
+        "relative-error-complex.pdf": "289769965a1a1fb109aef4c8a6c2fc60dc7a0c9f761ef01cdafc8f0213305ecc",
+        "relative-error-complex.png": "e832b94b924c351d130f26145a3574d3186f9f8c89a2f8d2e25b8e12cacc4f88",
+        "speed-real-single.svg": "428d23ee7070e413f9e715d8bb929fae75cbeada8abdfd9d5975211d11197bfb",
+        "speed-real-single.pdf": "3f5e6b405a9ac48c9f20f110037c4acfd86f63047fa3d8a441e900df00223201",
+        "speed-real-single.png": "cd055d3e91012a446d501fe750bbddb257043f3c62b32302792ca3a24e7caf31",
+        "speed-real-batch.svg": "9c1d5e71683484ec67cbbe8c2925c78e9f95608edf5693d333cc1f2b20419a0e",
+        "speed-real-batch.pdf": "db5170381ae0d37ecc86dc7aab6e975db5d2e4361427e7abb0ca0be9fa4829b3",
+        "speed-real-batch.png": "6fdbb798a784d8ac52fa9ce71c3303c584c25fb264c4244e1b2a73a41c6b8ca2",
+        "speed-complex-single.svg": "2fad79204debb12f976b1957fa58191782be342caee46962efe67b50b42c278e",
+        "speed-complex-single.pdf": "628bae81730157677d71662b1fd89f52d1521ac18acd0d1b76c162f20961c643",
+        "speed-complex-single.png": "54d7e19d3e8216690e366be1f7ec123231df3c4619d06a7f4a18889511c78477",
+        "speed-complex-batch.svg": "2b84c3fa04dd2f68fe450612c15204ecccf6a740204675dd99ce5cff3110a16c",
+        "speed-complex-batch.pdf": "f42d9cadaac7d7bfc09c102c7814c7107c72946db73b0d8ef7428ab0ab6cf0bb",
+        "speed-complex-batch.png": "f1fc707f91c2861a3db2618114617041172b2a9a6b3ea4f53de3def9b0f0bfbb"
+      }
+    }
+  },
+  "command": [
+    "/usr/bin/python3",
+    "benchmarks/stability_study.py",
+    "--baseline-commit",
+    "982b9da",
+    "--commit",
+    "93c9bd8",
+    "--output",
+    "benchmark-results/stability-20261120",
+    "--work-dir",
+    "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work",
+    "--cpu",
+    "18",
+    "--accuracy-cpu",
+    "20",
+    "--jobs",
+    "16",
+    "--document",
+    "docs/stability.md"
+  ],
+  "command_line": "python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit 93c9bd8 --output benchmark-results/stability-20261120 --work-dir /tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work --cpu 18 --accuracy-cpu 20 --jobs 16 --document docs/stability.md",
+  "tools": "measured commit",
+  "timing_cpu": 18,
+  "accuracy_cpu": 20,
+  "environment": {
+    "python": "3.14.8 (main, Oct  2 2026, 10:23:31) [GCC 16.2.1 20260810]",
+    "platform": "Linux-7.2.11-arch1-1-x86_64-with-glibc2.44",
+    "cpu_model": "Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz",
+    "compiler": "cc (GCC) 16.2.1 20260810",
+    "numpy": "2.5.4",
+    "numpy_blas": "cblas 3.12.0",
+    "gmpy2": "2.3.2",
+    "mpfr": "MPFR 4.2.2",
+    "matplotlib": "3.11.2"
+  },
+  "source": {
+    "baseline": {
+      "commit": "982b9daed40e61e59fd939dae61a0e358a35191a",
+      "files_sha256": {
+        "include/fastcd/arithmetic.h": "b07b3eafee369a708e2e682d5b4a3642d57d3de89a0192c5fa24f5589c1aa83b",
+        "include/fastcd/complex.h": "9df22a88061e184386c5e79669f485b3c1be8982b9940b3eb937f1f6af2f5187",
+        "include/fastcd/fastcd.h": "b43b960073598a4643c8cefbe9ff1912e53a028dbccefcc936eafcc1063acad6",
+        "include/fastcd/finite.h": "4d4027fd1a6957732e56cc0b12d9bb6ae13b8470797c47c51879cfcf71853e94",
+        "src/arithmetic.c": "cec0360bb88055828f57576f81cb8dba7ec907e06088a5930c2e2589e1271634",
+        "src/cariow_cariowa.c": "c027573fdd0cc9403cefaf831fa443c66646fb682c249661fb9d0f45d26f0c37",
+        "src/cariow_cariowa_impl.h": "6308d59094c5302bc5d2580fd2d1e0659729131d214156e1f054379c666030a7",
+        "src/complex.c": "3563c0c588ef104de004c24e6e72b7b10434a24cfeb1c950cbe1263dae7705cb",
+        "src/direct.c": "933e76f50383179cd964bfcffa12ecff0a4f95a1a360145756cb9be754b05dd5",
+        "src/direct_impl.h": "4995766ec13c5c9900fb516bc8141ccf7c61d197dd51435ae80f51cf482599cc",
+        "src/fastcd.c": "64bad29b9e2c523ca403e2f82fd47e378faca2572e6016c5a9636cb80b59c619",
+        "src/fastcd_internal.h": "64d0d7bbc0862c1a6056ccc8db284a3dbb21d638704559b536c4758bbcfb1217",
+        "src/finite/direct_instance.h": "df727db6ca8824b3cbfbac1cf66f873f99893e045e4ddc444976afdbe5039398",
+        "src/finite/field.c": "e15d613bf2128b08780d002b6309d5641ae1974c275cc13ac8cab4dc30855ae4",
+        "src/finite/field_internal.h": "14028884c266b029a44096e0dd2575e178af15094a17b72cd3574cb410bfbf3b",
+        "src/finite/finite.c": "12261f79cb6fe1a06da53a5a00b3ef6c31652a1e3561d3db9c6145a3320da218",
+        "src/finite/finite_backend.c": "a77501bbb8b5020223aa031156ef18a85b17eb1a7edaefde816f40928d01885c",
+        "src/finite/finite_backend.h": "9e1501320bd8b8b0ca0cbb976eacbb783ef52d2876d39ab3f4a5c590916d3511",
+        "src/finite/finite_instance.h": "f7cd9b1b126ce9194d88e04166f8adc1c5a96d0b93ce05b4765ac68c2aa57782",
+        "src/finite/finite_maps.h": "901f9df584280ecc916d11be35dae27d86325e85790c1ddf863c565c5d432bc0",
+        "src/finite/finite_prime.c": "a843048b47535f70a805c461ecb4e103282a92bb70a002729455602aa13b9b25",
+        "src/finite/finite_value.h": "cd7990ecafc2275e06486333794aa53a27c05ca7fbe18d9e2445951683f18c5c",
+        "src/finite/generated/field_products.h": "964be52cc14bc8ab40687d15fa54f5b6b8ec3dac1793da30cef8f1203ff02bed",
+        "src/finite/generated/finite_byte.c": "c45923dc984994553c247233bcd6455b7325e53f22fd9a0114aaa443aeb65554",
+        "src/finite/generated/finite_maps.c": "195d001719b4ebb63ef026171bbfec3bf971aa961191d50101805545d0b9624e",
+        "src/finite/generated/finite_medium_bar.c": "99f1d51f01613490dacd8f00098b13f3bdabbe838f12aa3727ef58c08b5cc88b",
+        "src/finite/generated/finite_medium_mont.c": "d3ac5fdaf883093ee25fea6b55b069034e294a7e2d71f17acd9f30083535540b",
+        "src/finite/generated/finite_mont_16.c": "08f53e5e3d88cdf95c9be06bd3a011710da19f654ce5e5bfc28fe7346e112daf",
+        "src/finite/generated/finite_mont_4.c": "d50fe4b08d858fd85d7d02485e1a9bcfcb24b8e2c5087361b681ca833c8158b6",
+        "src/finite/generated/finite_mont_8.c": "13cda76b8a6fe59aa542aabc7e9f425fa5eff467b4234c0c3f68a2067829fa1f",
+        "src/finite/generated/finite_short_16.c": "e521539949e26ffcc3308b1d3cdc5ecbb1e63cc3ca52d5929b4b15f82a63459b",
+        "src/finite/generated/finite_short_32.c": "e8354318d31a39df1f24f9941b3481ab9ee4415d5c38145dca95ef4d7702924d",
+        "src/finite/generated/finite_short_8.c": "35cf03964084f5ff28fd0893bff28c50c1eea503343060cd25bc8d025816bddf",
+        "src/finite/generated/finite_shuffle_16.c": "c006f50141b7293903472a718454ecb0f3850c5d4b0b5809dea4f19ff37cad2e",
+        "src/finite/generated/finite_shuffle_32.c": "12c5792659b572f6ea35bda3a3d4b76ab56cb5b6c30c8b860779f235db99844c",
+        "src/finite/generated/finite_shuffle_8.c": "f419e23517227eda1a80391978eb21d73799bdce53260da926172f384912a88f",
+        "src/finite/generated/finite_ternary_16.c": "e058d8c160d39f379f019ab331251d9ca9787cc7b03a7665e71b9b41f8ab195c",
+        "src/finite/generated/finite_ternary_32.c": "5e693c531fd6ce6fac36e45d5f4e97a981dbcd38e46ad4d5ea2106df37c5e691",
+        "src/finite/generated/finite_ternary_64.c": "941667d98bbbf9398bdf10b8809b12eb02edc6b3b880f2d2023900db0b3f62f1",
+        "src/finite/internal.h": "ffbf0e110279e5ffe078711c9f59194e40db225515a586d7467094d06004c8a8",
+        "src/finite/operations.c": "c8282f914495480d97ae6907d7b0c791a6ec92965551f2ef97ee0aa68a9d8b61",
+        "src/finite/plan.c": "9bd3e9fff2ef525271103e41dcf0f64b1154e176842b5d071780fba45274831c",
+        "src/finite/schedule_impl.h": "4490772feb0d8234f87b3a282ba57a087f78f9dc1d8ac8865d1ff812b9807e14",
+        "src/generated/cariow_cariowa_kernels.h": "4e69148c87c88fca5b7bff4513f5781d525710a8aaa73b7abe160023ea10e8ee",
+        "src/generated/cariow_cariowa_masks.h": "e998a4f078aee6bb00391f27f42f7191fbc70a663cc2fa36dc87cf7a02d962d9",
+        "src/generated/direct_kernels.h": "9c705016b8f36f573407eace4f1afb00cab9a7648a2343f2075df4631df3ee53",
+        "src/generated/quasilinear_kernels.h": "6a3dc3e2820a443d7dec07e6af04a7535ffe4340f907a9e2f5a91669b99720dd",
+        "src/pair.h": "1a4983f3c8fbf32a1623fa8745a79d1f20f3872f4ab0e931fd4609a5da96692f",
+        "src/quasilinear.c": "934a130d64c73ab5378f3d36281ce588c7924e71a93d10b0b1ae20eae33a9b08",
+        "src/quasilinear_impl.h": "f182a3e9353f50f2d258a1850d55437adfc7ce965e5a1c083c205fe7ff6e09d5",
+        "src/quasilinear_simd.h": "2bccf3886c6c371fc733679f03446b8b5303452c6aaf767bf0638f9f91ef525b"
+      }
+    },
+    "measured": {
+      "commit": "93c9bd8ab1c3bcfdb16c76e5ad55fa487d741a18",
+      "files_sha256": {
+        "include/fastcd/arithmetic.h": "d5f8099b7bb71398721248b69ddfed7e94b2f3cbfb902c6730c881b17a9cb305",
+        "include/fastcd/complex.h": "7a84bc8af08e83f5b0262a9f860efcd406deb8a31fd8853e8b313730c5c36473",
+        "include/fastcd/fastcd.h": "0a257db6f90e87bb977db354a8943cc064cb98f7182f3cc327310772b2e83ae9",
+        "include/fastcd/finite.h": "b2f9d3290f962e6b6bfedda3797d0e26c308264d6b49f95a7497f06b0654a71b",
+        "src/arithmetic.c": "9b12a13709095c267b402b1609a57e097956de44ccba3f926f482aa378775d43",
+        "src/balanced_sum.h": "cb2ba14c5ffe0b60294a697c5d886f52b4561bfa2cb88f2a0b1251270d81ee92",
+        "src/cariow_cariowa.c": "a8d1c325b109ac45520f8a326f9db49f514b019a23fc3914b8efc9c713af3f68",
+        "src/cariow_cariowa_impl.h": "ed3ccddd973831d88f6a9437a34b18fd401a52fdf0c67c283b7e6ffc73650c8a",
+        "src/complex.c": "7620697c83b27dcc9a0de488df14329e3d8eaf112e49d97b5afe21903aecd755",
+        "src/direct.c": "b7f1034db556e9b54a34dff689cc3893ec136db934b90e4e9919c22c70e70e01",
+        "src/direct_impl.h": "890b6e31d5f1e954d065f79c1db019a7aa14643d4b30c88a9b08822bd6d3da85",
+        "src/fastcd.c": "319524a8f9c4858cf2bc90f4da215863cc2b6f532cb3a24fb7333467b56f7a04",
+        "src/fastcd_internal.h": "05a0fa0320867dd01a6a777d6db8bb4ff03916e784d8680030841f14add7e787",
+        "src/finite/direct_instance.h": "4a4bae43775f7f6b672818b4d6ee2f2d6179e88ff9fd49f1614be803feedb12e",
+        "src/finite/direct_value.h": "ab257c1b576f9fcc3da996c4efa548893f8a6cc0c823b8903d9171cd5e86aaf8",
+        "src/finite/field.c": "ba0b1355ade6a5148458ba10cd818b18e465a89606c14048cee819d2b87aadb6",
+        "src/finite/field_internal.h": "27c63c6e0825a61eeaa82e5c7fc06eaf318b0815a37c0624120ffb7d58f1d577",
+        "src/finite/finite.c": "99c4105b75de04c63c95cdff50efdfdf79ac70d5575e4c65bc17b994c4813ca7",
+        "src/finite/finite_backend.c": "9ccd9f5b2ea793b24043c2520565a83009459426f6d89b2587651f69a4ce4390",
+        "src/finite/finite_backend.h": "5602b6ef38d87151b3d6fd3f6a1f9ccc9b5063c9e5e227c8d3940e8e48fc2b42",
+        "src/finite/finite_instance.h": "62b563322f229beb5297a8e876a3cd0c0a9e69ee8a51da1ae9243d2ba8d1d624",
+        "src/finite/finite_maps.h": "09bb8b9959464dfa735b6f7cabcb6c47a9b2b04716046ec532c0b36081c92189",
+        "src/finite/finite_prime.c": "18165ada3d53f1c1623f6fca10a6a56d49a62da0d7f70e3ec1c10e350fcbd218",
+        "src/finite/finite_value.h": "36772e681cdc4e1fe1209dfdc0f2c9e072b3fa427fdca09d9d40b5afc3f0534c",
+        "src/finite/generated/field_products.h": "268fa56c61606fcda5aadeec525f9cd79337c9502b8ab373c29618abb0bbdbec",
+        "src/finite/generated/finite_byte.c": "6981e81b4af1b9d1b05de63237e0088f9e200c445b59fcd7d52d45edcff45523",
+        "src/finite/generated/finite_maps.c": "ef71cf302169fe3c64a1b069d8f84d1ff065ce9d68e826237f641aaa16efe0d2",
+        "src/finite/generated/finite_medium_bar.c": "ab102d4861b9d5d7445dbc05f7234440482f727a0de44f036f6672f51cd22b92",
+        "src/finite/generated/finite_medium_mont.c": "20cd430dc3b947ecb374443afb818df8027e882323c141f950e393d4d593830a",
+        "src/finite/generated/finite_mont_16.c": "fb2344c00234252f7bd01ef31d73f212a43bec9785c0815231b1ab520a800a21",
+        "src/finite/generated/finite_mont_4.c": "0142526abca2811c69355cabf2715868b8af3d70277eb4e90c5738c2de28edc8",
+        "src/finite/generated/finite_mont_8.c": "f1db529fcd6afcaa5c6424191bf39684457820ad34d97c82cb872a7e0768878e",
+        "src/finite/generated/finite_short_16.c": "7724ae1c939f4dee24e8b335268ededb06dc3c058327861794c2c5c0f6964d8e",
+        "src/finite/generated/finite_short_32.c": "2179f0d04d328e2034250dff3f49b7d4a648bedd55cb5badf718d97668308822",
+        "src/finite/generated/finite_short_8.c": "3b92d34e8bd77b13db68b3b8798b6483e74f67a4ef3cf003c8d702ee531f50fd",
+        "src/finite/generated/finite_shuffle_16.c": "4498371556afb2b71b63b9cb68103612465f22e4fa8e3ce0c59e2498687adb91",
+        "src/finite/generated/finite_shuffle_32.c": "8c2f0ac3edba1326835c9cc6aa1f59dbd52067f93b788c223a6947b7605275b8",
+        "src/finite/generated/finite_shuffle_8.c": "c6ba0d5e9e6cdcee543c3f97a76593fe98ed8fbc1c098f59c4565f4a2e4892e0",
+        "src/finite/generated/finite_ternary_16.c": "f31b44d73dbbfd39f83630f6c3df1fd4639635c9db24f4f9be67c60e4f855d3c",
+        "src/finite/generated/finite_ternary_32.c": "8ffde0bd9c82c9c6fb5ba2d1e9f1f6ba501845834b2982be536cf458c8ab12fa",
+        "src/finite/generated/finite_ternary_64.c": "6693e72563a74d7215c1b443e3bbdf23ce86ab70ec9459f37a935ec57a3ada65",
+        "src/finite/internal.h": "a108ce244b3d633699039ff06e1dc84b1d8af3a06e7727b58fe83fcb91258342",
+        "src/finite/operations.c": "231ada9bdaacf9efac76a11e3ec1208634b9a2fb6aa9caa49a183aaf08183126",
+        "src/finite/plan.c": "dbea374479b6279a9eb47707d83753f1cebab4be0e7d7d0c81197ffe4a7c7a39",
+        "src/finite/schedule_impl.h": "a81ae5b58fac7ab01a0932a046e38ef38407b38613096d558bf1f30553a2267a",
+        "src/fused_sum.c": "7632ab04f0e42bde2e4d3cbd2cf7ceeb4f5c7d61a8a9a4a214bd9f7011fa3ec7",
+        "src/fused_sum.h": "5f011ccca3181485553bb85ab35df11a2dd64add5691742b4ed31202f7e28e31",
+        "src/fused_sum_avx2.c": "3d462ab97ba3e71ee46710995caab63bc25a08abb90bc623b61c9294371fc383",
+        "src/fused_sum_avx512.c": "e21cc797015f169205acaf6dd30ce315bad7cd14a41577652b3e2cf8bc87eadc",
+        "src/fused_sum_impl.h": "592bd0363696997138a21687071f5bca84fef5cc6fd572c5d4d7840a5397d26b",
+        "src/generated/cariow_cariowa_kernels.h": "4d28396cc5bfeac852d44005275dd94b251eced9cb032f2731723ce46a47bf79",
+        "src/generated/cariow_cariowa_masks.h": "3a5753551f5d89e05fe7ff9381d76384130b1d5546abb5b74e70b11ffd12046d",
+        "src/generated/direct_kernels.h": "898d944d8df4442e5a5d0590ab18472acc661bf5108a9596276a8eb2c0601408",
+        "src/generated/fused_sum_kernels.h": "6c8699557d60114cc5dd412f64851e279f374579ec84309a838757f93d04d1f5",
+        "src/generated/quasilinear_kernels.h": "c24a621d5e505089efc20da30b0c7eda25329551916ed705643f1b1222f3ffce",
+        "src/pair.h": "152845382e13d4f260c5244208bc077a52b354f8cf71197cbdc02076f4c13f7f",
+        "src/quasilinear.c": "a9886495e27c790d346a9db4af6a26a8f8feac7fb9732d536b3f8767e1e1200a",
+        "src/quasilinear_impl.h": "66c16c94922eb493fba233c9968a03295bd0439bb1126c85fefe04b7b3cf2e5f",
+        "src/quasilinear_simd.h": "4795e1513c2539e2e8879178d9808469ebe70ebeaa0957fe7a0e0b7dcad83432"
+      }
+    }
+  },
+  "finished": "2026-11-21T03:20:55-05:00"
+}

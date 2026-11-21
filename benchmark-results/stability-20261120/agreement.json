@@ -1,0 +1,52 @@
+{
+  "schema": "fastcd-stability-agreement-1",
+  "completed": true,
+  "command": [
+    "/usr/bin/python3",
+    "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/measured-source/benchmarks/stability_agreement.py",
+    "--accuracy",
+    "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/raw/accuracy.json",
+    "--simd",
+    "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-simd/libfastcd.so.1.5.0",
+    "--scalar",
+    "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/stability-work/builds/balanced-scalar/libfastcd.so.1.5.0",
+    "--output",
+    "/tmp/claude-1002/-hdd-math-fastCD/7d09f1c6-aed0-4a41-8222-f6847cb1f62b/scratchpad/src/benchmark-results/stability-20261120/agreement.json"
+  ],
+  "accuracy_sha256": "866a4db806159cf16b4e958cbdfda2918c5f33edd310e37c58e9b7597e15636c",
+  "simd_library_sha256": "33f946afa128eeac9ed24ccabac21453c4b8efc4f835581c1acae949b333e1b3",
+  "scalar_library_sha256": "5a99de0a74c444d3f46670a03e082b844bcdb166a58e7d3498c69866d3d90a88",
+  "counts": {
+    "quasilinear": {
+      "cases": 13584,
+      "comparisons": 40752
+    },
+    "cariow_cariowa": {
+      "cases": 6808,
+      "comparisons": 20424
+    }
+  },
+  "mismatches": [],
+  "batch_sizes": {
+    "complex-2": 1056,
+    "complex-4": 1056,
+    "complex-8": 1056,
+    "complex-16": 1056,
+    "complex-32": 1056,
+    "complex-64": 464,
+    "complex-128": 464,
+    "complex-256": 200,
+    "complex-512": 200,
+    "real-2": 992,
+    "real-4": 992,
+    "real-8": 992,
+    "real-16": 1120,
+    "real-32": 1120,
+    "real-64": 496,
+    "real-128": 496,
+    "real-256": 216,
+    "real-512": 216,
+    "real-1024": 168,
+    "real-2048": 168
+  }
+}
