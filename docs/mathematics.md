@@ -1,22 +1,34 @@
 # Conventions and results
 
-This page fixes the conventions fastCD uses for Cayley–Dickson elements and
-summarizes the mathematics behind its multiplication algorithms. The
-[paper](https://arxiv.org/abs/2609.11588) derives the quasilinear recursion
-over a general coefficient ring. The
-[technical supplement](quasilinear-supplement-fastCD.pdf) specializes it to
-the standard real tower and proves the results quoted below for the
-nonrecursive map, the complex octonion base case and the exact operation
-counts. Operation counts on this page are for real coefficients; the complex
-and finite-field kernels use different coefficient arithmetic and are not
-counted.
+This page fixes the conventions in which fastCD represents Cayley-Dickson
+elements, defines what each of its operations computes, and explains how its
+multiplication algorithms work and what they cost. The
+[paper](https://arxiv.org/abs/2609.11588) derives the quasilinear algorithm over
+general rings of coefficients and proves the results quoted here, while this
+page states them for the algebras that fastCD implements; the speed of the
+algorithms is reported in the [benchmark](benchmark.md) and their accuracy in
+the [stability study](stability.md).
+
+The page has four parts:
+
+1. **The algebra.** The coefficient fields, the doubling formula, the standard
+   coordinates, the products of basis elements, and the quadratic form.
+2. **The operations.** What fastCD computes besides the product: the alternating
+   product, commutators, associators, operator commutators, and the reciprocal.
+3. **The multiplication algorithms.** Direct, Cariow-Cariowa, and quasilinear
+   multiplication, how the quasilinear algorithm works, what each algorithm
+   costs, and how the algorithms run over complex and finite-field coefficients.
+4. **Sums of products.** How a sum of many products is computed without forming
+   the products, and the covariance built on that sum.
 
 ## The algebra
 
-fastCD works in the standard Cayley–Dickson tower, in which every doubling
-parameter is `-1`, over a coefficient field F: the real numbers R, the
-complex numbers C, or a finite field F_(p^d) with p an odd prime. Starting
-from `A_0 = F`, each level consists of ordered pairs from the level below:
+### Coefficient fields and the doubling formula
+
+fastCD works in the standard Cayley-Dickson tower over a coefficient field `F`,
+which is the real numbers R, the complex numbers C, or a finite field F_(p^d)
+with `p` an odd prime. Starting from `A_0 = F`, each level consists of ordered
+pairs of elements of the level below, with conjugation and multiplication
 
 ```text
 A_n = A_(n-1) x A_(n-1)
@@ -24,23 +36,65 @@ conjugate((a, b)) = (conjugate(a), -b)
 (a, b)(c, d) = (ac - conjugate(d) b,  d a + b conjugate(c))
 ```
 
-Conjugation is the identity on `A_0 = F`, so it fixes every coefficient:
-over C it does not conjugate complex coefficients, and over F_(p^d) it does
-not apply the Frobenius map.
+Conjugation is the identity on `A_0 = F`, so it fixes every coefficient: over C
+it does not conjugate complex coefficients, and over F_(p^d) it does not apply
+the Frobenius map. The paper allows a general doubling parameter `mu_n` at each
+level, in the product `(ac + mu_n conjugate(d) b, d a + b conjugate(c))`, and
+coefficients in any commutative ring in which 2 is invertible; the standard
+tower is the case in which every parameter is `-1`, and it is the one that
+fastCD implements.
 
-An element of `A_n` has `N = 2^n` coordinates in F with respect to the
-standard basis `e_0 = 1, e_1, ..., e_(N-1)`. The basis follows the pairs:
-when `N = 2M`, the first `M` coordinates are those of `a` and the last `M`
-are those of `b`. The scalar part of `x` is therefore `Re(x) = x[0]`, its
-imaginary part `Im(x)` is `x` with coordinate 0 set to zero, and
+### Standard coordinates
+
+An element of `A_n` has `N = 2^n` coordinates in `F`, its *standard
+coordinates*, with respect to the basis `e_0 = 1, e_1, ..., e_(N-1)`. The basis
+follows the pairs: when `N = 2M`, the first `M` coordinates of `(a, b)` are
+those of `a` and the last `M` are those of `b`. Coordinate 0 is therefore the
+scalar part `Re(x) = x[0]`, the imaginary part `Im(x)` is `x` with coordinate 0
+set to zero, and conjugation negates the imaginary part:
 
 ```text
 conjugate(x) = (x[0], -x[1], ..., -x[N-1]).
 ```
 
-The names in the following table are those of the real algebras. Over C and
-finite fields the same identities hold, but statements about division and
-positive-definiteness can fail (see [The quadratic form](#the-quadratic-form)).
+The literature uses several doubling formulas and orientations, and coefficient
+arrays written in another convention convert to fastCD's by a signed permutation
+of their coordinates. The [C API reference](c-api.md) and the [Python API
+reference](python-api.md) describe how the coordinates are stored.
+
+### Basis products
+
+The product of two basis elements is a signed basis element whose index is the
+bitwise XOR of the two indices,
+
+```text
+e_i e_j = sigma_N(i, j) e_(i XOR j),     sigma_N(i, j) in {+1, -1},
+```
+
+and the signs follow from the doubling formula: for `N = 2M` and `i, j < M`,
+
+```text
+sigma_N(i,     j)     =  sigma_M(i, j)
+sigma_N(i,     M + j) =  sigma_M(j, i)
+sigma_N(M + i, j)     =  epsilon(j) sigma_M(i, j)
+sigma_N(M + i, M + j) = -epsilon(j) sigma_M(j, i),
+```
+
+where `sigma_1(0, 0) = 1`, `epsilon(0) = 1`, and `epsilon(j) = -1` for `j > 0`.
+The function `fastcd_basis_product` evaluates this recurrence in `O(log N)`
+integer steps. It follows that `e_0` is the identity, that `e_i^2 = -1` for
+`i > 0`, and that `e_j e_i = -e_i e_j` for distinct nonzero `i` and `j`, and the
+orientation is fixed by
+
+```text
+quaternions:  e_1 e_2 = e_3,   e_2 e_3 = e_1,   e_3 e_1 = e_2
+octonions:    e_1 e_2 = e_3,   e_1 e_4 = e_5,   e_2 e_4 = e_6,   e_3 e_4 = e_7
+```
+
+The identities that the product satisfies weaken as the dimension grows, as the
+names of the real algebras record. Over C and finite fields the same identities
+hold, while statements about division can fail (see [The quadratic
+form](#the-quadratic-form)):
 
 | Dimension | Real algebra | Identities |
 | ---: | --- | --- |
@@ -50,61 +104,14 @@ positive-definiteness can fail (see [The quadratic form](#the-quadratic-form)).
 | 8 | Octonions | Alternative |
 | 16 and above | Sedenions and higher | Flexible and power-associative; zero divisors exist |
 
-The literature uses several doubling formulas and orientations. Coefficient
-arrays written in another convention can be converted to fastCD's with a
-signed permutation of their coordinates.
+### The quadratic form
 
-### Coefficient storage
+Write `<x, y> = sum_i x[i] y[i]` for the coordinate pairing and `Q(x) = <x, x>`
+for the quadratic form. Both are defined by the same sums over every field, so
+over C they involve no complex conjugation, and over R, `Q(x)` is the squared
+Euclidean length.
 
-Real coefficients are binary64 `double` values, and a complex coefficient is
-a pair of doubles, real part first. An element of F_(p^d) is a polynomial
-`a_0 + a_1 t + ... + a_(d-1) t^(d-1)` with coefficients in `0, ..., p-1`,
-reduced modulo the monic irreducible polynomial `FiniteField.modulus`. The C
-kernels store each coefficient as a canonical `uint32` residue.
-
-In Python, `char` and `deg` select F: `(0, 1)` is R (`float64`), `(0, 2)` is
-C (`complex128`), and `(p, d)` is F_(p^d). One element has shape `(N,)` over
-R, C and prime fields, and `(N, d)` over extension fields. The trailing axis
-holds the polynomial coefficients and is not part of the Cayley–Dickson
-dimension.
-
-## Basis products
-
-The product of two basis elements is a signed basis element whose index is
-the bitwise XOR of the two indices:
-
-```text
-e_i e_j = sigma_N(i, j) e_(i XOR j),     sigma_N(i, j) in {+1, -1}.
-```
-
-The signs follow from the doubling formula. For `N = 2M` and `i, j < M`,
-
-```text
-sigma_N(i,     j)     =  sigma_M(i, j)
-sigma_N(i,     M + j) =  sigma_M(j, i)
-sigma_N(M + i, j)     =  epsilon(j) sigma_M(i, j)
-sigma_N(M + i, M + j) = -epsilon(j) sigma_M(j, i),
-```
-
-where `sigma_1(0, 0) = 1`, `epsilon(0) = 1`, and `epsilon(j) = -1` for
-`j > 0`. The function `fastcd_basis_product` evaluates this recurrence in
-`O(log N)` integer steps. It follows that `e_0` is the identity, that
-`e_i^2 = -1` for `i > 0`, and that `e_j e_i = -e_i e_j` for distinct nonzero
-`i` and `j`. The orientation is fixed by
-
-```text
-quaternions:  e_1 e_2 = e_3,   e_2 e_3 = e_1,   e_3 e_1 = e_2
-octonions:    e_1 e_2 = e_3,   e_1 e_4 = e_5,   e_2 e_4 = e_6,   e_3 e_4 = e_7
-```
-
-## The quadratic form
-
-Write `<x, y> = sum_i x[i] y[i]` for the coordinate pairing and
-`Q(x) = <x, x>` for the quadratic form. Both are defined by the same sums
-over every field; in particular, over C they involve no complex conjugation.
-Over R, `Q(x)` is the squared Euclidean length.
-
-Q is the norm form of the tower. By induction on the level, the doubling
+`Q` is the norm form of the tower: by induction on the level, the doubling
 formula gives
 
 ```text
@@ -112,46 +119,39 @@ x conjugate(x) = conjugate(x) x = Q(x) 1,
 x^2 - 2 x[0] x + Q(x) 1 = 0.
 ```
 
-Since the characteristic of F is never 2, the pairing is recovered from the
+Since the characteristic of `F` is never 2, the pairing is recovered from the
 form by polarization, `<x, y> = (Q(x + y) - Q(x) - Q(y)) / 2`, and it is
-nondegenerate. The composition law `Q(xy) = Q(x) Q(y)` holds through
-dimension 8 and fails in general from dimension 16 on.
+nondegenerate. The composition law `Q(xy) = Q(x) Q(y)` holds through dimension 8
+and fails in general from dimension 16 on.
 
-Over C and finite fields, Q can vanish on a nonzero element: for example,
-`Q((1, i)) = 0` over C and `Q((1, 2)) = 0` over F_5. Such elements have no
+Over C and finite fields, `Q` can vanish on a nonzero element, for example
+`Q((1, i)) = 0` over C and `Q((1, 2)) = 0` over F_5, and such an element has no
 reciprocal (see [Derived operations](#derived-operations)).
-
-`quadratic_norm()` returns `Q(x)` over every field as a coefficient of F: a
-field `Element` over finite fields (an `ElementArray` for a batch), and a
-complex scalar or array over C. For a coefficient-field scalar `c` it
-returns `c*c`. `norm_squared()` returns the same form; over R it uses scaled
-accumulation to avoid intermediate overflow. `norm()`, `abs(x)` and
-`normalized()` return the Euclidean norm `sqrt(Q(x))` and the unit vector
-`x / sqrt(Q(x))`, and exist only for real coefficients: a finite field has
-no ordering or positive square root, and fastCD provides no Hermitian norm
-over C.
 
 ## Derived operations
 
-Write `x = alpha + X` and `y = beta + Y`, where `alpha` and `beta` are the
-scalar parts and `X` and `Y` are imaginary. The alternating product of two
-imaginary elements is
+Products of imaginary elements carry most of the structure of the algebra, so
+fastCD writes `x = alpha + X` and `y = beta + Y`, where `alpha` and `beta` are
+the scalar parts and `X` and `Y` are imaginary, and defines the *alternating
+product* of two imaginary elements as
 
 ```text
 X cross Y = (XY - YX) / 2.
 ```
 
-It is bilinear, alternating and imaginary, and it is the imaginary part of
-`XY`: `XY = -<X, Y> + X cross Y`. At dimension 4 it is the ordinary
-three-dimensional cross product. The library exposes it as `imag_cross`.
-Every product therefore splits as
+It is bilinear, alternating, and imaginary, at dimension 4 it is the ordinary
+three-dimensional cross product, and the library exposes it as `imag_cross`.
+Since `XY + YX = -2 <X, Y>`, the product of two imaginary elements is
+`XY = -<X, Y> + X cross Y`, and every product therefore splits into terms that
+need no further multiplication except the alternating product:
 
 ```text
-xy = (alpha beta - <X, Y>) + alpha Y + beta X + X cross Y,          (1)
+xy = (alpha beta - <X, Y>) + alpha Y + beta X + X cross Y.          (1)
 ```
 
-which is the starting point of the quasilinear algorithm. The library
-evaluates the following derived operations:
+The derived operations of fastCD are defined as follows. By (1), the commutator
+needs only the alternating product, and the anticommutator and the square need
+no product at all and take linear time:
 
 ```text
 [x, y]         = xy - yx = 2 (X cross Y)
@@ -163,55 +163,251 @@ A(x, y, z)     = (xy) z - x (yz)
 x^(-1)         = conjugate(x) / Q(x),     x x^(-1) = x^(-1) x = 1
 ```
 
-The parentheses matter. Through dimension 4 the algebras are associative,
-so `[L_a, L_b](x) = (ab - ba) x` and `[R_a, R_b](x) = -x (ab - ba)`; from
-dimension 8 on, neither identity holds in general. The octonions are
-alternative, so `x^(-1) (xy) = y` holds through dimension 8. From dimension
-16 on it can fail, and the reciprocal identity gives no cancellation law for
-products.
+The parentheses in these definitions matter. Through dimension 4 the algebras
+are associative, so `[L_a, L_b](x) = (ab - ba) x` and
+`[R_a, R_b](x) = -x (ab - ba)`, but from dimension 8 on neither identity holds
+in general. The octonions are alternative, so `x^(-1) (xy) = y` still holds
+through dimension 8, but from dimension 16 on it can fail, and the reciprocal
+gives no cancellation law for products.
 
-The reciprocal requires `Q(x) != 0`. Over R this means `x != 0`; over C and
-finite fields it also excludes the nonzero elements with `Q(x) = 0`. The
-reciprocal, scalar division and negative powers check the denominator and
-raise `ZeroDivisionError` when it is zero, including for those elements.
+The reciprocal requires `Q(x) != 0`. Over R this means `x != 0`, while over C
+and finite fields it also excludes the nonzero elements with `Q(x) = 0`, and the
+reciprocal, scalar division, and negative powers report division by zero for
+those elements as they do for zero.
 
 ## Multiplication algorithms
 
-fastCD has three multiplication algorithms:
+fastCD has three multiplication algorithms, which compute the same product with
+different numbers of operations:
 
-- **Direct** evaluates the doubling formula recursively.
-- **Quasilinear** is the algorithm of the paper, described below.
-- **Cariow–Cariowa** is the uniform method of
-  [Cariow and Cariowa](https://doi.org/10.15199/48.2015.02.09), which works
-  at every dimension. It computes the unsigned XOR convolution of the two
-  coordinate vectors with Walsh–Hadamard transforms, then corrects the sign
-  of each output coordinate with a sparse sum.
+- **Direct** multiplication evaluates the doubling formula recursively, with
+  `N^2` multiplications.
+- **Cariow-Cariowa** is the uniform method of [Cariow and
+  Cariowa](https://doi.org/10.15199/48.2015.02.09). It computes the unsigned XOR
+  convolution of the two coordinate vectors with Walsh-Hadamard transforms and
+  then corrects the sign of each output coordinate with a sparse sum, using
+  `N (N - 1) / 2 + 2` multiplications; fastCD implements it for real
+  coefficients through dimension 1024.
+- **Quasilinear** multiplication is the algorithm of the paper, with
+  `O(N log N)` operations.
 
-All three are available for real coefficients; complex and finite-field
-coefficients use direct and quasilinear. The algorithms compute the same
-product, but they use different numbers of operations, and in floating point
-they can round differently.
+All three multiply real coefficients, while complex and finite-field
+coefficients use direct and quasilinear multiplication. In floating point the
+algorithms round differently, so their results can differ in the last bits.
+
+### How quasilinear multiplication works
+
+By (1), multiplication reduces to the alternating product `X cross Y`, since its
+other terms cost `O(N)` operations, and the quasilinear algorithm computes the
+alternating product recursively, with two half-size recursive calls at each
+level. The recursive structure behind it is classical: up to normalization, it
+is the coordinate form of the trace-zero commutator recursion of Brown and
+Hopkins, as the paper explains, and what the paper contributes is the
+quasilinear arithmetic schedule built from it.
+
+**Splitting the imaginary part.** The first half of an imaginary element is
+imaginary, while the second half may have a nonzero scalar coordinate, so an
+imaginary element at level `n` has the form `X = (u, gamma + s)`, where `u` and
+`s` are imaginary at level `n - 1` and `gamma` is a scalar. Writing
+`Y = (v, delta + t)` in the same way, with each of `u`, `v`, `s`, and `t` having
+`m = N/2 - 1` coordinates, the doubling formula gives
+
+```text
+X cross Y = (D + f,  lambda + g - H),
+D = u cross v - s cross t,     H = u cross t + s cross v,
+```
+
+where `(f, lambda, g)` is the value of the *nonrecursive map*
+
+```text
+B_n((u, gamma, s), (v, delta, t))
+    = (gamma t - delta s,  <s, v> - <t, u>,  delta u - gamma v).
+```
+
+`B_n` collects every term that needs no recursive call, its three outputs have
+`m`, `1`, and `m` coordinates, and `lambda` occupies the scalar coordinate of
+the second half. For a general doubling parameter `mu_n` the first output is
+`mu_n (delta s - gamma t)`, as in the paper.
+
+**Two recursive calls.** `D` and `H` need four alternating products at level
+`n - 1`, and a coefficient `iota` with `iota^2 = -1` reduces them to two. This
+`iota` is a scalar, not one of the basis elements `e_i`, so it commutes with
+everything and is fixed by conjugation. Write `C_k` for the alternating product
+at level `k` with coefficients of the form `a + iota b`, the *kernel* of the
+algorithm. Bilinearity gives `C_(n-1)(u +/- iota s, v +/- iota t) = D +/- iota H`, so
+two calls suffice:
+
+```text
+Z_+ = C_(n-1)(u + iota s, v + iota t)
+Z_- = C_(n-1)(u - iota s, v - iota t)
+C_n(X, Y) = ((Z_+ + Z_-)/2 + f,  lambda + g + iota (Z_+ - Z_-)/2).
+```
+
+Each level makes two calls of half the size and does `O(N)` other work, so the
+recursion uses `O(N log N)` operations.
+
+**The one-call root.** For real inputs, `u`, `v`, `s`, and `t` are real, so `D`
+and `H` are real and `Z_+ = D + iota H` alone determines both. One call
+therefore suffices at the top level:
+
+```text
+Z = C_(n-1)(u + iota s, v + iota t)
+X cross Y = (Re_C(Z) + f,  lambda + g - Im_C(Z)),
+```
+
+where `Re_C` and `Im_C` take the parts `a` and `b` of each coefficient
+`a + iota b`, and `B_n` is evaluated over the reals. Below the root the inputs
+have coefficients of the form `a + iota b`, and both calls are needed.
+
+**Evaluating the nonrecursive map.** With coefficients of the form `a + iota b`,
+`B_k` is evaluated as a whole by the three-product formula for complex
+multiplication: for operands `a_0 + iota a_1` and `b_0 + iota b_1` with real
+`a_0`, `a_1`, `b_0`, and `b_1`,
+
+```text
+Delta = B_k(a_0, b_0)
+Omega = B_k(a_1, b_1)
+W     = B_k(a_0 + a_1, b_0 + b_1)
+B_k(a_0 + iota a_1, b_0 + iota b_1)
+    = (Delta - Omega) + iota (W - Delta - Omega).
+```
+
+Applying the formula to the whole map, rather than to each product of
+coefficients inside it, forms each input sum once and reconstructs each output
+coordinate once, so that at level `k`, with `m = 2^(k-1) - 1`, the map costs
+`18m` real products and `22m + 2` additions.
+
+**Base cases.** The recursion ends in one of three ways. At level 1 the
+alternating product is zero. At level 2 the half-size alternating products
+vanish, so `C_2(X, Y) = (f, lambda + g)` is the nonrecursive map alone. At level
+3 the kernel uses the octonion leaf described next, which a real product first
+reaches at dimension 16, because of the one-call root.
+
+### The octonion leaf
+
+At level 3 the kernel evaluates the alternating product of two imaginary
+octonions with coefficients `a + iota b` by a direct formula. Write such an
+element, which has seven coordinates, as
+
+```text
+X = (x1, x2, x3, h, y1, y2, y3),
+```
+
+so that `x1`, `x2`, and `x3` are the coordinates of `e_1`, `e_2`, and `e_3`, `h`
+is that of `e_4`, and `y1`, `y2`, and `y3` are those of `e_5`, `e_6`, and `e_7`.
+The formula uses the linear forms
+
+```text
+p   = -iota h,           z   = x1 + p,
+b_+ = x2 + iota y2,      b_- = x2 - iota y2,
+c_+ = x3 + iota y3,      c_- = x3 - iota y3,
+```
+
+and four linear maps from seven coordinates to three:
+
+```text
+L_1 X = (x1, y1, p)                  L_2 X = (b_+ + c_-, b_- - c_+, p)
+L_3 X = (z + iota y1, b_+, c_+)      L_4 X = (z - iota y1, b_-, c_-).
+```
+
+With `cross` the ordinary three-dimensional cross product, extended bilinearly
+to coefficients `a + iota b`, and `^T` the ordinary matrix transpose, without
+conjugation, the paper proves
+
+```text
+C_3(X, Y) = -iota L_1^T (L_1 X cross L_1 Y)
+            + (1/2) sum_(j=2..4) L_j^T (L_j X cross L_j Y).
+```
+
+fastCD evaluates this formula in three stages. The first applies the maps `L_j`
+to both operands, with nine additions of coefficients per operand, since forming
+`p` is free. The second evaluates the four cross products `L_j X cross L_j Y`,
+each by three real cross products according to the three-product formula above;
+the sum of the two parts of `p` is formed once per operand and shared by `L_1`
+and `L_2`, and the third coordinates of the first two cross products, which
+enter only the output coordinate of `e_4`, are combined there without being
+reconstructed separately. The third stage collects the entries of the sparse
+transposes into the seven output coordinates. The stages cost:
+
+| Stage | M | A | E |
+| --- | ---: | ---: | ---: |
+| Input linear maps | 0 | 36 | 0 |
+| Four cross products | 72 | 88 | 0 |
+| Output reconstruction | 0 | 32 | 15 |
+| Total | 72 | 156 | 15 |
+
+The leaf therefore uses 243 operations, in the counting conventions of the next
+section. Its implementation is the straight-line kernel `ql_complex_cross_8`,
+which `tools/generate_kernels.py` generates.
 
 ### Operation counts
 
-`M` counts multiplications of two input-dependent values, `A` counts
-additions and subtractions, and `E` counts multiplications by fixed scalars
-other than `0` and `±1`. The total `T = M + A + E` includes the preprocessing
-of both operands. Known-zero terms are skipped, each sum starts from its
-first term, and reading coordinates, copying, permuting and changing signs
-are free. Throughout, `N = 2^n`.
+The counts on this page follow the conventions of the paper. `M` counts
+multiplications of two input-dependent values, `A` counts additions and
+subtractions, and `E` counts multiplications by fixed scalars other than `0` and
+`+/-1`, and the total `T = M + A + E` includes the preprocessing of both operands.
+Reading coordinates, copying, permuting, and changing signs are free, and so is
+multiplication by `iota`, which swaps the two parts of a coefficient and changes
+one sign, so that halvings are the only fixed-scalar multiplications in the
+kernel. Known-zero terms are skipped, and each sum starts from its first term.
+The counts are for real coefficients; [Other coefficient
+fields](#other-coefficient-fields) says what carries over.
+
+**Cost of one level.** Write `M_k`, `P_k`, and `E_k` for the products,
+additions, and halvings of one call to `C_k`, including its recursive calls.
+Outside its recursive calls, a call with `k >= 4` and `m = 2^(k-1) - 1` costs:
+
+| Work | M | A | E |
+| --- | ---: | ---: | ---: |
+| Nonrecursive map | `18m` | `22m + 2` | 0 |
+| Forming `u +/- iota s` and `v +/- iota t` | 0 | `8m` | 0 |
+| Forming `Z_+ +/- Z_-` | 0 | `4m` | 0 |
+| Adding `f` and `g` | 0 | `4m` | 0 |
+| Halving `Z_+ +/- Z_-` | 0 | 0 | `4m` |
+| Total | `18m` | `38m + 2` | `4m` |
+
+The counts of a call therefore satisfy
+
+```text
+M_k = 2 M_(k-1) + 18m
+P_k = 2 P_(k-1) + 38m + 2
+E_k = 2 E_(k-1) + 4m
+```
+
+and with the leaf counts `(M_3, P_3, E_3) = (72, 156, 15)` these recurrences
+give, for `K = 2^k` and `k >= 3`,
+
+```text
+M_k = (36k - 81) K/4 + 18
+P_k = (76k - 168) K/4 + 36
+E_k = (16k - 37) K/8 + 4
+```
+
+**The full product.** A real product of dimension `N >= 16` adds three pieces of
+work to its one call of `C_(n-1)`, with `m = N/2 - 1`: the real nonrecursive map
+at the root, with `6m` products and `4m - 1` additions; the combination of its
+vector outputs with `Re_C(Z)` and `Im_C(Z)`, with `2m` additions; and the
+splitting (1), with `3N - 2` products and `3N - 3` additions. That is `6N - 8`
+products, `6N - 10` additions, and no halvings, so
+
+```text
+M = M_(n-1) + 6N - 8,     A = P_(n-1) + 6N - 10,     E = E_(n-1),
+```
+
+which gives the quasilinear row of the following table, alongside the counts of
+the other two algorithms (`N = 2^n` throughout):
 
 | Algorithm | `M(N)` | `A(N)` | `E(N)` |
 | --- | --- | --- | --- |
 | Direct | `N^2` | `N (N - 1)` | `0` |
-| Cariow–Cariowa (`4 <= N <= 1024`) | `N (N - 1) / 2 + 2` | `3 N n + (N (N - 3) + 4) / 2` | `2N` |
+| Cariow-Cariowa (`4 <= N <= 1024`) | `N (N - 1) / 2 + 2` | `3 N n + (N (N - 3) + 4) / 2` | `2N` |
 | Quasilinear (`N >= 16`) | `(36n - 69) N / 8 + 10` | `(76n - 196) N / 8 + 26` | `(16n - 53) N / 16 + 4` |
 
-At `N = 2`, Cariow–Cariowa uses `(M, A, E) = (3, 7, 3)`: only the scalar
-coordinate needs a sign correction, so `E` counts the two scalings by `1/N`
-and a single doubling. For `N >= 16` the quasilinear total is
-`T = (240n - 583) N / 16 + 40`. The exact quasilinear counts, including the
-small base cases, are:
+At `N = 2`, Cariow-Cariowa uses `(M, A, E) = (3, 7, 3)`: only the scalar
+coordinate needs a sign correction, so `E` counts the two scalings by `1/N` and
+a single doubling. For `N >= 16` the quasilinear total is
+`T = (240n - 583) N / 16 + 40`, and the exact quasilinear counts, including the
+small dimensions, where the recursion does not reach the leaf, are:
 
 | N | M | A | E | T |
 | ---: | ---: | ---: | ---: | ---: |
@@ -227,396 +423,147 @@ small base cases, are:
 | 512 | 16330 | 31258 | 2916 | 50504 |
 | 1024 | 37258 | 72218 | 6852 | 116328 |
 
-Comparing the three algorithms:
+The three algorithms compare as follows:
 
-- Quasilinear uses fewer input-dependent multiplications than direct from
-  `N = 8` on, and fewer than Cariow–Cariowa from `N = 32` on. At `N = 16`
-  Cariow–Cariowa uses 122 against 160.
-- The quasilinear total equals the direct total at `N = 2, 4, 8` and is
+- Quasilinear multiplication uses fewer input-dependent multiplications than
+  direct multiplication from `N = 8` on, and fewer than Cariow-Cariowa from
+  `N = 32` on; at `N = 16` Cariow-Cariowa uses 122 against 160.
+- The quasilinear total equals the direct total at `N = 2`, `4`, and `8` and is
   smaller from `N = 16` on: 417 against 496 at `N = 16`.
-- The quasilinear total is smaller than the Cariow–Cariowa total at every
-  dimension from 2 through 1024: 417 against 452 at `N = 16`. This holds
-  even when Cariow–Cariowa's fixed-scalar multiplications are not counted,
-  since its `M + A` is 420 at `N = 16` and stays above the quasilinear total
-  at every larger dimension.
-- Direct and Cariow–Cariowa use `Theta(N^2)` operations; quasilinear uses
-  `Theta(N log N)`.
+- The quasilinear total is smaller than the Cariow-Cariowa total at every
+  dimension from 2 through 1024: 417 against 452 at `N = 16`. This holds even
+  when the fixed-scalar multiplications of Cariow-Cariowa are not counted, since
+  its `M + A` is 420 at `N = 16` and stays above the quasilinear total at every
+  larger dimension.
+- Direct multiplication and Cariow-Cariowa use `Theta(N^2)` operations, and
+  quasilinear multiplication uses `Theta(N log N)`.
 
-These counts describe the arithmetic schedule. They are not machine
-instruction counts and do not predict running time. They assume the default
-leaf cutoffs and the default Cariow–Cariowa build (`FASTCD_CC_DOUBLING=0`).
-`tools/check_quasilinear_counts.py` and `tools/check_cariow_counts.py`
-instrument the generated kernels and check the counts through dimension
-1024.
+Because the quasilinear algorithm is bilinear, multiplying linear forms in one
+operand with linear forms in the other, its number of multiplications is also a
+bound on the tensor rank of multiplication in `A_n`. The paper proves the bound
+`(36n - 69) 2^(n-3) + 10` from `n = 4` on, which is `M` above, over R and over
+every finite field of odd characteristic.
 
-### How quasilinear multiplication works
+**What the counts describe.** These counts describe the arithmetic schedules as
+fastCD ships them, in the default build configuration. They are not counts of
+machine instructions and do not predict running time, which also depends on how
+each schedule maps onto the hardware, as the [benchmark](benchmark.md) shows.
+The tools `tools/check_quasilinear_counts.py` and `tools/check_cariow_counts.py`
+instrument the generated kernels and check the counts through dimension 1024.
 
-The splitting (1) reduces multiplication to the alternating product
-`X cross Y`, since its other terms cost `O(N)` operations. The algorithm
-computes the alternating product recursively, with two half-size recursive
-calls per level.
+## Other coefficient fields
 
-**Splitting the imaginary part.** The first half of an imaginary element is
-imaginary, while the second half may have a nonzero scalar coordinate. An
-imaginary element at level `n` therefore has the form `X = (u, gamma + s)`,
-where `u` and `s` are imaginary at level `n - 1` and `gamma` is a scalar.
-Write `Y = (v, delta + t)` in the same way. Each of `u, v, s, t` has
-`m = N/2 - 1` coordinates. Expanding the doubling formula gives
+### Complex coefficients
 
-```text
-X cross Y = (D + f,  lambda + g - H),
-D = u cross v - s cross t,     H = u cross t + s cross v,
-```
+Direct multiplication evaluates the doubling formula with complex arithmetic.
+Quasilinear multiplication identifies `iota` with the complex coefficient `i`,
+which, like `iota`, is a scalar that commutes with everything and is fixed by
+conjugation. It therefore applies the kernel `C_n` directly to the imaginary
+parts `X` and `Y`, with the octonion leaf at level 3, and adds the remaining
+terms of (1) in complex arithmetic. The one-call root needs real halves `u`,
+`v`, `s`, and `t`, so both recursive calls are made at every level, including
+the top. For `n >= 3` the alternating product then uses `M_n` real
+multiplications, `(36n - 81) 2^(n-2) + 18`, and (1) adds `3N - 2` products of
+complex coefficients, against the `N^2` products of complex coefficients of
+direct multiplication.
 
-where `(f, lambda, g)` is the value of the nonrecursive bilinear map
+### Finite fields
 
-```text
-B_n((u, gamma, s), (v, delta, t)) = (gamma t - delta s,  <s, v> - <t, u>,  delta u - gamma v),
-```
+Over F_(p^d) the quasilinear algorithm runs the same recursion with coefficients
+in the ring `F[iota]/(iota^2 + 1)`, whose elements are `a + iota b` with `a` and
+`b` in `F`. The paper's construction asks only for a commutative coefficient
+ring, finitely generated over `F`, that contains a square root of `-1` and has
+an `F`-linear map onto `F` that fixes 1, so the ring need not be a field. It is
+the field F_(p^(2d)) when `-1` is not a square in `F`, that is, when
+`p^d = 3 (mod 4)`, and the same recursion works when `p^d = 1 (mod 4)`, where
+the ring is not a field. Every power of 2 is invertible in odd characteristic,
+so the halvings are exact, like all finite-field arithmetic.
 
-and `lambda` occupies the scalar coordinate of the second half. `B_n`
-collects every term that needs no recursive call, and its three outputs have
-`m`, `1` and `m` coordinates. For a general doubling parameter `mu_n` the
-first output is `mu_n (delta s - gamma t)`, as in the paper; here
-`mu_n = -1`.
-
-**Two recursive calls.** `D` and `H` need four alternating products at level
-`n - 1`. Let `iota` be a coefficient with `iota^2 = -1`. It is a scalar, so
-it commutes with everything and is fixed by conjugation; it is not one of
-the basis units `e_i`. Write `C_k` for the alternating product at level `k`
-with coefficients of the form `a + iota b`. Bilinearity gives
-`C_(n-1)(u ± iota s, v ± iota t) = D ± iota H`, so two calls suffice:
-
-```text
-Z_+ = C_(n-1)(u + iota s, v + iota t)
-Z_- = C_(n-1)(u - iota s, v - iota t)
-C_n(X, Y) = ((Z_+ + Z_-)/2 + f,  lambda + g + iota (Z_+ - Z_-)/2).
-```
-
-Each level makes two calls of half the size and does `O(N)` other work, so
-the recursion uses `O(N log N)` operations. At level 2 the half-size
-alternating products vanish and `C_2(X, Y) = (f, lambda + g)`; at level 3 the
-kernel uses the octonion leaf described below.
-
-**The one-call root.** For real-coefficient inputs, `u, v, s, t` are real,
-so `D` and `H` are real and `Z_+ = D + iota H` alone determines both. One
-call therefore suffices at the top level:
-
-```text
-Z = C_(n-1)(u + iota s, v + iota t)
-X cross Y = (Re_C(Z) + f,  lambda + g - Im_C(Z)),
-```
-
-where `Re_C` and `Im_C` take the parts `a` and `b` of each coefficient
-`a + iota b`, and `B_n` is evaluated over the reals. Below the root the
-inputs have complex coefficients, and both calls are needed.
-
-**Evaluating the nonrecursive map.** With complex coefficients, `B_k` is
-evaluated as a whole by the three-product formula for complex
-multiplication. For operands `a_0 + iota a_1` and `b_0 + iota b_1` with real
-`a_0, a_1, b_0, b_1`,
-
-```text
-Delta = B_k(a_0, b_0)
-Omega = B_k(a_1, b_1)
-W     = B_k(a_0 + a_1, b_0 + b_1)
-B_k(a_0 + iota a_1, b_0 + iota b_1) = (Delta - Omega) + iota ((W - Delta) - Omega).
-```
-
-Applying the formula to the whole map, rather than to each coefficient
-product inside it, forms each input sum once and reconstructs each output
-coordinate once. In particular, the scalar output `<s, v> - <t, u>` is
-accumulated separately in each of `Delta`, `Omega` and `W`, and the complex
-value is recovered from the three sums. At level `k`, with `K = 2^k` and
-`m = K/2 - 1`, this costs `18m` real products and `22m + 2` additions.
-
-**The addition count is optimal for this evaluation.** Fix the `18m`
-products above, six for each coordinate index in each of `Delta`, `Omega`
-and `W`, and treat their values as independent. Then no evaluation of `B_k`
-from these products uses fewer than `22m + 2` additions and subtractions,
-even when multiplications by fixed scalars are free. Let `q = 2m + 1` be the
-number of coordinates of each operand and of the output. Each operand must
-supply its `q` real-plus-imaginary sums as factors of `W`. These are
-distinct linear forms, so the two operands need at least `2q` additions. The
-output map sends the `18m` products to the `2q` real and imaginary output
-coordinates. Its transpose needs exactly `2q` additions, so by the
-transposition principle of Kaminski, Kirkpatrick and Bshouty (1988) the map
-itself needs `18m`. The total is `2q + 18m = 22m + 2`, which the evaluation
-above attains. The bound concerns only this decomposition of the
-nonrecursive map; it says nothing about the optimality of the octonion leaf
-or of Cayley–Dickson multiplication as a whole. The
-[supplement](quasilinear-supplement-fastCD.pdf) gives the full proof.
-
-**Cost of one level.** Outside its recursive calls, one call to `C_k` with
-`k >= 4` evaluates the nonrecursive map, spends `8m` additions forming
-`u ± iota s` and `v ± iota t`, `4m` forming `Z_+ ± Z_-` and `4m` adding `f`
-and `g`, and halves `Z_+ ± Z_-` with `4m` real halvings. Multiplication by
-`iota` swaps the two parts of a coefficient and changes one sign, so it is
-free, and the halvings are the only fixed-scalar operations in the kernel.
-Write `M_k`, `P_k` and `H_k` for the products, additions and halvings of one
-call to `C_k`, including its recursive calls; `P` and `H` stand in for `A`
-and `E`, which are reserved for the full product. Then, for `k >= 4`,
-
-```text
-M_k = 2 M_(k-1) + 18m
-P_k = 2 P_(k-1) + 38m + 2
-H_k = 2 H_(k-1) + 4m.
-```
-
-### The octonion leaf
-
-At level 3 the kernel evaluates the alternating product of complexified
-imaginary octonions, which have seven coordinates, by a direct formula.
-Write
-
-```text
-X = (x1, x2, x3, h, y1, y2, y3),
-```
-
-so that `x1, x2, x3` are the coordinates of `e_1, e_2, e_3`, `h` that of
-`e_4`, and `y1, y2, y3` those of `e_5, e_6, e_7`. Define the linear forms
-
-```text
-p   = -iota h,           z   = x1 + p,
-b_+ = x2 + iota y2,      b_- = x2 - iota y2,
-c_+ = x3 + iota y3,      c_- = x3 - iota y3,
-```
-
-and four linear maps from seven coordinates to three:
-
-```text
-L_1 X = (x1, y1, p)                  L_2 X = (b_+ + c_-, b_- - c_+, p)
-L_3 X = (z + iota y1, b_+, c_+)      L_4 X = (z - iota y1, b_-, c_-).
-```
-
-With `cross` the ordinary three-dimensional cross product and `^T` the
-ordinary matrix transpose, without complex conjugation,
-
-```text
-C_3(X, Y) = -iota L_1^T (L_1 X cross L_1 Y) + (1/2) sum_(j=2..4) L_j^T (L_j X cross L_j Y).
-```
-
-Each complex cross product is evaluated by three real cross products, using
-the same three-product formula as the nonrecursive map:
-
-```text
-Delta_j = Re_C(L_j X) cross Re_C(L_j Y)
-Omega_j = Im_C(L_j X) cross Im_C(L_j Y)
-W_j     = (Re_C + Im_C)(L_j X) cross (Re_C + Im_C)(L_j Y)
-L_j X cross L_j Y = (Delta_j - Omega_j) + iota ((W_j - Delta_j) - Omega_j).
-```
-
-Write the complex results as `L_j X cross L_j Y = (Xi_j, Psi_j, Upsilon_j)`.
-The transposes are sparse. With
-
-```text
-Theta_+ = Xi_3 + Xi_4,          Theta_- = Xi_3 - Xi_4,
-Pi_1    = Xi_2 + Psi_3,         Pi_2    = Psi_2 + Psi_4,
-Sigma_1 = Upsilon_3 - Psi_2,    Sigma_2 = Xi_2 + Upsilon_4,
-```
-
-the output coordinates are
-
-```text
-x1_hat = Theta_+/2 - iota Xi_1          y1_hat = iota (Theta_-/2 - Psi_1)
-x2_hat = (Pi_1 + Pi_2)/2                y2_hat = iota (Pi_1 - Pi_2)/2
-x3_hat = (Sigma_1 + Sigma_2)/2          y3_hat = iota (Sigma_1 - Sigma_2)/2
-h_hat  = -iota (Upsilon_2 + Theta_+)/2 - Upsilon_1.
-```
-
-`Upsilon_1` and `Upsilon_2` appear only in `h_hat`, so they are never
-reconstructed. Instead, let `p_j`, `eta_j` and `omega_j` be the third
-coordinates of `Delta_j`, `Omega_j` and `W_j` for `j = 1, 2`, reuse
-`theta_R = Re_C(Theta_+/2)` and `theta_I = Im_C(Theta_+/2)` from `x1_hat`,
-and compute
-
-```text
-phi = p_1 + eta_2/2
-chi = eta_1 - p_2/2
-Re_C(h_hat) = ((chi - phi) + omega_2/2) + theta_I
-Im_C(h_hat) = ((phi + chi) - omega_1) - theta_R.
-```
-
-The leaf costs:
-
-- **Input maps:** for each operand, 9 complex additions (1 for `z`, 4 for
-  `b_±` and `c_±`, 2 for the first two coordinates of `L_2 X`, 2 for
-  `z ± iota y1`), so 36 real additions for both operands.
-- **Cross products:** 12 real cross products with 6 multiplications and
-  3 subtractions each, for 72 multiplications and 36 additions. Their summed
-  inputs `(Re_C + Im_C)(L_j X)` and `(Re_C + Im_C)(L_j Y)` cost 22 additions:
-  6 for each of the four complex cross products, less 2 because `L_1` and
-  `L_2` share the coordinate `p`, whose sum is formed once per operand.
-  Reconstructing the 10 complex coordinates other than `Upsilon_1` and
-  `Upsilon_2` costs 30 more.
-- **Output:** 12 complex additions for the six intermediate quantities and
-  the six outputs other than `h_hat`, 2 real additions for `phi` and `chi`,
-  and 3 for each part of `h_hat`, for 32 real additions. The halvings are 4
-  for `Theta_±`, 8 for the outputs built from `Pi` and `Sigma`, and 3 for
-  `eta_2`, `p_2` and `omega_2`.
-
-| Stage | M | A | E |
-| --- | ---: | ---: | ---: |
-| Input linear maps | 0 | 36 | 0 |
-| Four complex cross products | 72 | 88 | 0 |
-| Output reconstruction | 0 | 32 | 15 |
-| Total | 72 | 156 | 15 |
-
-The leaf therefore uses **243 operations**. Because of the one-call root, a
-real product first reaches it at dimension 16, and a real product of
-dimension `N >= 16` evaluates `N/16` leaves. At dimension 8 the root calls
-`C_2`, which is the nonrecursive map alone and costs `(18, 24, 0)`.
-
-### Closed forms
-
-With the leaf counts `(M_3, P_3, H_3) = (72, 156, 15)`, the recurrences
-give, for `K = 2^k` and `k >= 3`,
-
-```text
-M_k = (36k - 81) K/4 + 18
-P_k = (76k - 168) K/4 + 36
-H_k = (16k - 37) K/8 + 4.
-```
-
-A real product of dimension `N >= 16` adds the following to one call of
-`C_(n-1)`, with `m = N/2 - 1`:
-
-- the real nonrecursive map at the root: `6m` products and `4m - 1`
-  additions;
-- combining its vector outputs with `Re_C(Z)` and `Im_C(Z)`: `2m` additions;
-- the splitting (1): `3N - 2` products and `3N - 3` additions.
-
-That is `6N - 8` products, `6N - 10` additions and no halvings, so
-
-```text
-M = M_(n-1) + 6N - 8,     A = P_(n-1) + 6N - 10,     E = H_(n-1),
-```
-
-which gives the quasilinear formulas in [Operation counts](#operation-counts).
-
-### Cariow–Cariowa implementation
-
-Cariow–Cariowa is implemented through dimension 1024. Through dimension 64 it
-uses generated straight-line kernels with the sign pattern built in. From
-dimension 128 on, the same operations run as loops over generated
-sign-correction tables, which need gathered loads. Fewer arithmetic
-operations do not make this access pattern faster; see
-[benchmark.md](benchmark.md).
+The finite-field kernels end the recursion at level 2, with the nonrecursive map
+alone, rather than at the octonion leaf, and each of their coefficient
+operations is a polynomial multiplication, reduction, or addition whose cost
+depends on the characteristic and the degree. The real counts above therefore do
+not describe them, although the quasilinear algorithm still uses `O(N log N)`
+operations in `F` and direct multiplication `O(N^2)`.
 
 ## Fused sums of products
 
 A fused sum computes `S = x_0 y_0 + ... + x_(P-1) y_(P-1)` for `P` pairs of
-real-coefficient elements without forming the products. `fastcd_mul_sum_f64`
+real-coefficient elements without forming the products, and `fastcd_mul_sum_f64`
 and `fastcd_covariance_f64` are built on it.
 
 ### The sum schedule
 
-Every multiplication algorithm above is bilinear: it applies linear maps `A`
-and `B` to the operands, multiplies the results coordinate by coordinate,
-and applies a linear map `C` to the products,
+Every multiplication algorithm above is bilinear: it applies linear maps `In_1`
+and `In_2` to the operands, multiplies the results coordinate by coordinate, and
+applies a linear map `Out` to the products,
 
 ```text
-x y = C((A x) o (B y)),
+x y = Out((In_1 x) o (In_2 y)),
 ```
 
 where `o` is the coordinatewise product. Summing over the elements gives
 
 ```text
-S = C(sum_p (A x_p) o (B y_p)).
+S = Out(sum_p (In_1 x_p) o (In_2 y_p)),
 ```
 
-Each multiplication is accumulated over the elements, and `C` is applied
-once, to the accumulated sums. For one element that leaves the additions
-inside `A` and `B` and one multiply-add per multiplication. The additions of
-`C`, which are about half of the quasilinear total, are spent once per sum
-and do not depend on `P`.
+so each multiplication can be accumulated over the elements, and `Out` applied
+once, to the accumulated sums. For each element only the additions inside `In_1`
+and `In_2` and one multiply-add per multiplication remain, while the additions
+of `Out`, about half of the quasilinear total, are spent once per sum and do not
+depend on `P`.
 
-For the direct algorithm `A` and `B` only select coordinates, the
+For direct multiplication, `In_1` and `In_2` only select coordinates, the
 accumulated sums are the entries `sum_p x_p[i] y_p[j]` of the matrix of real
-cross moments, and `C` adds them with the basis signs. For the quasilinear
-algorithm the accumulated sums are those of the nonrecursive maps: the map
-`B_n` at the root and the three real evaluations `Delta`, `Omega` and `W` at
-every node below. `C` then consists of the complex recovery, the half-sums
-`(Z_+ ± Z_-)/2` and the additions of `f`, `lambda` and `g`, applied from the
+cross moments, and `Out` adds them with the basis signs. For quasilinear
+multiplication, the accumulated sums are those of the nonrecursive maps, of
+`B_n` at the root and of the three real evaluations `Delta`, `Omega`, and `W` at
+every node below, and `Out` consists of the complex recovery, the half-sums
+`(Z_+ +/- Z_-)/2`, and the additions of `f`, `lambda`, and `g`, applied from the
 leaves to the root.
 
-### The leaf
+### The leaf of the sum
 
-The single-product kernel ends in the octonion leaf, which has 72
-multiplications and 58 input additions for `C_3`. Its 36 accumulated sums
-exceed the registers of one loop, so the fused sums evaluate `C_3` instead
-as a complex seven-dimensional cross product by the three-product formula:
-three real seven-dimensional cross products, of the real parts, of the
-imaginary parts and of their sums. Each has 42 multiplications and 7
-accumulated sums, and the sums of the third cost 14 additions, so the leaf
-has 126 multiplications and 14 input additions.
+The octonion leaf would leave 36 sums to accumulate at each leaf, one for each
+coordinate of its twelve real cross products, which is more than the kernels can
+keep in registers. The fused sums therefore evaluate `C_3` instead as the
+seven-dimensional cross product of the two complex imaginary octonions, by the
+three-product formula: three real seven-dimensional cross products, of the real
+parts, of the imaginary parts, and of their sums. Each has 42 multiplications
+and 7 accumulated sums, and forming the operands of the third costs 14
+additions, so the leaf has 126 multiplications and 14 input additions.
 
-### Operation counts
+### Counts per element
 
-For one element, `M` counts multiply-adds and `I` the additions of the input
-maps. Two further kinds of addition are counted separately. The kernels keep
-partial sums in registers and add them to the accumulated sums once per
-block of 64 elements; `B` counts these additions per block, so that an
-element costs `B/64` of them. The output additions of `C` are spent once per
-sum and are not counted here.
+For one element, the root, with the splitting (1) and the real map `B_n`, uses
+`6N - 8` multiplications and no additions. A node `C_k` with `k >= 4` and
+`m = 2^(k-1) - 1` uses `18m` multiplications, `8m` additions for the operands of
+its two children, and `6m` additions for the sums of real and imaginary parts:
+four for each coordinate index and two for `gamma` and `delta`, which this
+schedule forms again for every coordinate. The leaf `C_3` uses 126
+multiplications and 14 additions, and at `N = 8`, where the recursion ends in
+`C_2`, the complex nonrecursive map uses 18 multiplications and 6 additions. The
+output additions of `Out` are spent once per sum and are not counted here:
 
-- **Root:** the splitting (1) and the real map `B_n` use `6N - 8`
-  multiplications and no additions.
-- **Node `C_k`, `k >= 4`:** with `m = K/2 - 1`, the three real nonrecursive
-  maps use `18m` multiplications. The operands of the two children cost `8m`
-  additions, and the sums of real and imaginary parts cost `6m`: four for
-  the coordinates and two for `gamma` and `delta`, which this schedule forms
-  again for every coordinate.
-- **Leaf `C_3`:** 126 multiplications and 14 additions. At `N = 8` the
-  recursion ends in `C_2`, the complex nonrecursive map alone, with 18
-  multiplications and 6 additions.
+| N | Direct multiplications | Quasilinear multiplications | Quasilinear additions | Quasilinear total |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | 4 | 4 | 0 | 4 |
+| 4 | 16 | 16 | 0 | 16 |
+| 8 | 64 | 58 | 6 | 64 |
+| 16 | 256 | 214 | 14 | 228 |
+| 32 | 1024 | 562 | 126 | 688 |
+| 64 | 4096 | 1402 | 462 | 1864 |
+| 128 | 16384 | 3370 | 1358 | 4728 |
+| 256 | 65536 | 7882 | 3598 | 11480 |
+| 512 | 262144 | 18058 | 8974 | 27032 |
+| 1024 | 1048576 | 40714 | 21518 | 62232 |
 
-| N | Direct `M` | Quasilinear `M` | Quasilinear `I` | Quasilinear `M + I` | Quasilinear `B` |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 2 | 4 | 4 | 0 | 4 | 32 |
-| 4 | 16 | 16 | 0 | 16 | 80 |
-| 8 | 64 | 58 | 6 | 64 | 248 |
-| 16 | 256 | 214 | 14 | 228 | 704 |
-| 32 | 1024 | 562 | 126 | 688 | 1352 |
-| 64 | 4096 | 1402 | 462 | 1864 | 3384 |
-| 128 | 16384 | 3370 | 1358 | 4728 | 8216 |
-| 256 | 65536 | 7882 | 3598 | 11480 | 19416 |
-| 512 | 262144 | 18058 | 8974 | 27032 | 44888 |
-| 1024 | 1048576 | 40714 | 21518 | 62232 | 101976 |
-
-Each partial sum is a vector of eight lanes, so one merge is eight of
-these additions. `B/64` is between 2% and 5% of `M + I` from dimension 16
-on. The direct sum has `B = 16N` at dimensions 4 through 16, where its loops
-are generated with two partial sums per output coordinate. Above that the direct sum is a plain
-loop over the `N^2` products that merges each of them separately, so its
-`B` is `8 N^2`; it serves explicit requests and is never selected
-automatically.
-
-The per-element `M + I` counts agree through `N = 8`, and the quasilinear sum
-has fewer operations from `N = 16` on. `tools/check_fused_sum_counts.py`
-instruments the kernel source and checks `M`, `I` and `B` through dimension
-1024.
-
-### Layout and kernels
-
-The kernels hold one coordinate of eight elements in a vector, so they work
-on coordinate planes: row `i` of an operand holds coordinate `i` of
-consecutive elements. Elements are taken 64 at a time. For each such block,
-one pass accumulates the root together with the top node `C_(n-1)` and
-writes the operands of that node's two children into the workspace; every
-lower node overwrites its operand rows with the operands of its children
-while it accumulates its own nonrecursive map; and the leaves accumulate
-their cross products. Partial sums stay in registers during a pass over one
-coordinate and are then added to the accumulated sums in the workspace.
-After the last block, the output additions run once, still on vectors of
-eight partial sums, and each output coordinate is the sum of its eight
-lanes.
-
-Records are rewritten into planes one block at a time, and an affine map of
-the coordinates, if one is given, is applied in the same step. The
-workspace holds the accumulated sums, `N + 3 n N / 2` vectors to leading
-order, one block of `2N` rows and the temporaries of the output additions,
-so it grows like `N log N` and does not depend on `P`.
+The per-element counts of the two algorithms agree through `N = 8`, and the
+quasilinear sum has fewer operations from `N = 16` on.
+`tools/check_fused_sum_counts.py` instruments the kernel source and checks these
+counts, together with the additions that the kernels spend merging partial sums,
+through dimension 1024.
 
 ### Covariance
 
@@ -627,216 +574,41 @@ cov(x, y) = (1 / (P - ddof)) sum_p (x_p - mean(x)) conjugate(y_p - mean(y)).
 ```
 
 Its scalar coordinate is `sum_i cov(x[i], y[i])`, the sum of the real
-covariances of the coordinates. In exact arithmetic `cov(x, x)` has scalar
-coordinate equal to the total variance and vanishing imaginary part; in
-floating point the imaginary coordinates are rounding residues of the size
-of the errors in [stability.md](stability.md#fused-sums). At dimension 2,
-with elements `(real, imag)`, it is the covariance
+covariances of the coordinates. In exact arithmetic `cov(x, x)` has the total
+variance as its scalar coordinate and a vanishing imaginary part, while in
+floating point its imaginary coordinates are rounding residues of the size of
+the errors in [Accuracy of fused sums](stability.md#accuracy-of-fused-sums). At
+dimension 2, with elements `(real, imag)`, it is the covariance
 `E[(z - mean(z)) conjugate(w - mean(w))]` of complex samples.
 
-The centering and the conjugate are an affine map of the records, applied as
-they are read, and the sum is a fused sum. Two details reduce rounding error.
+The centering and the conjugate form an affine map of the elements, which is
+applied as they are read, and the sum is a fused sum. Two details reduce the
+rounding error:
 
-- **The mean is kept in two parts.** With `r` the first record and `d` the
-  mean of the differences `x_p - r`, the mean is `r + d`, but that sum is
-  not formed, because it need not be representable: for coordinates near
-  `2^53` with a spread of a few units, it would round away the part that
-  matters. Each record is centered as `(x_p - r) - d`.
-- **Extreme magnitudes are scaled.** Scaling uses the largest magnitude
-  among each sample's varying coordinates. If this magnitude lies outside
-  `[2^-257, 2^256)`, the sample is scaled toward unit magnitude by a power
-  of two and the result is scaled back at the end. Small coordinates can
-  underflow when the range of magnitudes is wide.
-
-## Real-coefficient implementation
-
-### Workspace
-
-Workspace sizes are `O(N)` doubles and do not depend on the batch size: a
-batch reuses one workspace for all its products, and the paired SIMD batch
-kernels pack operands in a fixed internal buffer. With the default leaf
-cutoffs:
-
-- **Direct and scalar quasilinear:** none through `N = 16`. Above that,
-  half-dimensional temporaries at each recursion level above the
-  straight-line leaves, `2N - 32` doubles in all.
-- **Single quasilinear product with SIMD pairing:** none through `N = 16`.
-  Above that, `5N - 63` doubles: `3N` for the transformed inputs and the
-  outputs of both recursive calls of `C_(n-1)`, stored in pair layout;
-  `2N - 64` for the paired recursion below them; and one word for alignment.
-- **Cariow–Cariowa:** none through `N = 64`. From `N = 128`, `2N` doubles
-  for the two transformed operands.
-- **Associator and operator commutators:** `2N` more, for two intermediate
-  elements.
-- **Fused sums:** see [Layout and kernels](#layout-and-kernels); the length
-  grows like `N log N`.
-
-Programs should obtain these sizes from the
-[workspace queries](c-api.md#workspace-queries) rather than from these
-formulas.
-
-### SIMD kernels
-
-The scalar and two-lane SIMD kernels use the same generated leaves and the
-same recursion. In a batch, each lane holds a separate product, so batching
-does not change the operations per product. A single quasilinear product
-above dimension 16 instead places the two recursive calls of `C_(n-1)` in
-the two lanes and continues with the paired kernel. Either way, each
-coordinate is computed by the same operations in the same order, so finite
-results agree bitwise between scalar, single-product SIMD and batched
-evaluation; NaN payloads may differ. The [C API reference](c-api.md)
-describes the packing storage and the cases where batches use the scalar
-kernels.
-
-### Automatic algorithm selection
-
-For real coefficients, `fastcd_mul_f64` and ordinary Python multiplication
-choose the algorithm by dimension, following the single-core benchmark
-reported in the README. Single products and batches have separate tables,
-because the two modes rank the algorithms differently below dimension 32:
-
-| N | Single products | Batches |
-| ---: | --- | --- |
-| 2 | quasilinear | quasilinear |
-| 4 | direct | quasilinear |
-| 8 | direct | direct |
-| 16 | direct | Cariow–Cariowa |
-| 32 and above | quasilinear | quasilinear |
-
-Fused sums use direct through `N = 8` and quasilinear above, the same rule
-for every kernel. At `N = 16` the quasilinear sum has fewer operations (see
-[Fused sums of products](#fused-sums-of-products)). In the
-[sums benchmark](benchmark.md#fused-sums) the direct sum, one loop without
-input additions, was nevertheless faster there with the AVX-512 kernel;
-with the AVX2 kernel the two were level, and with the portable kernel the
-direct sum took nearly twice as long.
-Builds without SIMD pairing use the single-product choices for batches.
-`fastcd_default_algorithm` and `fastcd_default_batch_algorithm` report the
-choices. To check them on your CPU, the [benchmark](benchmark.md) times all
-three algorithms in both modes on one input corpus.
-
-## Complex coefficients
-
-Direct multiplication evaluates the doubling formula with complex
-arithmetic. Quasilinear multiplication identifies `iota` with the
-coefficient `i`, applies the complex kernel `C_n` directly to the imaginary
-parts `X` and `Y`, and adds the remaining terms of (1) in complex
-arithmetic. The one-call root needs real halves `u, v, s, t`, so over C both
-recursive calls are made at every level, including the top.
-
-The benchmark can also time a variant built from three real products. For
-`x = a + i b` and `y = c + i d` with `a, b, c, d` in the real algebra, it
-computes `ac`, `bd` and `(a + b)(c + d)` and returns
-`(ac - bd) + i ((a + b)(c + d) - ac - bd)`. Its measured time includes
-packing and reconstruction.
-
-A complex product needs `10N + 64` doubles of workspace, and the associator
-and operator commutators need `4N` more for two complex intermediates. A
-batch reuses one workspace for all its products.
-
-## Finite fields
-
-The finite-field kernels were developed for fastCD. They use the same basis
-and doubling formula as the real kernels, with exact arithmetic on the
-residues described in [Coefficient storage](#coefficient-storage).
-
-The quasilinear kernel runs the recursion above with coefficients in
-`F[iota]/(iota^2 + 1)`. The paper's construction asks only for a commutative
-coefficient ring, finite-dimensional over F, that contains a square root of
-`-1` and has an F-linear projection onto F. It need not be a field, so this
-works for every odd p, whether or not `-1` is already a square in F. In odd
-characteristic every power of 2 is invertible, so the halvings are exact.
-
-The kernels are specialized by extension degree. On x86, SSE4.1, AVX2 and
-AVX-512 versions are compiled separately and chosen at run time by CPU
-features, characteristic, degree and dimension; a portable kernel covers
-other targets. The C library allocates no heap memory and keeps no global
-state.
-
-Direct multiplication evaluates the doubling formula recursively. Below
-dimension 16, and wherever no packed kernel serves the CPU and field, it uses
-scalar field arithmetic with quaternion-sized leaves, specialized by degree.
-From dimension 16 on it uses the packed field arithmetic of the quasilinear
-kernels, with leaves of eight coordinates. Quasilinear multiplication uses
-`O(N log N)` operations in F and `O(N)` caller workspace; direct uses
-`O(N^2)` operations. The real-coefficient counts on this page are not instruction
-counts for these kernels: polynomial multiplication, reduction and
-representation conversions add costs that depend on the characteristic and
-degree, so the speedup over direct varies between fields.
-
-Finite-field workspace depends on the kernel and degree, and a batch reuses
-one workspace. Field contexts are owned by the caller and immutable after
-setup, and calls with separate workspaces can run concurrently. Query
-workspace lengths rather than hard-coding them.
+- **The mean is kept in two parts.** With `r` the first element and `d` the mean
+  of the differences `x_p - r`, the mean is `r + d`, but that sum is never
+  formed, because it need not be representable: for coordinates near `2^53` with
+  a spread of a few units, rounding it would lose the part that matters. Each
+  element is centered as `(x_p - r) - d` instead, where `x_p - r` is exact when
+  `x_p` and `r` are close and `d` is small.
+- **Extreme magnitudes are scaled.** If the largest magnitude among the varying
+  coordinates of a sample lies outside `[2^-257, 2^256)`, the sample is scaled
+  toward unit magnitude by a power of two, and the result is scaled back at the
+  end. Small coordinates can underflow when the range of magnitudes is wide.
 
 ## Floating point
 
-Real coefficients, and the real and imaginary parts of complex coefficients,
-are IEEE binary64 doubles. A product is computed by a sequence of rounded
-operations, so it is not correctly rounded as a whole, and different
-algorithms can return different results for the same operands.
+Real coefficients, and the real and imaginary parts of complex coefficients, are
+IEEE binary64 values, so a product is computed by a sequence of rounded
+operations and is not correctly rounded as a whole, and different algorithms can
+return different results for the same operands. The [stability
+study](stability.md) measures the accuracy of the algorithms against exact
+products and explains the order in which they add their long sums, and
+finite-field arithmetic is exact.
 
-### Accumulation order
-
-For real coefficients, the algorithms add their terms in these orders:
-
-- **Direct:** the generated leaves add the terms of each output coordinate
-  in sequence. Above the leaf cutoff, each level of the doubling recursion
-  adds or subtracts half-dimensional products coordinatewise.
-- **Quasilinear:** every sum whose length grows with `N`, namely the scalar
-  output of each nonrecursive map and the pairing `<X, Y>` in (1), adds its
-  terms in sequence within blocks of eight and combines the block totals
-  with a balanced tree. The generated leaves have fixed schedules.
-- **Cariow–Cariowa:** the Walsh–Hadamard transforms run in butterfly stages,
-  and through dimension 64 the straight-line kernels fix the order of every
-  sum. From dimension 128 on, the correction sum of each output is split
-  into blocks of 256 indices. Within a block, the terms go to four
-  interleaved partial sums that are combined pairwise; above dimension 256,
-  a balanced tree combines the block totals.
-
-- **Fused sums:** element `p` contributes to lane `p mod 8` of every
-  accumulated sum. Within a block of 64 elements a lane adds its terms in
-  sequence; the block totals are added in sequence; the output additions
-  are applied lane by lane; and the eight lanes of an output coordinate are
-  added as `((l0 + l1) + (l2 + l3)) + ((l4 + l5) + (l6 + l7))`. Each term is
-  added by a fused multiply-add, except in portable builds for targets
-  without that instruction.
-
-The complex-coefficient pairing is accumulated in the same way as the
-quasilinear sums. None of these orders changes the operation counts. In the
-quasilinear product and in large Cariow–Cariowa corrections, the balanced
-trees make the rounding depth of long sums grow like `log N` rather than
-`N`; [stability.md](stability.md) measures the resulting accuracy against an
-exact reference.
-
-### Benchmark tolerance
-
-The real-coefficient benchmark compares every coordinate with an independent
-binary64 evaluation of the doubling formula and accepts
-
-```text
-|computed - reference| <= 128 * DBL_EPSILON * N * ||x||_2 * ||y||_2.
-```
-
-This bounds the disagreement between two floating-point evaluations. It is
-not an error against the exact product and not a general error bound.
-
-### Overflow and special values
-
-Intermediate values such as transformed sums, pairings and half-sums can
+Intermediate values such as transformed sums, pairings, and half-sums can
 overflow or lose precision even when the final result would not, so operands
-should be scaled away from the exponent limits. Over R, norms,
-normalization, reciprocals and squares use scaled evaluation to avoid
-unnecessary intermediate overflow. The [C API reference](c-api.md) describes
-how each function handles NaN, infinities and signed zeros.
-
-### Complex and finite-field checks
-
-Finite-field arithmetic is exact. The
-[field benchmark](benchmark.md#complex-and-finite-fields) checks every
-finite-field product against an independent schoolbook polynomial
-implementation, and every complex product against a long-double evaluation
-of the doubling formula with a norm-scaled tolerance. An optional protocol
-compares the finite-field arithmetic with FLINT (Fast Library for Number
-Theory), an independent exact-arithmetic C library; see the
-[benchmark guide](benchmark.md#comparison-with-flint).
+should be scaled away from the exponent limits. Over R, norms, normalization,
+reciprocals, and squares use scaled evaluation to avoid unnecessary intermediate
+overflow, and the [C API reference](c-api.md) describes how each function
+handles NaN, infinities, and signed zeros.

@@ -1,18 +1,18 @@
 cff-version: 1.2.0
 message: "If you use fastCD in your work, please cite it using this metadata."
 type: software
-title: "fastCD: fast Cayley–Dickson arithmetic over real and complex numbers and finite fields"
+title: "fastCD: fast Cayley-Dickson arithmetic over real and complex numbers and finite fields"
 abstract: >-
   A C library and NumPy-compatible Python extension for multiplication in the
-  Cayley–Dickson tower over the real numbers, the complex numbers, and
+  Cayley-Dickson tower over the real numbers, the complex numbers, and
   odd-characteristic finite fields, including a quasilinear O(N log N)
   multiplication algorithm alongside the direct recursion and the
-  Cariow–Cariowa algorithm.
+  Cariow-Cariowa algorithm.
 authors:
   - family-names: Lemley
     given-names: Harrison
-version: 1.5.0
-date-released: 2026-11-21
+version: 1.5.1
+date-released: 2026-11-22
 license: MIT
 repository-code: "https://git.tanuki-cd.com/algebraity/fastCD"
 keywords:

@@ -7,7 +7,7 @@
 #include "fused_sum.h"
 #include "pair.h"
 
-#define FASTCD_VERSION "1.5.0"
+#define FASTCD_VERSION "1.5.1"
 
 /* ---------- Definitions of private structs ---------- */
 

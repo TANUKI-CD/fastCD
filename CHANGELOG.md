@@ -5,6 +5,13 @@ All notable changes to fastCD are recorded in this file. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The C library and the
 `pyfastcd` package share one version number, defined in `src/fastcd.c`.
 
+## [1.5.1] - 2026-11-22
+
+### Changed
+
+- Rewrote documentation for increased flow, clarity, and readability.
+- Reorganized README and shortened some sections.
+
 ## [1.5.0] - 2026-11-21
 
 ### Added
@@ -65,15 +72,15 @@ All notable changes to fastCD are recorded in this file. The project follows
   the Python layer when the operands share one parent, or when an element is
   combined with a builtin scalar or a scalar of its coefficient field. In
   interpreter timings on the Dell PowerEdge T440 on 2026-11-12, a product of
-  two elements at dimension 8 took about 0.22 µs over C and 0.24 µs over
-  F_7, against 41 µs and 51 µs in 1.3.1 and 0.13 µs for the C kernel call.
+  two elements at dimension 8 took about 0.22 us over C and 0.24 us over
+  F_7, against 41 us and 51 us in 1.3.1 and 0.13 us for the C kernel call.
 - `ElementArray` operations over every coefficient field spend less time
   outside the kernels. Operands are expanded with NumPy only when two
   different batch shapes are combined, the kernels repeat an operand that
   holds one record, and contiguous finite-field batches are validated in one
   pass. In the same timings, a product of two one-record arrays at dimension
-  8 took about 1.9 µs over R and 2.3 µs over C and F_7, against 23 µs, 30 µs
-  and 32 µs, and batches of 4096 products at dimension 8 ran within 4% of
+  8 took about 1.9 us over R and 2.3 us over C and F_7, against 23 us, 30 us
+  and 32 us, and batches of 4096 products at dimension 8 ran within 4% of
   the batch kernels over every coefficient field.
 - `tools/verify_octonion_leaf.py` has been reformatted to pass CI linting.
 
@@ -116,7 +123,7 @@ All notable changes to fastCD are recorded in this file. The project follows
   which is not distributed.
 - The benchmark run of 2026-11-09 in `benchmark-results/t440-20261109/`,
   which the README tables and `docs/benchmark.md` report.
-- `tools/check_cariow_counts.py`, which checks the Cariow–Cariowa operation
+- `tools/check_cariow_counts.py`, which checks the Cariow-Cariowa operation
   counts in `docs/mathematics.md` through dimension 1024, and a CI job that
   runs it.
 
@@ -125,12 +132,12 @@ All notable changes to fastCD are recorded in this file. The project follows
 - Floating-point sums whose length grows with the dimension are accumulated
   in blocks of eight with a balanced tree between blocks: in the quasilinear
   kernels, in the complex-coefficient pairing shared by quadratic norms,
-  squares, anticommutators and reciprocals, and in the Cariow–Cariowa
+  squares, anticommutators and reciprocals, and in the Cariow-Cariowa
   correction sums above dimension 256. Real quasilinear products from
   dimension 16 upward, complex quasilinear products from dimension 4
   upward, and the complex-coefficient operations that use the pairing from
   dimension 16 upward can round differently from 1.2.0, as can
-  Cariow–Cariowa results at dimensions 512 and 1024. Direct and
+  Cariow-Cariowa results at dimensions 512 and 1024. Direct and
   finite-field results, the public API, workspace sizes and the published
   arithmetic counts are unchanged.
 - Over C and finite fields, AUTO selects direct multiplication up to
@@ -248,7 +255,7 @@ All notable changes to fastCD are recorded in this file. The project follows
   Equal hashable scalars and `Element` values now remain interchangeable in
   dictionaries and sets. `ElementArray` uses the same comparison rules;
   supplying `__float__` alone does not imply numeric equality.
-- Cariow–Cariowa batches return immediately when SIMD pairing processes every
+- Cariow-Cariowa batches return immediately when SIMD pairing processes every
   record, avoiding out-of-range tail pointers for minimally allocated padded
   batches. Multiplication arithmetic and the archived paper data are unchanged.
 - The kernel generator's fixed-length `zip` traversals explicitly use
@@ -263,8 +270,8 @@ The first public release.
 
 ### Added
 
-- C library `libfastcd`: direct, Cariow–Cariowa, and quasilinear
-  Cayley–Dickson multiplication with benchmark-derived automatic selection,
+- C library `libfastcd`: direct, Cariow-Cariowa, and quasilinear
+  Cayley-Dickson multiplication with benchmark-derived automatic selection,
   strided batch products with two-lane SIMD pairing, coordinate and structural
   operations, cross products, commutators, associators, indexed basis
   operations, and matrix-free operator commutators.
@@ -279,10 +286,10 @@ The first public release.
   through the paired kernel, bitwise identical for finite results to the
   scalar and batched forms; the quasilinear workspace query grows
   accordingly. The `FASTCD_CC_DOUBLING=1` tuning option evaluates
-  Cariow–Cariowa products through one doubling step with paired
+  Cariow-Cariowa products through one doubling step with paired
   half-dimensional kernels, and `benchmarks/run_dedicated.sh` scripts a
   complete build, test, and benchmark run.
-- Cariow–Cariowa multiplication is available through dimension 1024 via a
+- Cariow-Cariowa multiplication is available through dimension 1024 via a
   table-driven kernel with the same operations as the generated kernels; it
   needs `2N` workspace doubles above dimension 64 and is not recommended
   there. The benchmark times it at every supported dimension by default;

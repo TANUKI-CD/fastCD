@@ -35,7 +35,7 @@ files match.
 ## Arithmetic checks
 
 For quasilinear arithmetic changes, run
-`python3 tools/check_quasilinear_counts.py`; for Cariow–Cariowa arithmetic
+`python3 tools/check_quasilinear_counts.py`; for Cariow-Cariowa arithmetic
 changes, run `python3 tools/check_cariow_counts.py`. These optional
 development checks require a C++ compiler (`c++` by default, or `CXX`) and
 instrument the scalar templates and generated kernels through dimension

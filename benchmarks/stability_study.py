@@ -329,6 +329,9 @@ class Study:
 
         text = document.read_text()
         for label, name in archive.SECTION_FILES.items():
+            # Like the checker, update only the tables the document shows
+            if archive.markers(label)[0] not in text:
+                continue
             text = archive.replace_section(text, label, (self.output / name).read_text())
         document.write_text(text)
         self.log(f"document: updated {self.relative(document)}")

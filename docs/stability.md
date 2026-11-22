@@ -1,115 +1,103 @@
 # Numerical stability
 
-## Summary
+Over the real and complex numbers, fastCD computes in IEEE binary64 arithmetic,
+where every addition and multiplication rounds its result. Two algorithms that
+compute the same exact product therefore return slightly different results, and
+an algorithm that saves operations by reorganizing the arithmetic can lose
+accuracy in the process. This page asks whether that happens to the quasilinear
+product, which fastCD selects automatically at every large dimension,
+investigating whether its error is larger than that of direct multiplication,
+which evaluates the defining formula. Finite-field arithmetic is exact, so the
+question does not arise there and no measurements of error are needed in that
+setting.
 
-In the quasilinear product, every floating-point sum whose length grows with
-the dimension adds its terms in blocks of eight and combines the block totals
-with a balanced tree. Above dimension 256, the Cariow–Cariowa correction sums
-combine their block totals the same way. The number of additions that any one
-term passes through on its way to the total then grows logarithmically with
-the length of the sum instead of linearly.
+The conclusion is that, measured against exact products, the error of the
+quasilinear product is not much larger than that of direct. On inputs with
+random coordinates, its median error is at most 1.6 times that of direct
+multiplication over R and 1.8 times over C at every dimension tested, and it
+grows slowly with the dimension. The reason is the order in which fastCD adds
+long sums, and the sections below explain why that order matters and how fastCD
+chooses it, describe how accuracy was measured, report the results for products
+and for fused sums of products, give the cost of the summation order, and end
+with what the results mean for code that uses fastCD.
 
-A study measured the effect on 13,584 cases against an exact reference. It
-compared three methods on the same stored operands: quasilinear
-multiplication with sequential accumulation (S), quasilinear multiplication
-with balanced accumulation (B), and direct multiplication (D). Errors are in
-units of `u ||x|| ||y||`, where `u = 2^-53` is the unit roundoff of binary64
-and the norms are Euclidean (see [Error measures](#error-measures)). The
-results describe the measured corpus; they are not bounds.
+## Why the order of a sum matters
 
-- On dense inputs (Gaussian and uniform coordinates), the median error of B
-  is within a factor of two of that of D at every tested dimension.
-- The largest error of B anywhere in the corpus is 3.7 over R and 4.1 over
-  C. The largest errors of D are 2.9 and 2.2, and those of S are 78 and 18.
-- From dimension 64 up, balanced accumulation makes real products at most
-  6% slower with the default SIMD kernels and 9–13% slower without them.
-  Complex products are 5–11% slower, about as much as the timing noise
-  between the two builds.
+A floating-point sum rounds after every addition, and each rounding can change
+the partial sum by up to `u = 2^-53` relative to its value. A term added early
+in a sum therefore passes through every later addition and is exposed to every
+later rounding, and the *rounding depth* of a sum, the largest number of
+additions that any one term passes through on its way to the total, measures
+that exposure. Added in sequence, a sum of `m` terms has rounding depth `m - 1`,
+and its error can grow in proportion to its length.
+
+Direct multiplication adds only short chains, evaluating the doubling formula
+`(a, b)(c, d) = (ac - conjugate(d) b, da + b conjugate(c))` recursively. For
+real coefficients, generated kernels at dimension 16 and below add the terms of
+each output coordinate in sequence, at most 16 of them, and each level of the
+recursion above adds one more term to every coordinate. At dimension `N >= 16`
+the rounding depth of direct multiplication is therefore at most
+`15 + log2(N / 16)`, which is 22 at dimension 2048.
+
+The quasilinear product, in contrast, contains sums whose length grows with the
+dimension. Writing `alpha` and `beta` for the scalar parts of `x` and `y`, `X`
+and `Y` for their imaginary parts, `<X, Y>` for the sum of the products of the
+coordinates of `X` and `Y`, and `X cross Y` for their alternating product, it
+splits a product as `xy = (alpha beta - <X, Y>) + alpha Y + beta X + X cross Y`
+(see [How quasilinear multiplication
+works](mathematics.md#how-quasilinear-multiplication-works)). The pairing
+`<X, Y>`, which gives the scalar coordinate of the product, is a sum of `N - 1`
+terms. The alternating product is computed recursively, and at every level of
+the recursion the *nonrecursive map*, the part of the level that needs no
+recursive call, produces one coordinate as a sum of up to `N/2 - 1` terms. Added
+in sequence, a term of the pairing at dimension 2048 would pass through 2,046
+additions, against at most 22 in direct multiplication, so these long sums are
+where the quasilinear product could lose accuracy over the direct algorithm.
 
 ## Balanced accumulation
 
-### Which sums are balanced
+fastCD adds the long sums of the quasilinear product by *balanced accumulation*,
+in which the terms are added in sequence in blocks of eight and the block totals
+are combined pairwise, like the digits of a binary counter: whenever two totals
+cover the same number of blocks, they are added. A sum of `m` terms still takes
+`m - 1` additions, but its rounding depth is at most
+`8 + ceil(log2(ceil(m / 8)))`. For the pairing at dimension 2048, that is 16
+instead of 2,046, comparable to the depth of direct multiplication.
 
-The quasilinear product, described in
-[mathematics.md](mathematics.md#how-quasilinear-multiplication-works),
-contains four kinds of sum whose length grows with the dimension:
+Balanced accumulation covers every sum of growing length in the quasilinear
+product, over R and over C, and over C it also covers the pairing of complex
+coefficients that the quadratic norm, the square, the anticommutator, and the
+reciprocal use. Their real counterparts, by contrast, add their sums in
+sequence: `fastcd_inner_f64`, the square, and the anticommutator directly, and
+the norm functions and the reciprocal with scaling to avoid overflow. The rest
+of fastCD's arithmetic needs no balancing, because direct multiplication, the
+fixed formula at the bottom of the quasilinear recursion called the octonion
+leaf, and finite-field arithmetic contain no sums of growing length.
 
-| Sum | Terms | Code |
-|:---|---:|:---|
-| The scalar output `<s, v> - <t, u>` of the nonrecursive map, accumulated separately in each of the three real evaluations `Delta`, `Omega` and `W` in one call to `C_k` | `K/2 - 1` | `complex_cross_node` in `src/quasilinear_impl.h` and its SIMD counterpart |
-| The scalar output `lambda = <s, v> - <t, u>` of the real nonrecursive map at the one-call root | `N/2 - 1` | `ql_cross_recursive` |
-| The pairing `<X, Y>` in `xy = (alpha beta - <X, Y>) + alpha Y + beta X + X cross Y` | `N - 1` | `imaginary_dot` |
-| Both parts of the complex-coefficient pairing `sum_i x[i] y[i]` | `N - 1` | `dot_range` in `src/complex.c` |
+The algorithm of Cariow and Cariowa, available for real coefficients, has long
+sums of its own. It computes each output coordinate as an entry of a
+Walsh-Hadamard convolution minus twice a *correction sum*, which adds the
+products selected by a sign pattern from the `N` coordinate indices. From
+dimension 128 on, the indices of a correction sum are taken in blocks of 256,
+and within a block the selected terms go to four interleaved partial sums that
+are combined pairwise at the end of the block. Above dimension 256, where a
+correction sum spans more than one block, the block totals are combined by
+balanced accumulation.
 
-Here `K = 2^k` is the dimension of the call to `C_k`, and each term of the
-first two sums is one difference `s_i v_i - t_i u_i`. Over C, quadratic
-norms, squares, anticommutators and reciprocals use the complex-coefficient
-pairing, so they are balanced as well. Over R, `fastcd_inner_f64`, the norm
-functions, `fastcd_square_f64` and `fastcd_anticommutator_f64` use
-sequential sums. The [octonion leaf](mathematics.md#the-octonion-leaf) and
-the direct kernels contain no floating-point sums of growing length, and
-finite-field arithmetic is exact, so none of them is affected.
-
-### The summation tree
-
-`src/balanced_sum.h` adds the terms of a sum left to right in blocks of
-eight. Each finished block total is combined with the earlier totals like a
-binary counter: whenever two totals cover the same number of blocks, they
-are added. When the terms run out, the remaining totals are added from the
-smallest up, together with the last, partial block. A sum of `m` terms uses
-`m - 1` additions, as a sequential sum does. Its rounding depth, the largest
-number of additions that any one term passes through on its way to the
-total, is at most `8 + ceil(log2(ceil(m / 8)))`, against `m - 1` for a
-sequential sum. An empty sum is zero and a single term is returned as is,
-so signed zeros are preserved.
-
-The generated leaves in `src/generated/` unroll the same tree. The scalar,
-two-lane SIMD, single-product and batched paths add every term in the same
-order, so their results agree bit for bit. The compile-time option
-`FASTCD_SUM_BLOCK`, used to time other block sizes (see [Cost](#cost)), sets
-the block size to 1, 4, 8 or 16; the generated leaves always use 8.
-
-### Cariow–Cariowa correction sums
-
-Cariow–Cariowa computes each output coordinate as an entry of a
-Walsh–Hadamard convolution minus twice a correction sum of at most
-`N/2 - 1` selected products. From dimension 128 on, where the table-driven kernel
-runs, a correction sum is divided into blocks of 256 indices. Within a
-block, the terms go to four interleaved partial sums, which are combined
-pairwise at the end of the block. Through dimension 256 a correction sum
-fits in one block. Above 256, a balanced tree combines the block totals, so
-the rounding depth of a correction sum is a constant plus `log2(N / 256)`
-instead of growing in proportion to `N`. In the sequential build every
-correction sum is a single block, whose four partial sums run over all of
-its terms.
-
-### Effect on results
-
-Balanced accumulation changes only the order of additions, so the operation
-counts and workspace sizes in [mathematics.md](mathematics.md) apply to both
-kinds of accumulation. Rounding can differ: quasilinear results from
-dimension 16 up, complex-coefficient results, and Cariow–Cariowa results at
-dimensions 512 and 1024 can round differently from sequential accumulation.
-Direct and finite-field results are identical under both.
+Every form of a product adds its terms in the same order: the scalar and the
+two-lane SIMD kernels, single products, and batches. Their results are therefore
+identical bit for bit, and the accuracy study below confirmed this on every
+operand pair it measured, for the quasilinear product and for Cariow-Cariowa.
 
 ## How accuracy was measured
 
-### Exact reference
-
-`benchmarks/stability.py` computes every reference product exactly, without
-using fastCD arithmetic. It derives the basis signs from the doubling
-formula in integer arithmetic and checks them on all 341 basis pairs through
-dimension 16 against a separate rational implementation of the doubling
-formula. It converts each binary64 coefficient to an integer times a power of
-two, sums the signed-XOR convolution in arbitrary-precision integers, and
-evaluates norms and errors with MPFR at 256 bits, or 512 bits for selected
-products as a check. Direct multiplication is measured on the same inputs
-for comparison; it is not the reference. The script needs NumPy and gmpy2,
-which the library does not use.
-
 ### Error measures
 
-For a computed product `z_hat` with exact value `z`, and `u = 2^-53`,
+The study measures errors with the Euclidean norm `||.||_2`, which over C is the
+Euclidean norm of the complex coefficients rather than the quadratic form of
+[The quadratic form](mathematics.md#the-quadratic-form), since that form can
+vanish on nonzero elements. For operands `x` and `y` with exact product `z` and
+computed product `z_hat`, it records four quantities:
 
 ```text
 E_abs = ||z_hat - z||_2
@@ -118,57 +106,98 @@ eta   = E_abs / (u ||x||_2 ||y||_2)
 chi   = ||x||_2 ||y||_2 / ||z||_2          (z nonzero)
 ```
 
-so that `E_rel = u eta chi`. Over C, `||.||_2` is the Euclidean norm of the
-complex coefficients, not the quadratic form `Q` of
-[mathematics.md](mathematics.md#the-quadratic-form), which can vanish on
-nonzero elements. Nonzero operands can have a zero product in real dimension
-16 and above and in complex dimension 2 and above. `E_rel` and `chi` are
-undefined for such products, so `eta` is the main measure in the tables.
+The main measure is `eta`, the error in units of `u ||x||_2 ||y||_2`, the scale
+set by the sizes of the operands, so that an `eta` of 1 is an error of one unit
+roundoff times the product of the operand norms. Unlike the relative error, it
+is defined for every operand pair, which matters because nonzero operands can
+have a zero product in real dimension 16 and above and in complex dimension 2
+and above.
 
-### Corpus
+The other two measures are related by `E_rel = u eta chi`, where `chi` is large
+when the exact product is much smaller than its operands, as it is near a zero
+divisor, so that there even a small `eta` means a large relative error.
 
-A case is one operand pair at one dimension, multiplied by S, B and D. The
-corpus has 13,584 cases, 6,976 real and 6,608 complex, drawn from 21 real
-and 19 complex families:
+### Exact reference
 
-- **Dense:** unit-norm Gaussian and uniform coordinates, and exactly
-  representable Rademacher coordinates.
-- **Sparse:** supports of one, four and `N/8` coordinates.
-- **Correlated:** `y = x`, and `y = ±x + 2^-40 noise`.
+`benchmarks/stability.py` computes every reference product exactly, without
+fastCD arithmetic, by converting each binary64 coefficient to an integer times a
+power of two and evaluating the product as a signed sum of coefficient products
+in arbitrary-precision integers. The basis signs used in this reference come
+from the doubling formula in integer arithmetic and are checked on all 341 basis
+pairs through dimension 16 against a separate rational implementation of the
+formula. Norms and errors are evaluated with MPFR at 256 bits, and selected
+products are repeated at 512 bits as a check. The script needs NumPy and gmpy2,
+which the library itself does not use.
+
+### Three computations
+
+Every operand pair is multiplied in three ways:
+
+- **B** is the quasilinear product with balanced accumulation, as fastCD
+  computes it.
+- **S** is the quasilinear product with every long sum added in sequence.
+- **D** is direct multiplication.
+
+S and B perform the same operations and differ only in the order of their
+additions, so comparing them isolates the effect of the summation order, while
+comparing B with D answers the question of this page.
+
+S comes from a build of commit `982b9da`, which adds these sums in sequence, and
+B and D come from a build of commit `93c9bd8`, the source of fastCD 1.5.0. The
+two builds contain the same direct multiplication and return identical direct
+products in every case. Both were compiled with GCC 16.2.1 on Linux, with
+`-O3 -DNDEBUG -fno-fast-math -ffp-contract=off`, so that every operation rounds
+as written and no multiplication is fused with an addition, and the study ran on
+an Intel Xeon Gold 6148.
+
+### Inputs
+
+A *case* is one operand pair at one dimension, multiplied by all three
+computations. The study has 13,584 cases, 6,976 real and 6,608 complex, at real
+dimensions 2 through 2048 and complex dimensions 2 through 512, and they are
+drawn from 21 real and 19 complex *families*, each of which exercises one kind
+of input:
+
+- **Dense:** unit-norm Gaussian and uniform coordinates, the typical case, and
+  exactly representable Rademacher coordinates.
+- **Sparse:** one, four, or `N/8` nonzero coordinates.
+- **Correlated:** `y = x`, and `y = +/-x + 2^-40 noise`.
 - **Cancellation:** a scalar coordinate constructed to cancel, exact dyadic
-  cancellation, and long sums with end terms `±2^53`.
-- **Magnitude:** alternating magnitudes over exponents `[-24, 24]`.
-- **Structure:** scalar-only and imaginary-only operands, and repeated and
-  recursively signed blocks.
+  cancellation, and long sums whose end terms `+/-2^53` cancel each other.
+- **Magnitude:** coordinates whose magnitudes alternate over the exponents `-24`
+  to `24`.
+- **Structure:** scalar-only and imaginary-only operands, and operands built
+  from repeated or recursively signed blocks.
 - **Zero divisors (real, dimension 16 and above):** the exact zero divisor
-  `(e1 + e10)(e4 - e15) = 0`, and perturbations of it by `2^-20`, `2^-40`
-  and `2^-52`.
+  `(e1 + e10)(e4 - e15) = 0`, and perturbations of it by `2^-20`, `2^-40`, and
+  `2^-52`.
 - **Isotropic (complex):** operands with `Q(x) = 0`, exact and perturbed by
   `2^-40`.
 
-Real dimensions run from 2 to 2048 and complex dimensions from 2 to 512,
-with 512 dense cases per dimension through 32 and fewer above. Seeds derive
-from `numpy.random.SeedSequence(20261105, ...)`, and every operand pair is
-stored with the raw results of the study. Some constructed families produce
-the same operands for different seeds, so the 13,584 cases contain 12,572
-distinct operand pairs, and the case counts of those families overstate
-their variety.
+The dense families have 512 cases per dimension through dimension 32, 192 at 64
+and 128, 64 at 256 and 512, and 16 above. Their seeds derive from
+`numpy.random.SeedSequence(20261105, ...)`, and every operand pair is stored
+with the raw results. Some constructed families produce the same operands for
+several seeds, so the 13,584 cases contain 12,572 distinct operand pairs.
 
-### Builds
+## Accuracy of products
 
-The study compared two builds: the sequential build at commit `982b9da` and
-the balanced build at commit `93c9bd8`, the source of fastCD 1.5.0. Both
-were compiled with GCC 16.2.1 on Linux, with `-O3 -DNDEBUG`,
-`-fno-fast-math -ffp-contract=off`, warnings as errors and the default leaf
-cutoffs, and run on an Intel Xeon Gold 6148.
+The tables below are generated by `benchmarks/stability_report.py` from the
+archived results of the *full profile* of the study, its complete run, as
+opposed to the short smoke profile that only tests the tooling. They come in a
+real set and a complex set, each with three views: the three computations on
+dense inputs at every dimension, the growth of the error of B with the
+dimension, and every family at dimension 512.
 
-## Accuracy
-
-### Quasilinear multiplication
-
-The tables below are generated from the archived results by
-`benchmarks/stability_report.py`. The full profile is the complete study, as
-opposed to the short smoke profile used to test the tooling.
+In every table, a cell of the form "S / B / D" gives one statistic for the three
+computations, the column "pairs" counts cases, "p99" is the 99th percentile, and
+the dense rows pool the Gaussian and uniform families. The *scalar error* is the
+absolute error of coordinate 0, the coordinate that the pairing `<X, Y>`
+computes, so it shows the effect of the summation order most directly. "B better
+/ tied" gives the fraction of cases in which B has a smaller error than S and
+the fraction in which the two errors are equal. The growth tables divide the
+median `eta` by two reference rates of growth, `sqrt(N) log2 N` and `N`, and
+give the median and largest relative errors.
 
 <!-- BEGIN STABILITY ACCURACY -->
 
@@ -288,71 +317,105 @@ The archived CSV summary also gives, for every family, the count, the median, me
 
 <!-- END STABILITY ACCURACY -->
 
-On dense inputs the medians barely move; balanced accumulation matters most
-where long sums cancel or repeat. In the long-sum cancellation family at
-dimension 512, the median `eta` falls from 16.0 with sequential accumulation
-to 1.08 with balanced accumulation over R, where direct multiplication gives
-2.87, and from 16.0 to 1.16 over C, where it gives 1.39. For repeated blocks
-over R it falls from 6.7 to 1.9.
+### Reading the tables
 
-No reordering of a sum is more accurate on every input. Pooling the dense
-cases from dimension 32 up, B is more accurate than S in 66% of real and
-73% of complex cases and less accurate in 27% of each. The largest
-increases in `eta` are from 0.60 to 1.83, for a real dimension-16 input
-with `y = -x + 2^-40 noise`, and from 0.30 to 1.45, for a complex
-dimension-4 near-isotropic input. In both, only the error of the scalar
-coordinate grows; the other coordinates are equally accurate with either
-kind of accumulation.
+**Dense inputs.** On dense inputs the three computations are about equally
+accurate: the median `eta` of B is between 0.91 and 1.61 times that of D over R
+and between 1.00 and 1.77 times over C. From dimension 64 on it grows by less
+than 0.2 for each doubling of the dimension, reaching 2.91 at real dimension
+2048, and the largest relative error of B on these inputs is `4.6e-16` over R
+and `4.3e-16` over C, about four unit roundoffs. The sequential sums of S are
+barely less accurate here, because the rounding errors of a long sum of random
+terms tend to cancel one another.
 
-The tables count a case as tied when B and S have the same stored error. Of
-the 7,788 tied cases, 7,573 have exactly equal errors. The other 215 are
-near-zero-divisor cases whose errors differ by less than the precision of
-the stored values; by their exact squared errors, 152 favor balanced and 63
-favor sequential accumulation.
+**Small dimensions.** Over R, S and B are tied in every case through dimension
+8, since no sum there has more than eight terms, so balanced accumulation adds
+every sum in sequence and the two computations perform identical arithmetic. At
+dimension 16 the pairing has 15 terms, and the two computations first differ, in
+the scalar coordinate only. Over C, by contrast, they already differ at
+dimension 4, because B forms the pairing `<X, Y>` before subtracting it from
+`alpha beta`, while S subtracts its terms from `alpha beta` one at a time.
 
-Near a zero divisor the relative error can be large for every method, since
-`E_rel = u eta chi` and `chi` is large there. At perturbation `2^-52` and
-dimension 512, S and B both have a relative error of about 0.64, with `eta`
-about 1.27 and `chi` about `4.5e15`, while D is nearly exact on these sparse
-inputs.
+**Where the order matters.** The order of a sum matters most when its terms are
+structured rather than random. On long sums whose end terms cancel, at dimension
+512, the median `eta` falls from 16.0 with S to 1.08 with B over R, where D
+gives 2.87, and from 16.0 to 1.16 over C, where D gives 1.39. On operands built
+from repeated blocks it falls from 6.7 to 1.9 over R and from 7.8 to 1.9 over C.
 
-### Cariow–Cariowa
+**Largest errors.** The largest `eta` of B anywhere in the corpus is 3.7 over R
+and 4.1 over C, against 2.9 and 2.2 for D and 78 and 18 for S, and both of the
+largest errors of S come from operands built from repeated blocks, at real
+dimension 2048 and complex dimension 512.
 
-Balanced correction sums change Cariow–Cariowa results only at dimensions
-512 and 1024. Of the 6,808 real cases that Cariow–Cariowa supports, 265 are
-more accurate with balanced correction sums, 23 are less accurate and 6,520
-are tied, where ties in the stored errors are decided by exact squared
-errors. Every dense case at 512 and 1024 is more accurate. At 1024 the
-median relative error falls from `6.2e-16` to `4.3e-16` and the median
-`eta` from 5.59 to 3.80, and the largest `eta` among all Cariow–Cariowa
-cases falls from 183 to 80. The largest increase is for a repeated-block
-input at 512, from 35.3 to 41.4. The archived `cc-accuracy-summary.json`
-holds the details.
+**Not better on every input.** No order of summation is the most accurate on
+every input: pooling the dense cases from dimension 32 on, B is more accurate
+than S in 66% of the real and 73% of the complex cases, but less accurate in 27%
+of each. The largest increases in `eta` are from 0.60 to 1.83, for a real
+operand pair at dimension 16 with `y = -x + 2^-40 noise`, and from 0.30 to 1.45,
+for a near-isotropic complex pair at dimension 4, both at dimensions where the
+two computations differ only in the scalar coordinate.
 
-### Fused sums
+**Near zero divisors.** When the exact product is tiny compared with its
+operands, a small `eta` can still mean a large relative error. For the zero
+divisor perturbed by `2^-52` at dimension 512, `chi` is about `4.5e15`, and
+although S and B both have an `eta` of 1.27, an ordinary error for operands of
+these sizes, their relative error is 0.64. Direct multiplication, by contrast,
+is nearly exact on these sparse operands, with a relative error of `9.9e-17`.
 
-[Fused sums](mathematics.md#fused-sums-of-products) were measured
-separately, by `benchmarks/stability_sums.py`, on 689 sums and 84
-covariances of real-coefficient samples at dimensions 1 through 1024. The
-error of a computed sum `S_hat` of `P` products is reported as
+### Cariow-Cariowa
+
+The study also multiplied every real case through dimension 1024 with
+Cariow-Cariowa, in both builds, and balanced correction sums change its results
+only at dimensions 512 and 1024, where a correction sum spans more than one
+block. Of the 6,808 cases, 265 are more accurate with balanced correction sums,
+23 are less accurate, and the rest are equally accurate. Every dense case at
+dimensions 512 and 1024 is more accurate: at 1024 the median `eta` falls from
+5.59 to 3.80, and the median relative error from `6.2e-16` to `4.3e-16`. The
+largest `eta` among all Cariow-Cariowa cases falls from 183 to 80, and the
+largest increase is from 35.3 to 41.4, for an operand pair built from repeated
+blocks at dimension 512. The archived `cc-accuracy-summary.json` holds the
+details.
+
+## Accuracy of fused sums
+
+fastCD also adds up many products in a way whose additions differ from those of
+the products themselves. A *fused sum* computes
+`x_0 y_0 + ... + x_(P-1) y_(P-1)` for `P` pairs of real-coefficient elements
+without forming the products: it accumulates each multiplication of the
+algorithm over all the pairs and applies the algorithm's output additions once,
+to the accumulated values (see [Fused sums of
+products](mathematics.md#fused-sums-of-products)). Its additions therefore run
+in a different order from those of a batch of products followed by a sum: each
+of eight lanes adds its terms in sequence within a block of 64 elements, the
+block totals are added in sequence, and the eight lanes are combined pairwise at
+the end.
+
+A separate study, `benchmarks/stability_sums.py`, measured the accuracy of this
+order on 689 sums and 84 covariances at dimensions 1 through 1024. For a
+computed sum `T_hat` with exact value `T`, it reports
 
 ```text
-eta = ||S_hat - S||_2 / (u sum_p ||x_p||_2 ||y_p||_2),     u = 2^-53.
+eta = ||T_hat - T||_2 / (u sum_p ||x_p||_2 ||y_p||_2),     u = 2^-53,
 ```
 
-The reference uses no fastCD arithmetic. Every term `x_p[i] y_p[j]` is split
-into its rounded product and the exact rounding error, and `math.fsum` adds
-the terms of an output coordinate with a single rounding; a second pass with
-the negated result gives the remainder, so each coordinate is known to about
-106 bits. Exact integer arithmetic checks this reference on 54 cases at
-start and is the reference of the covariance, whose division by the count
-is not a sum of doubles.
+which measures the error against the operand scales of the individual products,
+as the `eta` of a single product does. The reference uses no fastCD arithmetic:
+every term `x_p[i] y_p[j]` is split into its rounded product and the exact
+rounding error, and `math.fsum` adds the terms of an output coordinate with a
+single rounding, while a second pass with the negated result gives the
+remainder, so each coordinate is known to about 106 bits. Exact integer
+arithmetic checks this reference on 54 cases.
 
-Four evaluations are compared: the fused sum with the automatic algorithm;
-a batch of products added in sequence; the same products added with NumPy's
-pairwise `sum`; and the binary64 matrix of cross moments (NumPy 2.5.5
-`matmul`) contracted with the basis signs. Each cell is the median and the
-maximum of `eta` over Gaussian and uniform samples of 1,024 elements.
+The fused sum, with the automatic algorithm, is compared with three other ways
+to compute the same sum:
+
+- **Products, in sequence:** a batch of products added in sequence.
+- **Products, pairwise:** the same products added with NumPy's pairwise `sum`.
+- **Cross moments:** the binary64 matrix of cross moments `sum_p x_p[i] y_p[j]`,
+  computed with NumPy 2.5.5 `matmul` and contracted with the basis signs.
+
+Each cell of the following table is the median and the maximum of `eta` over
+Gaussian and uniform samples of 1,024 elements:
 
 | N | Cases | Fused | Products, in sequence | Products, pairwise | Cross moments |
 | ---: | ---: | --- | --- | --- | --- |
@@ -368,14 +431,16 @@ maximum of `eta` over Gaussian and uniform samples of 1,024 elements.
 | 512 | 4 | 0.14 / 0.14 | 0.30 / 0.34 | 0.10 / 0.10 | 0.28 / 0.29 |
 | 1024 | 2 | 0.15 / 0.15 | 0.30 / 0.31 | 0.10 / 0.10 | 0.35 / 0.35 |
 
-On these samples the fused sum has two to three times less error than
-products added in sequence and somewhat more than products added pairwise:
-it adds the terms of each of its eight lanes in sequence within a block of
-64 elements, which is neither. Its median grows from 0.05 to 0.15 over the
-whole range of dimensions.
+On these samples the median `eta` of the fused sum grows only from 0.05 to 0.15
+over the whole range of dimensions, a third to a half of the error of the
+products added in sequence and up to 1.5 times that of the products added
+pairwise. The advantage over the sequential sum follows from the order of
+additions, since the longest chain of additions in a fused sum is the chain of
+block totals, one addition for every 64 elements, far shorter than a sequential
+sum of 1,024 products.
 
-The other families, pooled over all dimensions with samples of 1,024
-elements, give these maxima of `eta`:
+The differences are larger on the other families, which give these maxima of
+`eta`, pooled over all dimensions with samples of 1,024 elements:
 
 | Family | Cases | Fused | Products, in sequence | Products, pairwise | Cross moments |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -386,21 +451,26 @@ elements, give these maxima of `eta`:
 | element magnitudes `2^-24` to `2^24` | 64 | 0.87 | 2.50 | 0.75 | 2.03 |
 | one nonzero coordinate per element | 56 | 0.12 | 0.73 | 0.09 | 0.27 |
 
-Sums of `±1` coordinates were exact in all 64 cases and every evaluation.
-With samples of 64 and of 4,096 elements at dimensions through 64, the
-largest fused `eta` was 3.44 and 2.04.
+On these structured samples, where the errors of the products do not cancel at
+random, the largest error of the fused sum is 2.60, against up to 21.95 for the
+products added in sequence and 14.89 for the cross moments. The one family not
+shown, sums of `+/-1` coordinates, was exact in all 64 cases and every evaluation.
 
-The explicitly selected direct sum is less accurate at high dimension,
-because each output coordinate receives `N` products per element in two
-chains: its median `eta` on the dense samples is 0.07 at dimension 8, the
-largest at which `AUTO` uses it, and grows to 0.32 at 64 and 1.19 at 1024,
-against 0.11 and 0.15 for the quasilinear sum.
+The choice of algorithm inside a fused sum also matters. The fused sum with the
+direct algorithm, which an explicit request can select at any dimension, is less
+accurate at high dimension, because each of its output coordinates accumulates
+`N` products for every element: on the dense samples its median `eta` is 0.07 at
+dimension 8, the largest at which the automatic algorithm uses it, and grows to
+0.32 at dimension 64 and 1.19 at 1024, against 0.11 and 0.15 for the quasilinear
+sum.
 
-For the covariance the scale is
-`sum_p ||x_p - mean(x)||_2 ||y_p - mean(y)||_2 / (P - 1)`, and
-`fastcd_covariance_f64` is compared with products and with cross moments of
-samples centered beforehand with NumPy, on 28 cases per family at dimensions
-1 through 64:
+The covariance is built on the fused sum: `fastcd_covariance_f64` computes
+`(1 / (P - ddof)) sum_p (x_p - mean(x)) conjugate(y_p - mean(y))` as a fused sum
+of centered records. Its error is measured against the scale
+`sum_p ||x_p - mean(x)||_2 ||y_p - mean(y)||_2 / (P - 1)`, and it is compared
+with products and with cross moments of samples centered beforehand with NumPy,
+on 28 cases per family at dimensions 1 through 64. Each cell is the median and
+the maximum of `eta`:
 
 | Sample | `fastcd_covariance_f64` | Centered products | Centered cross moments |
 | --- | --- | --- | --- |
@@ -409,156 +479,92 @@ samples centered beforehand with NumPy, on 28 cases per family at dimensions
 | `10^9` plus Gaussian | 0.11 / 0.21 | 4,903 / 8,166 | 4,903 / 8,166 |
 
 The covariance keeps its accuracy when the mean is `10^9` times the spread,
-where centering with a rounded mean loses three digits: the library holds
-each mean as the first record and the mean of the differences from it and
-subtracts the two parts separately (see
-[Covariance](mathematics.md#covariance)). `tests/test_fused_sum.c` checks
-the limiting cases exactly: samples translated by `2^53`, and samples at
-`2^1023`, `2^511` and `2^-600`, where the differences from the mean, the
-sum of squares or the squares themselves leave the range of doubles.
+where centering with a rounded mean gives errors of several thousand, because a
+rounded mean of about `10^9` can be off by `6e-8` and that error enters every
+centered value. fastCD avoids this by never forming the mean: it holds it as the
+first record `r` plus the mean `d` of the differences `x_p - r`, and centers
+each record as `(x_p - r) - d`. Since `x_p` and `r` are close, `x_p - r` is
+exact, and `d` is small, so its rounding error is small compared with the spread
+(see [Covariance](mathematics.md#covariance)).
 
-The record and the plane layout returned identical bits in all 689 sums and
-for all three algorithm selections. The study ran the AVX-512 kernel only;
-`tests/test_fused_sum.c` compares the kernels with each other. The results
-and the command are in
-[`benchmark-results/t440-20261120/`](../benchmark-results/t440-20261120/README.md).
+Although the study ran only the AVX-512 kernel, its results also hold for the
+AVX2 kernel and for the portable kernel on targets with a fused multiply-add
+instruction, which return the same bits, as `tests/test_fused_sum.c` checks; on
+other targets the portable kernel rounds each product and addition separately,
+and its results differ in the last bits. Elements stored as records and as
+coordinate planes gave identical bits in all 689 sums, so the results hold for
+both layouts. They also extend to other sample sizes: with samples of 64 and of
+4,096 elements at dimensions through 64, the largest `eta` of the fused sum was
+3.44 and 2.04.
 
-## Cost
+## What balanced accumulation costs
 
-`benchmarks/stability_speed.py` timed both builds with the native benchmark
-runners on separate timing corpora of uniform random operands, on one
-logical CPU, in twelve paired blocks.
-In each block both builds time the same products, and which build goes
-first alternates from block to block. Each observation has two warmup passes
-and a 20 ms calibration target, and every timed product is verified.
+Balanced accumulation keeps the number of operations the same, but storing and
+combining block totals takes time. To measure that cost,
+`benchmarks/stability_speed.py` timed both builds on one logical CPU in twelve
+paired blocks; in each block both builds time the same products, and which build
+goes first alternates from block to block. The two builds contain the same
+direct multiplication, so the ratio of their direct timings, the *direct
+control*, shows how much two builds of identical code differ in time on this
+host, and a cost within its range cannot be told apart from that difference.
 
-In the table, generated by `benchmarks/stability_speed_report.py`, the
-`simd` rows use the default build and the `scalar` rows a build without the
-explicit SIMD kernels. The balanced/sequential ratio and the direct control
-are medians of the twelve per-block ratios. The direct control divides the
-direct time in the balanced build by the direct time in the sequential
-build. The direct code is the same in both, so the control shows how much
-two builds of the same code differ in time on this host.
+From dimension 64 on, balanced accumulation makes real products 1% to 4% slower
+with the default SIMD kernels, close to the direct control's range of 0.96 to
+1.01, and a consistent 9% to 11% slower in builds without the explicit SIMD
+kernels. Complex products are 7% to 12% slower, about as much as their direct
+control of 1.07 to 1.09, so the study cannot separate that cost from the
+difference between builds. Balanced correction sums make Cariow-Cariowa at most
+6% slower at dimensions 512 and 1024. The full tables are in the archived
+`speed-tables.md` and `cc-speed-tables.md`.
 
-<!-- BEGIN STABILITY SPEED PERFORMANCE -->
+## What this means for your code
 
-Paired timings on one host: 12 blocks pinned to CPU 18. Times are medians in ns per product, and brackets are paired bootstrap 95% intervals. The direct control is the ratio of direct timings between the two builds, whose direct arithmetic is identical, so it shows the noise between builds.
-
-| domain | kernels | mode | N | sequential ns | balanced ns | balanced / sequential [95% CI] | direct ns | direct / balanced | direct control |
-|:---|:---|:---|---:|---:|---:|:---|---:|---:|---:|
-| real | simd | single | 16 | 117.1 | 106.1 | 0.9105 [0.9003, 0.9322] | 80.33 | 0.7596 | 0.8855 |
-| real | simd | batch | 16 | 53.55 | 51.52 | 0.9605 [0.9455, 0.9663] | 55.83 | 1.087 | 0.9866 |
-| real | scalar | single | 16 | 119 | 111.9 | 0.9415 [0.936, 0.9561] | 81.52 | 0.7348 | 0.9187 |
-| real | scalar | batch | 16 | 87.35 | 87.63 | 0.9997 [0.9621, 1.014] | 56.05 | 0.6492 | 1.004 |
-| real | simd | single | 64 | 507.3 | 530.6 | 1.043 [1.022, 1.047] | 1150 | 2.165 | 0.9937 |
-| real | simd | batch | 64 | 438.6 | 456.5 | 1.042 [1.038, 1.051] | 1084 | 2.366 | 0.996 |
-| real | scalar | single | 64 | 654.8 | 724.9 | 1.098 [1.09, 1.111] | 1134 | 1.581 | 1.005 |
-| real | scalar | batch | 64 | 625.4 | 685.5 | 1.094 [1.082, 1.104] | 1095 | 1.589 | 1.004 |
-| real | simd | single | 256 | 2658 | 2737 | 1.021 [1.007, 1.039] | 1.772e+04 | 6.5 | 0.9939 |
-| real | simd | batch | 256 | 2601 | 2649 | 1.013 [0.9987, 1.039] | 1.699e+04 | 6.431 | 0.9945 |
-| real | scalar | single | 256 | 3392 | 3731 | 1.107 [1.077, 1.143] | 1.781e+04 | 4.765 | 0.9832 |
-| real | scalar | batch | 256 | 3382 | 3680 | 1.098 [1.079, 1.125] | 1.788e+04 | 4.833 | 0.9911 |
-| real | simd | single | 1024 | 1.434e+04 | 1.479e+04 | 1.023 [1.004, 1.051] | 2.831e+05 | 19.15 | 0.9851 |
-| real | simd | batch | 1024 | 1.433e+04 | 1.49e+04 | 1.028 [1.015, 1.069] | 2.853e+05 | 19.17 | 0.9944 |
-| real | scalar | single | 1024 | 1.762e+04 | 1.951e+04 | 1.101 [1.062, 1.127] | 2.89e+05 | 14.83 | 0.9799 |
-| real | scalar | batch | 1024 | 1.768e+04 | 1.949e+04 | 1.1 [1.078, 1.129] | 2.882e+05 | 14.72 | 0.9568 |
-| complex | simd | single | 16 | 303.3 | 322.5 | 1.056 [1.04, 1.084] | 544.4 | 1.711 | 1.076 |
-| complex | simd | batch | 16 | 268.7 | 291 | 1.086 [1.058, 1.106] | 523.8 | 1.819 | 1.082 |
-| complex | scalar | single | 16 | 301.3 | 318 | 1.063 [1.055, 1.08] | 541.1 | 1.687 | 1.062 |
-| complex | scalar | batch | 16 | 265.8 | 286.8 | 1.082 [1.068, 1.101] | 518.3 | 1.792 | 1.075 |
-| complex | simd | single | 64 | 1558 | 1654 | 1.072 [1.051, 1.114] | 8429 | 5.051 | 1.086 |
-| complex | simd | batch | 64 | 1497 | 1610 | 1.078 [1.065, 1.106] | 8367 | 5.188 | 1.079 |
-| complex | scalar | single | 64 | 1552 | 1674 | 1.076 [1.062, 1.081] | 8483 | 5.079 | 1.075 |
-| complex | scalar | batch | 64 | 1503 | 1623 | 1.077 [1.063, 1.085] | 8412 | 5.184 | 1.073 |
-| complex | simd | single | 256 | 8023 | 8836 | 1.098 [1.082, 1.127] | 1.351e+05 | 15.28 | 1.081 |
-| complex | simd | batch | 256 | 7932 | 8762 | 1.115 [1.083, 1.134] | 1.35e+05 | 15.55 | 1.087 |
-| complex | scalar | single | 256 | 7999 | 8687 | 1.081 [1.069, 1.102] | 1.349e+05 | 15.5 | 1.071 |
-| complex | scalar | batch | 256 | 7896 | 8634 | 1.094 [1.072, 1.118] | 1.354e+05 | 15.71 | 1.071 |
-
-<!-- END STABILITY SPEED PERFORMANCE -->
-
-For real products the direct control lies between 0.89 and 1.01, and
-between 0.96 and 1.01 from dimension 64 up, so differences of a few percent
-are noise between builds. From dimension 64 up, balanced accumulation costs
-1–4% on the default build, close to that range, and a consistent 9–11% on
-builds without the SIMD kernels, outside it. For complex products the cost,
-7–11% from dimension 64 up, is about the size of the complex control, 1.06
-to 1.09, so this study cannot separate it from the difference between
-builds. Even with balanced
-accumulation, quasilinear multiplication is about 19 times faster than
-direct multiplication at dimension 1024.
-
-Cariow–Cariowa was timed the same way, with balanced correction sums against
-the single-block correction sums of the sequential build; the archived
-`cc-speed-tables.md` holds the table. Its direct control lies between 0.88
-and 1.03. Six ratios exceed that range, by at most 4%: without the SIMD
-kernels, single products at dimensions 16, 512 and 1024 (1.06, 1.05 and
-1.05), and on the default build, batches at 256 and 512 (1.03 and 1.04) and
-single products at 1024 (1.06). The other ratios at 512 and 1024 lie
-between 1.00 and 1.03.
-
-Blocks of 4, 8 and 16 were timed with the same runners
-(`benchmarks/stability_block_size.py`; archived in `block-size-tables.md`).
-Blocks of 4 were 2–9% slower than blocks of 8 and never measurably
-faster. Blocks of 16 were up to 6% faster on real products and within 2% of
-blocks of 8 on complex products. The default is 8.
-
-## Tests and checks
-
-- `tests/test_stability.c` (CTest `fastcd.stability`) checks the summation
-  tree against an independent recursive description for every length from 0
-  to 2051, including signed zeros and the helpers that accumulate two or
-  three sums together. It then checks real and complex single products and
-  odd-length strided batches at dimensions 2 through 512 against a
-  signed-XOR oracle on exact dyadic inputs, with workspace canaries, minimum
-  and short workspaces, and forbidden aliasing. CI runs it with GCC and
-  Clang on Linux, Clang on macOS and MSVC on Windows.
-- `tools/check_quasilinear_counts.py` confirms the operation counts in
-  [mathematics.md](mathematics.md#operation-counts) through dimension 1024.
-- `tests/test_fused_sum.c` (CTest `fastcd.fused_sum`) checks the fused sums
-  on exact dyadic inputs, where every algorithm and both layouts must equal
-  the summed reference products exactly, at dimensions 1 through 256 and
-  counts on both sides of every group and block boundary. On rounded inputs
-  it requires the AVX-512 kernel, the AVX2 kernel and a portable kernel
-  built with `fma()` to return identical bits in both layouts, runs the
-  kernel source with separately rounded products as well, and requires the
-  public functions to return the bits of one of the two. It checks the
-  covariance against a long double evaluation and, exactly, on translated
-  samples and on samples near the ends of the exponent range.
-- The study compared the scalar, SIMD, single-product and batched forms of
-  quasilinear multiplication bit for bit in all 13,584 cases (40,752
-  comparisons), and the same four forms of Cariow–Cariowa in all 6,808 real
-  cases through dimension 1024 (20,424 comparisons), with no mismatches. It
-  also checked that the two builds give bit-for-bit identical direct
-  products in every case.
+- **Use the default algorithms.** On dense inputs the median error of the
+  quasilinear product is at most 1.6 times that of direct multiplication over R
+  and 1.8 times over C, and its largest error in the whole corpus is 3.7 over R
+  and 4.1 over C, in units of `u ||x||_2 ||y||_2`.
+- **Prefer the default to Cariow-Cariowa at high dimensions.** Even with
+  balanced correction sums, its median `eta` on dense inputs at dimension 1024
+  is 3.80, against 2.73 for the quasilinear product.
+- **Judge nearly vanishing products by `eta`.** When a product can be much
+  smaller than its operands, as near a zero divisor, its error stays small
+  compared with `||x||_2 ||y||_2`, but its relative error can be large with any
+  algorithm.
+- **Sum many products with a fused sum.** On every family measured that rounds
+  at all, its median error is below that of a batch of products added in
+  sequence.
+- **Expect identical bits only within one build and algorithm.** Single
+  products, batches, and the scalar and SIMD kernels return identical results,
+  but different algorithms, releases, and compilers can round differently.
 
 ## Limitations
 
-- The study is empirical. Its medians and maxima describe this corpus, not
-  all inputs, and they do not show that quasilinear multiplication is as
-  accurate as direct multiplication on every input. Nothing was measured
-  above real dimension 2048 or complex dimension 512, or with overflow,
-  underflow, subnormals, infinities, NaNs or non-default rounding modes.
-- Composite operations (associators, operator commutators, reciprocals)
-  multiply already-rounded intermediates and were not measured; the product
-  results above do not describe them.
-- The fused sums were measured on real samples of 64 to 4,096 elements with
-  the AVX-512 kernel, at most 16 cases per dimension and family, and their
+- The study is empirical. Its medians and maxima describe this corpus, not all
+  inputs, and they do not show that the quasilinear product is as accurate as
+  direct multiplication on every input.
+- Nothing was measured above real dimension 2048 or complex dimension 512, or
+  with overflow, underflow, subnormal numbers, infinities, NaNs, or nondefault
+  rounding modes.
+- Associators, operator commutators, and reciprocals multiply rounded
+  intermediate results and were not measured, so the results for products do not
+  describe them.
+- The fused sums were measured on real samples of 64 to 4,096 elements with the
+  AVX-512 kernel, with at most 16 cases per dimension and family, and the
   covariance only through dimension 64.
-- Accuracy and timings were measured only with GCC on Linux. Other compilers
-  run the regression test in CI but were not part of the study.
-- Bitwise agreement across versions or across compilers is not promised.
+- Accuracy and timings were measured only with GCC on Linux.
 
-## Archives and reproduction
+## Checking and reproducing the results
 
-The study is in
+The study of products is archived in
 [`benchmark-results/stability-20261120/`](../benchmark-results/stability-20261120/README.md),
-whose README lists every file. Its published files are in the repository and
-the source distributions: summaries, tables, charts, build records, and
-`key-figures.json`, which holds the key figures quoted on this page. Raw
-per-case results, stored operands, timing observations and logs are under
-`raw/`; they stay on the machine that ran the study and are not distributed.
-`SHA256SUMS` lists both.
+whose README lists every file. Its published files are part of the repository
+and the source distributions: the summaries, the tables, the charts, the build
+records, and `key-figures.json`, which holds the figures quoted on this page.
+The raw per-case results, the stored operands, the timing observations, and the
+logs are under `raw/` and are not distributed, although `SHA256SUMS` lists both
+kinds. The fused-sum study is archived separately, with its results and the
+command that produced them, in
+[`benchmark-results/t440-20261120/`](../benchmark-results/t440-20261120/README.md).
 
 To check the study, run from the repository root:
 
@@ -566,32 +572,42 @@ To check the study, run from the repository root:
 python3 tools/check_stability_archives.py
 ```
 
-The checker uses only the Python standard library. It compares every
-published file with `SHA256SUMS`, checks that the tables on this page are the
-tables of the study, and, when the git history is available, checks that the
-measured commit contains exactly the source files the study recorded. With
-`--full` it also requires the raw files, checks their hashes and regenerates
-the tables from the raw results; this mode needs NumPy.
+The checker uses only the Python standard library. It compares every published
+file with `SHA256SUMS`, checks that the tables on this page are the tables of
+the study, and, when the git history is available, checks that the measured
+commit contains exactly the source files that the study recorded. With `--full`
+it also requires the raw files, checks their hashes, and regenerates the tables
+from the raw results, which needs NumPy.
 
-To repeat the study, run `benchmarks/stability_study.py` with a Python that
-has NumPy, gmpy2 and Matplotlib:
+To repeat the study, run `benchmarks/stability_study.py` with a Python that has
+NumPy, gmpy2, and Matplotlib:
 
 ```sh
 python3 benchmarks/stability_study.py --baseline-commit 982b9da --commit 93c9bd8 \
     --output benchmark-results/stability-YYYYMMDD --cpu CPU --accuracy-cpu CPU
 ```
 
-Commit `982b9da` has sequential accumulation and `93c9bd8` is the measured
-commit. The script builds both from clean worktrees, pins the timings and the
+The script builds both commits from clean worktrees, pins the timings and the
 accuracy study to the given logical CPUs, runs every step, and writes the
-README, the tables and `SHA256SUMS`; `--document docs/stability.md` also
-rewrites the tables on this page. Running the same command again resumes an
+README, the tables, and `SHA256SUMS`; with `--document docs/stability.md` it
+also rewrites the tables on this page. Running the same command again resumes an
 interrupted study and skips the finished steps.
 
-Operands come from the recorded seeds through NumPy's `Generator`, whose
-distribution methods are not guaranteed to be bit-identical across NumPy
-versions. On another NumPy version the random families, and with them the
-dense rows of the tables, can differ slightly. The structured families and
-the exact reference are not affected. The raw results record a digest of all
-measured operands, against which a rerun can be checked where those files
-are available.
+A rerun on another version of NumPy can draw slightly different random operands,
+because NumPy does not guarantee that the distribution methods of its
+`Generator` return identical bits across versions. The dense rows of the tables
+can then differ slightly, while the structured families and the exact reference
+are unaffected, and the raw results record a digest of all measured operands
+against which a rerun can be checked where those files are available.
+
+The test suite guards the properties that the study relies on.
+`tests/test_stability.c` (CTest `fastcd.stability`) checks balanced accumulation
+against an independent recursive description for every sum length from 0 to
+2051, and checks real and complex products at dimensions 2 through 512 against
+an exact oracle on dyadic inputs. `tests/test_fused_sum.c` (CTest
+`fastcd.fused_sum`) checks that every fused-sum kernel and layout returns the
+exact sum on dyadic inputs and identical bits on rounded inputs, and checks the
+covariance exactly on samples translated by `2^53` and on samples near `2^1023`,
+`2^511`, and `2^-600`, where the differences, the sums of squares, or the
+squares leave the range of doubles. CI runs both tests with GCC and Clang on
+Linux, Clang on macOS, and MSVC on Windows.
