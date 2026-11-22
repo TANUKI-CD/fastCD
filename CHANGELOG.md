@@ -9,7 +9,7 @@ All notable changes to fastCD are recorded in this file. The project follows
 
 ### Changed
 
-- Rewrote documentation for increased flow, clarity, and readability.
+- Rewrote all docs pages for increased flow, clarity, and readability.
 - Reorganized README and shortened some sections.
 
 ## [1.5.0] - 2026-11-21
