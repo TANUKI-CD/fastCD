@@ -227,7 +227,7 @@ The largest error in the whole corpus is 3.7 over R and 4.1 over C, against 2.9 
 - [Python quick start](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/quickstart-python.md) and
   [Python API reference](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/python-api.md)
 - [Conventions and results](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/mathematics.md)
-- [Benchmark](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md)
+- [Benchmarks](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/benchmark.md)
 - [Numerical stability](https://git.tanuki-cd.com/algebraity/fastCD/src/branch/main/docs/stability.md)
 
 ## License and Attribution

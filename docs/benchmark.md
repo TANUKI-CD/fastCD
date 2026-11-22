@@ -1,4 +1,4 @@
-# Benchmark
+# Benchmarks
 
 fastCD multiplies with three algorithms, and the library chooses among them
 automatically by dimension. Direct multiplication and the algorithm of Cariow
